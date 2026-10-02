@@ -120,6 +120,15 @@ func (s *Server) funcs(lang string) template.FuncMap {
 		"active": func(path, prefix string) bool {
 			return path == prefix || (prefix != "/admin" && strings.HasPrefix(path, prefix+"/"))
 		},
+		// inSecurity: the pages of the Security entry of the sidebar.
+		"inSecurity": func(path string) bool {
+			for _, p := range []string{"/me/security", "/me/2fa", "/me/recovery-codes"} {
+				if path == p || strings.HasPrefix(path, p+"/") {
+					return true
+				}
+			}
+			return false
+		},
 		"dnq":  func(dn string) template.URL { return template.URL(url.QueryEscape(dn)) },
 		"join": strings.Join,
 		"level": func(n int) string {

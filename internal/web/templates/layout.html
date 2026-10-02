@@ -18,32 +18,72 @@
     <a class="brand" href="/" data-e2e="nav-link-home"><img src="/static/logo.svg" alt="" width="28" height="28"><span>Samba Conductor</span></a>
     {{if .User}}<span class="who" data-e2e="nav-text-user">{{.User.Name}}{{range .User.Roles}} · {{t (print "role." .)}}{{end}}</span>{{end}}
   </div>
-  {{if .User}}
-  <nav class="nav" aria-label="{{t "nav.label"}}">
-    <ul>
-      {{if has .Nav "dashboard"}}<li><a href="/admin" data-e2e="nav-link-dashboard"{{if eq .Path "/admin"}} aria-current="page"{{end}}>{{t "nav.dashboard"}}</a></li>{{end}}
-      {{if has .Nav "users.read"}}<li><a href="/admin/users" data-e2e="nav-link-users"{{if active .Path "/admin/users"}} aria-current="page"{{end}}>{{t "nav.users"}}</a></li>{{end}}
-      {{if has .Nav "dir.read"}}<li><a href="/admin/groups" data-e2e="nav-link-groups"{{if active .Path "/admin/groups"}} aria-current="page"{{end}}>{{t "nav.groups"}}</a></li>
-      <li><a href="/admin/ous" data-e2e="nav-link-ous"{{if active .Path "/admin/ous"}} aria-current="page"{{end}}>{{t "nav.ous"}}</a></li>
-      <li><a href="/admin/computers" data-e2e="nav-link-computers"{{if active .Path "/admin/computers"}} aria-current="page"{{end}}>{{t "nav.computers"}}</a></li>{{end}}
-      {{if has .Nav "audit.read"}}<li><a href="/admin/audit" data-e2e="nav-link-audit"{{if active .Path "/admin/audit"}} aria-current="page"{{end}}>{{t "nav.audit"}}</a></li>{{end}}
-      {{if has .Nav "health.read"}}<li><a href="/admin/lockouts" data-e2e="nav-link-lockouts"{{if active .Path "/admin/lockouts"}} aria-current="page"{{end}}>{{t "nav.lockouts"}}</a></li>
-      <li><a href="/admin/health" data-e2e="nav-link-health"{{if active .Path "/admin/health"}} aria-current="page"{{end}}>{{t "nav.health"}}</a></li>{{end}}
-      {{if has .Nav "dns.read"}}<li><a href="/admin/dns" data-e2e="nav-link-dns"{{if active .Path "/admin/dns"}} aria-current="page"{{end}}>{{t "nav.dns"}}</a></li>{{end}}
-      {{if has .Nav "gpo.read"}}<li><a href="/admin/gpo" data-e2e="nav-link-gpo"{{if active .Path "/admin/gpo"}} aria-current="page"{{end}}>{{t "nav.gpo"}}</a></li>{{end}}
-      {{if has .Nav "policy.read"}}<li><a href="/admin/policy" data-e2e="nav-link-policy"{{if active .Path "/admin/policy"}} aria-current="page"{{end}}>{{t "nav.policy"}}</a></li>{{end}}
-      {{if has .Nav "bulk"}}<li><a href="/admin/bulk" data-e2e="nav-link-bulk"{{if active .Path "/admin/bulk"}} aria-current="page"{{end}}>{{t "nav.bulk"}}</a></li>{{end}}
-      {{if has .Nav "domain.read"}}<li><a href="/admin/domain" data-e2e="nav-link-domain"{{if active .Path "/admin/domain"}} aria-current="page"{{end}}>{{t "nav.domain"}}</a></li>{{end}}
-      <li class="sep"><a href="/me" data-e2e="nav-link-me"{{if or (eq .Path "/me") (active .Path "/me")}} aria-current="page"{{end}}>{{t "nav.me"}}</a></li>
-      <li><form method="post" action="/signout">{{template "csrf" .}}<button type="submit" data-e2e="nav-btn-signout">{{t "nav.signout"}}</button></form></li>
-    </ul>
-  </nav>
-  {{end}}
 </header>
+<div class="shell{{if .User}} has-nav{{end}}">
+{{if .User}}
+<nav class="sidenav" aria-label="{{t "nav.label"}}">
+  <details class="sidenav-box">
+    <summary data-e2e="nav-btn-menu"><span>{{t "nav.menu"}}</span></summary>
+    <div class="sidenav-body">
+      {{if has .Nav "dashboard"}}<div class="nav-group" data-e2e="nav-group-overview">
+        <h2 class="nav-heading">{{t "nav.group.overview"}}</h2>
+        <ul>
+          <li><a href="/admin" data-e2e="nav-link-dashboard"{{if eq .Path "/admin"}} aria-current="page"{{end}}>{{t "nav.dashboard"}}</a></li>
+        </ul>
+      </div>{{end}}
+      {{if or (has .Nav "users.read") (has .Nav "dir.read")}}<div class="nav-group" data-e2e="nav-group-directory">
+        <h2 class="nav-heading">{{t "nav.group.directory"}}</h2>
+        <ul>
+          {{if has .Nav "users.read"}}<li><a href="/admin/users" data-e2e="nav-link-users"{{if active .Path "/admin/users"}} aria-current="page"{{end}}>{{t "nav.users"}}</a></li>{{end}}
+          {{if has .Nav "dir.read"}}<li><a href="/admin/groups" data-e2e="nav-link-groups"{{if active .Path "/admin/groups"}} aria-current="page"{{end}}>{{t "nav.groups"}}</a></li>
+          <li><a href="/admin/ous" data-e2e="nav-link-ous"{{if active .Path "/admin/ous"}} aria-current="page"{{end}}>{{t "nav.ous"}}</a></li>
+          <li><a href="/admin/computers" data-e2e="nav-link-computers"{{if active .Path "/admin/computers"}} aria-current="page"{{end}}>{{t "nav.computers"}}</a></li>{{end}}
+        </ul>
+      </div>{{end}}
+      {{if or (has .Nav "gpo.read") (has .Nav "policy.read")}}<div class="nav-group" data-e2e="nav-group-policies">
+        <h2 class="nav-heading">{{t "nav.group.policies"}}</h2>
+        <ul>
+          {{if has .Nav "gpo.read"}}<li><a href="/admin/gpo" data-e2e="nav-link-gpo"{{if active .Path "/admin/gpo"}} aria-current="page"{{end}}>{{t "nav.gpo"}}</a></li>{{end}}
+          {{if has .Nav "policy.read"}}<li><a href="/admin/policy" data-e2e="nav-link-policy"{{if active .Path "/admin/policy"}} aria-current="page"{{end}}>{{t "nav.policy"}}</a></li>{{end}}
+        </ul>
+      </div>{{end}}
+      {{if has .Nav "dns.read"}}<div class="nav-group" data-e2e="nav-group-network">
+        <h2 class="nav-heading">{{t "nav.group.network"}}</h2>
+        <ul>
+          <li><a href="/admin/dns" data-e2e="nav-link-dns"{{if active .Path "/admin/dns"}} aria-current="page"{{end}}>{{t "nav.dns"}}</a></li>
+        </ul>
+      </div>{{end}}
+      {{if or (has .Nav "health.read") (has .Nav "bulk")}}<div class="nav-group" data-e2e="nav-group-operations">
+        <h2 class="nav-heading">{{t "nav.group.operations"}}</h2>
+        <ul>
+          {{if has .Nav "health.read"}}<li><a href="/admin/lockouts" data-e2e="nav-link-lockouts"{{if active .Path "/admin/lockouts"}} aria-current="page"{{end}}>{{t "nav.lockouts"}}</a></li>
+          <li><a href="/admin/health" data-e2e="nav-link-health"{{if active .Path "/admin/health"}} aria-current="page"{{end}}>{{t "nav.health"}}</a></li>{{end}}
+          {{if has .Nav "bulk"}}<li><a href="/admin/bulk" data-e2e="nav-link-bulk"{{if active .Path "/admin/bulk"}} aria-current="page"{{end}}>{{t "nav.bulk"}}</a></li>{{end}}
+        </ul>
+      </div>{{end}}
+      {{if or (has .Nav "audit.read") (has .Nav "domain.read")}}<div class="nav-group" data-e2e="nav-group-audit">
+        <h2 class="nav-heading">{{t "nav.group.audit"}}</h2>
+        <ul>
+          {{if has .Nav "audit.read"}}<li><a href="/admin/audit" data-e2e="nav-link-audit"{{if active .Path "/admin/audit"}} aria-current="page"{{end}}>{{t "nav.audit"}}</a></li>{{end}}
+          {{if has .Nav "domain.read"}}<li><a href="/admin/domain" data-e2e="nav-link-domain"{{if active .Path "/admin/domain"}} aria-current="page"{{end}}>{{t "nav.domain"}}</a></li>{{end}}
+        </ul>
+      </div>{{end}}
+      <div class="nav-group nav-foot" data-e2e="nav-group-account">
+        <ul>
+          <li><a href="/me" data-e2e="nav-link-me"{{if and (active .Path "/me") (not (inSecurity .Path))}} aria-current="page"{{end}}>{{t "nav.me"}}</a></li>
+          <li><a href="/me/security" data-e2e="nav-link-security"{{if inSecurity .Path}} aria-current="page"{{end}}>{{t "nav.security"}}</a></li>
+          <li><form method="post" action="/signout">{{template "csrf" .}}<button type="submit" data-e2e="nav-btn-signout">{{t "nav.signout"}}</button></form></li>
+        </ul>
+      </div>
+    </div>
+  </details>
+</nav>
+{{end}}
 <main id="main">
 {{range .Flashes}}<div class="flash flash-{{.Kind}}" role="status" data-e2e="flash-{{.Kind}}">{{.Msg}}</div>{{end}}
 {{template "content" .}}
 </main>
+</div>
 <footer>
   <div class="prefs">
     <span>{{t "footer.language"}}: <a href="?lang=en" data-e2e="footer-link-lang-en" lang="en">English</a> · <a href="?lang=pt-BR" data-e2e="footer-link-lang-pt-br" lang="pt-BR">Português (Brasil)</a></span>

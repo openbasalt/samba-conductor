@@ -1,9 +1,9 @@
-import { test, expect, env, shot, signInMFA, apply, rand } from './helpers';
+import { test, expect, env, shot, signInMFA, apply, rand, navTo } from './helpers';
 
 test.describe.serial('DNS', () => {
   test('zones and records; AD records are read-only', async ({ page }, info) => {
     await signInMFA(page, info, 'lab.admin', env.adminPassword);
-    await page.getByTestId('nav-link-dns').click();
+    await navTo(page, 'dns');
     await expect(page.getByTestId('dns-table-zones')).toBeVisible();
     // DCs are discovered from the directory, never configured by name.
     await expect(page.getByTestId('dns-text-dcs')).toContainText('dc1.lab.conductor.test');

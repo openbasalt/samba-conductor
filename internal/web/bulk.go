@@ -410,21 +410,36 @@ func (s *Server) runJob(job *bulkJob, cred *directory.Credential, actx *reqCtx) 
 		ctx, cancel := context.WithTimeout(bg, rowTimeout)
 		status, msg := store.RowOK, ""
 		var err error
-		if conn == nil {
-			conn, err = s.backend.Connect(ctx, cred)
-		}
 		done := 0
-		if err == nil {
+		var perDC []ad.DCResult
+		{
 			for _, op := range row.ops {
-				if err = conn.Apply(ctx, op); err != nil {
+				if len(op.DCs()) > 0 {
+					// Written on every DC with its own bindings.
+					var res []ad.DCResult
+					res, err = s.applyOnEveryDC(ctx, cred, op)
+					perDC = append(perDC, res...)
+				} else {
+					if conn == nil {
+						if conn, err = s.backend.Connect(ctx, cred); err != nil {
+							break
+						}
+					}
+					err = conn.Apply(ctx, op)
+				}
+				if err != nil {
 					break
 				}
 				done++
 			}
 		}
+		if len(perDC) > 0 {
+			// The report names what happened on every DC.
+			msg = dcReport(actx.T, perDC)
+		}
 		if err != nil {
 			status = store.RowFailed
-			msg = actx.T(s.adErrorKey(err))
+			msg = s.errMessage(actx.T, err)
 			if done > 0 {
 				msg = fmt.Sprintf("%s (%d/%d)", msg, done, len(row.ops))
 			}
@@ -449,7 +464,10 @@ func (s *Server) runJob(job *bulkJob, cred *directory.Credential, actx *reqCtx) 
 			result = resultOf(err)
 		}
 		detail := fmt.Sprintf("job %s row %d\n%s", job.ID, row.No, row.Preview)
-		if msg != "" {
+		if len(perDC) > 0 {
+			detail += "\n# per DC: " + dcReport(func(k string, a ...any) string { return s.cat.T("en", k, a...) }, perDC)
+		}
+		if msg != "" && status != store.RowOK {
 			detail += "\n# error: " + msg
 		}
 		s.audit(bg, actx, "bulk."+job.Kind, row.Target, detail, result)

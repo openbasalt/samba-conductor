@@ -308,3 +308,103 @@ func objectBySAM(ctx context.Context, conn *ad.Conn, sam string) (string, error)
 	}
 	return entries[0].DN, nil
 }
+
+// dcApplyError is the failure of an operation written on every DC (see
+// ad.ApplyOnDCs): the results of all DCs, at least one with an error. A DC
+// that failed is reported, never skipped.
+type dcApplyError struct {
+	results []ad.DCResult
+}
+
+func (e *dcApplyError) Error() string {
+	return "failed on " + strings.Join(e.hosts(false), ", ")
+}
+
+// Unwrap exposes each DC's error so errors.Is classifies the failure
+// (access denied on any DC is access denied).
+func (e *dcApplyError) Unwrap() []error {
+	var out []error
+	for _, r := range e.results {
+		if r.Err != nil {
+			out = append(out, r.Err)
+		}
+	}
+	return out
+}
+
+// hosts lists the DCs that were written (ok) or failed (!ok).
+func (e *dcApplyError) hosts(ok bool) []string { return dcHosts(e.results, ok) }
+
+func dcHosts(results []ad.DCResult, ok bool) []string {
+	var out []string
+	for _, r := range results {
+		if (r.Err == nil) == ok {
+			out = append(out, r.Host)
+		}
+	}
+	return out
+}
+
+// applyOnEveryDC writes op on each of its DCs with the user's credential
+// (each DC is bound as the user, so AD's ACLs apply per DC) and returns
+// the per-DC results; the error is a *dcApplyError when any DC failed.
+func (s *Server) applyOnEveryDC(ctx context.Context, cred *directory.Credential, op *ad.Operation) ([]ad.DCResult, error) {
+	if cred == nil {
+		return nil, directory.ErrCredentialClosed
+	}
+	results := ad.ApplyOnDCs(ctx, op, func(ctx context.Context, host string) (*ad.Conn, error) {
+		return s.backend.ConnectTo(ctx, cred, host)
+	})
+	if len(dcHosts(results, false)) > 0 {
+		for _, r := range results {
+			if r.Err != nil {
+				s.log.Warn("operation failed on a DC", "dc", r.Host, "err", r.Err)
+			}
+		}
+		return results, &dcApplyError{results: results}
+	}
+	return results, nil
+}
+
+// dcReport is the per-DC outcome as one line for the audit log and the
+// job report ("dc1: applied; dc2: failed").
+func dcReport(t func(string, ...any) string, results []ad.DCResult) string {
+	parts := make([]string, 0, len(results))
+	for _, r := range results {
+		key := "dc.result.ok"
+		if r.Err != nil {
+			key = "dc.result.failed"
+		}
+		parts = append(parts, r.Host+": "+t(key))
+	}
+	return strings.Join(parts, "; ")
+}
+
+// errMessage is the translated message of an operation error: the generic
+// one by kind, or, for a per-DC failure, which DCs were and were not written.
+func (s *Server) errMessage(t func(string, ...any) string, err error) string {
+	var de *dcApplyError
+	if errors.As(err, &de) {
+		if ok := de.hosts(true); len(ok) > 0 {
+			return t("err.dc_partial", strings.Join(ok, ", "), strings.Join(de.hosts(false), ", "))
+		}
+		return t("err.dc_none", strings.Join(de.hosts(false), ", "))
+	}
+	return t(s.adErrorKey(err))
+}
+
+// writableDCHosts lists the DNS names of the domain's writable DCs, found
+// in the directory (read-only DCs refuse writes).
+func writableDCHosts(ctx context.Context, conn *ad.Conn) ([]string, error) {
+	dcs, err := conn.DomainControllers(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var out []string
+	for _, d := range dcs {
+		if d.DNSHost != "" && !d.ReadOnly {
+			out = append(out, d.DNSHost)
+		}
+	}
+	return out, nil
+}

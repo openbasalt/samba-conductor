@@ -649,5 +649,17 @@
   "users.new": "New user",
   "users.search_hint": "Username, name or email starts with…",
   "users.status": "Status",
-  "users.status.all": "All"
+  "users.status.all": "All",
+  "dc.result.ok": "applied",
+  "dc.result.failed": "failed",
+  "err.dc_partial": "Applied on {0} but not on {1}. Try again, or check that every domain controller is reachable.",
+  "err.dc_none": "Not applied: could not write on {0}.",
+  "nav.menu": "Menu",
+  "nav.security": "Security",
+  "nav.group.overview": "Overview",
+  "nav.group.directory": "Directory",
+  "nav.group.policies": "Policies",
+  "nav.group.network": "Network",
+  "nav.group.operations": "Operations",
+  "nav.group.audit": "Audit"
 }

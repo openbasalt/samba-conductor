@@ -214,7 +214,13 @@ func (s *Server) handleConfirm(rc *reqCtx) {
 	delete(rc.sess.pending, p.id)
 	rc.sess.mu.Unlock()
 	var err error
-	if p.op != nil {
+	var perDC []ad.DCResult
+	if p.op != nil && len(p.op.DCs()) > 0 {
+		rc.sess.mu.Lock()
+		cred := rc.sess.cred
+		rc.sess.mu.Unlock()
+		perDC, err = s.applyOnEveryDC(ctx, cred, p.op)
+	} else if p.op != nil {
 		err = rc.withConn(ctx, func(conn *ad.Conn) error { return conn.Apply(ctx, p.op) })
 	} else {
 		err = p.run(ctx, rc)
@@ -223,11 +229,14 @@ func (s *Server) handleConfirm(rc *reqCtx) {
 	if p.reauth {
 		detail = "[re-authenticated]\n" + detail
 	}
+	if len(perDC) > 0 {
+		detail += "\n# per DC: " + dcReport(func(k string, a ...any) string { return rc.s.cat.T("en", k, a...) }, perDC)
+	}
 	if err != nil {
 		key := s.adErrorKey(err)
 		s.log.Warn("operation failed", "action", p.action, "target", p.target, "user", rc.sess.sam, "err", err)
 		s.audit(ctx, rc, p.action, p.target, detail+"\n# error: "+key, resultOf(err))
-		rc.flashErr(key)
+		rc.sess.addFlash("error", s.errMessage(rc.T, err))
 		rc.redirect(p.back)
 		return
 	}

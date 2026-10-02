@@ -43,19 +43,42 @@ a:hover { text-decoration-thickness: 2px; }
 .brand { display: flex; align-items: center; gap: .5rem; color: var(--fg); text-decoration: none; font-weight: 650; }
 .brand img { display: block; }
 .who { margin-left: auto; color: var(--muted); font-size: .875rem; text-align: right; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.nav { border-top: 1px solid var(--border); }
-.nav ul { list-style: none; margin: 0 auto; padding: 0 .5rem; max-width: 1200px; display: flex; gap: .25rem; overflow-x: auto; scrollbar-width: thin; }
-.nav li { flex: 0 0 auto; }
-.nav a, .nav button {
-  display: block; padding: .65rem .75rem; color: var(--muted); text-decoration: none; font: inherit; font-size: .95rem;
-  border: 0; background: none; cursor: pointer; border-bottom: 2px solid transparent; white-space: nowrap;
+/* Grouped sidebar on desktop; on phones a native <details> "Menu" (no JavaScript). */
+.shell { width: 100%; max-width: 1200px; margin: 0 auto; flex: 1; display: flex; flex-direction: column; }
+.shell main { max-width: none; margin: 0; min-width: 0; }
+.sidenav { background: var(--surface); border-bottom: 1px solid var(--border); }
+.sidenav-box > summary {
+  list-style: none; cursor: pointer; padding: .7rem 1rem; font-weight: 600; display: flex; align-items: center; gap: .5rem;
 }
-.nav a[aria-current="page"] { color: var(--fg); border-bottom-color: var(--accent); }
-.nav a:hover, .nav button:hover { color: var(--fg); }
-.nav form { margin: 0; }
-.nav .sep { margin-left: auto; }
+.sidenav-box > summary::-webkit-details-marker { display: none; }
+.sidenav-box > summary::before { content: ""; width: 1.1rem; height: .8rem; flex: none;
+  background: linear-gradient(var(--fg) 0 2px, transparent 2px 6px, var(--fg) 6px 8px, transparent 8px 12px, var(--fg) 12px 14px) center / 100% 14px no-repeat; }
+.sidenav-box[open] > summary { border-bottom: 1px solid var(--border); }
+.sidenav-body { padding: .5rem 1rem 1rem; }
+.nav-group { margin-top: .75rem; }
+.nav-heading { margin: 0 0 .15rem; padding: 0 .5rem; font-size: .72rem; font-weight: 650; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+.nav-group ul { list-style: none; margin: 0; padding: 0; }
+.sidenav a, .sidenav button {
+  display: block; width: 100%; text-align: left; padding: .55rem .5rem; color: var(--muted); text-decoration: none; font: inherit; font-size: .95rem;
+  border: 0; border-left: 3px solid transparent; background: none; cursor: pointer; border-radius: 6px;
+}
+.sidenav a[aria-current="page"] { color: var(--fg); background: var(--accent-soft); border-left-color: var(--accent); font-weight: 600; }
+.sidenav a:hover, .sidenav button:hover { color: var(--fg); background: var(--surface-2); }
+.sidenav form { margin: 0; }
+.nav-foot { margin-top: 1rem; padding-top: .5rem; border-top: 1px solid var(--border); }
+@media (min-width: 900px) {
+  .shell.has-nav { max-width: 1440px; flex-direction: row; align-items: flex-start; gap: 1.25rem; padding: 0 1rem; }
+  .shell.has-nav main { flex: 1; padding: 1rem 0; }
+  .sidenav { flex: 0 0 14.5rem; position: sticky; top: 0; max-height: 100vh; overflow-y: auto; border: 0; background: none; padding-top: .75rem; }
+  .sidenav-box > summary { display: none; }
+  /* The sidebar is always open on a wide screen: show the content of a closed <details>. */
+  .sidenav-box::details-content { content-visibility: visible; display: block; }
+  .sidenav-body { padding: 0; }
+  .nav-group:first-child { margin-top: 0; }
+}
 
 main { width: 100%; max-width: 1200px; margin: 0 auto; padding: 1rem; flex: 1; }
+.shell main { padding: 1rem; }
 footer { color: var(--muted); font-size: .85rem; padding: 1rem; text-align: center; border-top: 1px solid var(--border); }
 footer a { color: var(--muted); }
 footer .prefs { display: flex; flex-wrap: wrap; justify-content: center; gap: .25rem 1rem; margin-bottom: .25rem; }

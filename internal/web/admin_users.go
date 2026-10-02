@@ -166,7 +166,11 @@ func (rc *reqCtx) isSelf(u ad.User) bool {
 
 func (s *Server) handleUserUnlock(rc *reqCtx) {
 	s.userAction(rc, PermUsersHelpdesk, func(ctx context.Context, conn *ad.Conn, u ad.User) (*pendingOp, error) {
-		op, err := ad.UnlockUser(u.DN)
+		hosts, err := writableDCHosts(ctx, conn)
+		if err != nil {
+			return nil, err
+		}
+		op, err := ad.UnlockUserOnDCs(u.DN, hosts)
 		if err != nil {
 			return nil, err
 		}

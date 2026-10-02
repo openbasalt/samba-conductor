@@ -1,4 +1,4 @@
-import { test, expect, env, shot, signInMFA, csrfOf } from './helpers';
+import { test, expect, env, shot, signInMFA, csrfOf, navTo, openNav } from './helpers';
 
 // Role limits on the P2 pages: the auditor reads everything and writes
 // nothing; helpdesk sees lockouts and health (and may act on its
@@ -7,19 +7,19 @@ test.describe.serial('roles on the P2 pages', () => {
   test('auditor: read-only DNS, GPO, policy, lockouts, health', async ({ page }, info) => {
     test.setTimeout(240_000);
     await signInMFA(page, info, 'auditor.user', env.userPassword);
-    await page.getByTestId('nav-link-dns').click();
+    await navTo(page, 'dns');
     await expect(page.getByTestId('dns-link-new-zone')).toHaveCount(0);
     await page.goto('/admin/dns/zones/apps.conductor.test');
     await expect(page.getByTestId('dns-table-records')).toBeVisible();
     await expect(page.getByTestId('dns-btn-add')).toHaveCount(0);
     await expect(page.getByTestId('dns-link-edit-mail-a')).toHaveCount(0);
     await shot(page, info, '14-auditor-dns');
-    await page.getByTestId('nav-link-gpo').click();
+    await navTo(page, 'gpo');
     await expect(page.getByTestId('gpo-link-new')).toHaveCount(0);
     await page.getByTestId('gpo-link-container-people').click();
     await expect(page.getByTestId('gpc-table-links')).toBeVisible();
     await expect(page.getByTestId('gpc-btn-link')).toHaveCount(0);
-    await page.getByTestId('nav-link-policy').click();
+    await navTo(page, 'policy');
     await expect(page.getByTestId('policy-link-edit')).toHaveCount(0);
     // AD shows fine-grained policies to administrators only (default ACL).
     await expect(page.getByTestId('policy-text-pso-hidden')).toBeVisible();
@@ -27,9 +27,9 @@ test.describe.serial('roles on the P2 pages', () => {
     await page.getByTestId('users-link-user0101').click();
     await page.getByTestId('user-link-policy').click();
     await expect(page.getByTestId('effective-text-source')).toBeVisible();
-    await page.getByTestId('nav-link-lockouts').click();
+    await navTo(page, 'lockouts');
     await expect(page.getByTestId('sel-form')).toHaveCount(0);
-    await page.getByTestId('nav-link-health').click();
+    await navTo(page, 'health');
     await expect(page.getByTestId('health-link-export')).toBeVisible();
     await expect(page.getByTestId('nav-link-bulk')).toHaveCount(0);
 
@@ -60,9 +60,16 @@ test.describe.serial('roles on the P2 pages', () => {
     await expect(page.getByTestId('nav-link-gpo')).toHaveCount(0);
     await expect(page.getByTestId('nav-link-policy')).toHaveCount(0);
     await expect(page.getByTestId('nav-link-bulk')).toHaveCount(0);
-    await page.getByTestId('nav-link-lockouts').click();
+    // Groups with nothing the role can use are not rendered at all.
+    await expect(page.getByTestId('nav-group-network')).toHaveCount(0);
+    await expect(page.getByTestId('nav-group-policies')).toHaveCount(0);
+    await expect(page.getByTestId('nav-group-audit')).toHaveCount(0);
+    await expect(page.getByTestId('nav-group-operations')).toHaveCount(1);
+    await navTo(page, 'lockouts');
+    await openNav(page);
+    await expect(page.getByTestId('nav-link-lockouts')).toHaveAttribute('aria-current', 'page');
     await expect(page.getByTestId('lockouts-table').or(page.getByTestId('lockouts-text-none'))).toBeVisible();
-    await page.getByTestId('nav-link-health').click();
+    await navTo(page, 'health');
     // The never-signed-in tab always has accounts (the selection form is
     // shown with a non-empty list only).
     await page.getByTestId('health-link-never').click();

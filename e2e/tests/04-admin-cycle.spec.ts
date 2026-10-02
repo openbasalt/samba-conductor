@@ -1,4 +1,4 @@
-import { test, expect, env, shot, signInMFA, apply, rand, newPassword, e2eID } from './helpers';
+import { test, expect, env, shot, signInMFA, apply, rand, newPassword, e2eID, navTo } from './helpers';
 
 // A full create / edit / move / delete cycle, every write through its
 // preview; privileged changes need password + TOTP again.
@@ -161,7 +161,7 @@ test('create, edit, move and delete with previews', async ({ page }, info) => {
   await expect(page.getByTestId(`ous-link-${e2eID(ou)}`)).toHaveCount(0);
 
   // Everything above is in the audit log.
-  await page.getByTestId('nav-link-audit').click();
+  await navTo(page, 'audit');
   await page.getByTestId('audit-input-target').fill(tag);
   await page.getByTestId('audit-btn-filter').click();
   await expect(page.getByTestId('audit-table')).toContainText('ou.create');

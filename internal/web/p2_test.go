@@ -390,6 +390,10 @@ func TestBulkJobLifecycle(t *testing.T) {
 	var stored []store.BulkRow
 	for i, dn := range []string{"CN=a,OU=People,DC=lab,DC=test", "CN=b,OU=People,DC=lab,DC=test"} {
 		op, _ := ad.UnlockUser(dn)
+		if i == 1 {
+			// One row is written on every DC: each DC is reported.
+			op, _ = ad.UnlockUserOnDCs(dn, []string{"dc1.test", "dc2.test"})
+		}
 		r := &bulkRow{No: i + 1, Label: rdnOf(dn), Target: dn, Input: map[string]string{"guid": "x"}, ops: []*ad.Operation{op},
 			Preview: rowPreview([]*ad.Operation{op}), Status: store.RowPending}
 		rows = append(rows, r)
@@ -425,7 +429,19 @@ func TestBulkJobLifecycle(t *testing.T) {
 	if len(evs) != 2 || evs[0].Result != store.ResultFailed {
 		t.Fatalf("row audit: %+v", evs)
 	}
+	perDC := false
+	for _, e := range evs {
+		if strings.Contains(e.Detail, "# per DC: dc1.test: failed; dc2.test: failed") {
+			perDC = true
+		}
+	}
+	if !perDC {
+		t.Fatalf("the per-DC outcome is not in the audit: %+v", evs)
+	}
 	rep := h.do("GET", "/admin/bulk/"+job.ID+"/report.csv", admin, nil)
+	if !strings.Contains(rep.Body.String(), "dc1.test, dc2.test") {
+		t.Fatalf("report lacks the failed DCs:\n%s", rep.Body.String())
+	}
 	if !strings.Contains(rep.Body.String(), "row,label,target,status,error") || strings.Count(rep.Body.String(), ",failed,") != 2 {
 		t.Fatalf("report:\n%s", rep.Body.String())
 	}
@@ -436,5 +452,37 @@ func TestBulkJobLifecycle(t *testing.T) {
 	}
 	if got, _ := h.st.GetBulkJob(ctx, job.ID); got.Status != store.JobInterrupted {
 		t.Fatalf("after restart: %s", got.Status)
+	}
+}
+
+// TestSidebarFollowsRoles: the grouped sidebar shows only what the role can
+// use, a group with nothing usable is left out, and the footer entries are
+// there for everyone.
+func TestSidebarFollowsRoles(t *testing.T) {
+	h := newHarness(t)
+	has := func(body, id string) bool { return strings.Contains(body, `data-e2e="`+id+`"`) }
+	admin := h.do("GET", "/me/security", h.session(t, "lab.admin", stageFull, true), nil).Body.String()
+	for _, id := range []string{"nav-group-overview", "nav-group-directory", "nav-group-policies", "nav-group-network",
+		"nav-group-operations", "nav-group-audit", "nav-group-account", "nav-link-dns", "nav-link-bulk", "nav-link-security", "nav-btn-signout", "nav-btn-menu"} {
+		if !has(admin, id) {
+			t.Errorf("admin sidebar lacks %s", id)
+		}
+	}
+	if !strings.Contains(admin, `data-e2e="nav-link-security" aria-current="page"`) {
+		t.Error("the current page is not marked")
+	}
+	help := h.do("GET", "/me/security", h.session(t, "helpdesk.user", stageFull, true), nil).Body.String()
+	for _, id := range []string{"nav-group-network", "nav-group-policies", "nav-group-audit", "nav-group-overview", "nav-link-bulk", "nav-link-groups"} {
+		if has(help, id) {
+			t.Errorf("helpdesk sidebar has %s", id)
+		}
+	}
+	for _, id := range []string{"nav-group-directory", "nav-link-users", "nav-group-operations", "nav-link-lockouts", "nav-link-me", "nav-btn-signout"} {
+		if !has(help, id) {
+			t.Errorf("helpdesk sidebar lacks %s", id)
+		}
+	}
+	if has(help, "nav-link-bulk") || has(help, "nav-link-health") == false {
+		t.Error("helpdesk operations group")
 	}
 }

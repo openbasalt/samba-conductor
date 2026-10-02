@@ -1,5 +1,5 @@
 import * as fs from 'node:fs';
-import { test, expect, env, shot, signInMFA, freshCode, rand } from './helpers';
+import { test, expect, env, shot, signInMFA, freshCode, rand, navTo } from './helpers';
 
 const createHeader = 'username,first_name,last_name,display_name,email,description,ou,groups,must_change_password,enabled';
 const updateHeader = 'username,display_name,email,description,title,department,company,telephone,mobile,office,enabled,ou,add_groups,remove_groups';
@@ -24,7 +24,7 @@ test.describe.serial('bulk operations', () => {
 
   test('invalid files are rejected as a whole, nothing applied', async ({ page }, info) => {
     await signInMFA(page, info, 'lab.admin', env.adminPassword);
-    await page.getByTestId('nav-link-bulk').click();
+    await navTo(page, 'bulk');
     await expect(page.getByTestId('bulk-text-create-columns')).toHaveText(createHeader);
     await shot(page, info, '12-bulk');
     // Wrong header.

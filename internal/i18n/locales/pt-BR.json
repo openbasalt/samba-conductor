@@ -649,5 +649,17 @@
   "users.new": "Novo usuário",
   "users.search_hint": "Usuário, nome ou e-mail começa com…",
   "users.status": "Situação",
-  "users.status.all": "Todos"
+  "users.status.all": "Todos",
+  "dc.result.ok": "aplicado",
+  "dc.result.failed": "falhou",
+  "err.dc_partial": "Aplicado em {0}, mas não em {1}. Tente de novo ou verifique se todos os controladores de domínio estão acessíveis.",
+  "err.dc_none": "Não aplicado: não foi possível gravar em {0}.",
+  "nav.menu": "Menu",
+  "nav.security": "Segurança",
+  "nav.group.overview": "Visão geral",
+  "nav.group.directory": "Diretório",
+  "nav.group.policies": "Políticas",
+  "nav.group.network": "Rede",
+  "nav.group.operations": "Operações",
+  "nav.group.audit": "Auditoria"
 }

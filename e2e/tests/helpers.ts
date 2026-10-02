@@ -143,7 +143,24 @@ export async function signInMFA(page: Page, info: TestInfo, user: string, passwo
   await page.getByTestId('mfa-btn-submit').click();
 }
 
+// openNav opens the phone "Menu" (a native <details>, no JavaScript) when the
+// sidebar is collapsed; on desktop the sidebar is always open.
+export async function openNav(page: Page) {
+  const menu = page.getByTestId('nav-btn-menu');
+  if (await menu.isVisible()) {
+    const open = await page.locator('details.sidenav-box').evaluate((d) => (d as HTMLDetailsElement).open);
+    if (!open) await menu.click();
+  }
+}
+
+// navTo clicks a sidebar link (opening the phone menu first).
+export async function navTo(page: Page, name: string) {
+  await openNav(page);
+  await page.getByTestId('nav-link-' + name).click();
+}
+
 export async function signOut(page: Page) {
+  await openNav(page);
   await page.getByTestId('nav-btn-signout').click();
   await expect(page).toHaveURL(/\/signin/);
 }

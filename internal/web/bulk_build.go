@@ -494,6 +494,7 @@ func (s *Server) buildSelected(ctx context.Context, rc *reqCtx, conn *ad.Conn, a
 	seen := map[string]bool{}
 	var groupDN string
 	var groupProtected bool
+	var unlockHosts []string
 	for i, in := range inputs {
 		no := i + 1
 		u, err := userByGUIDString(ctx, conn, in["guid"])
@@ -534,8 +535,15 @@ func (s *Server) buildSelected(ctx context.Context, rc *reqCtx, conn *ad.Conn, a
 				ops = append(ops, op)
 			}
 		case "unlock":
-			if u.Locked() || !u.LockoutTime.Time().IsZero() {
-				op, err := ad.UnlockUser(u.DN)
+			// The lockout may exist on one DC only (it replicates with a
+			// delay), so the row is always written on every DC.
+			{
+				if unlockHosts == nil {
+					if unlockHosts, err = writableDCHosts(ctx, conn); err != nil {
+						return nil, nil, false, err
+					}
+				}
+				op, err := ad.UnlockUserOnDCs(u.DN, unlockHosts)
 				if err != nil {
 					bad(err.Error())
 					continue

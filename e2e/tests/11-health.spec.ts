@@ -1,11 +1,11 @@
 import * as fs from 'node:fs';
-import { test, expect, env, shot, signInMFA, freshCode } from './helpers';
+import { test, expect, env, shot, signInMFA, freshCode, navTo } from './helpers';
 
 test.describe.serial('lockouts and account health', () => {
   test('lockouts across both DCs; unlock selected', async ({ page }, info) => {
     test.setTimeout(240_000);
     await signInMFA(page, info, 'lab.admin', env.adminPassword);
-    await page.getByTestId('nav-link-lockouts').click();
+    await navTo(page, 'lockouts');
     const table = page.getByTestId('lockouts-table');
     await expect(table).toContainText('dc1.lab.conductor.test');
     await expect(table).toContainText('dc2.lab.conductor.test');
@@ -25,6 +25,10 @@ test.describe.serial('lockouts and account health', () => {
     await page.getByTestId('job-btn-apply').click();
     await expect(page.getByTestId('job-text-status')).toHaveText('Finished', { timeout: 30_000 });
     await expect(page.getByTestId('job-text-row-status-locked-user')).toHaveText('Applied');
+    // The unlock is written on every DC (no waiting for replication) and the
+    // report names each one.
+    await expect(page.getByTestId('job-table-rows')).toContainText('dc1.lab.conductor.test: applied');
+    await expect(page.getByTestId('job-table-rows')).toContainText('dc2.lab.conductor.test: applied');
     await page.goto('/admin/lockouts');
     await expect(page.getByTestId('lockouts-badge-locked-locked-user')).toHaveCount(0);
   });
@@ -32,7 +36,7 @@ test.describe.serial('lockouts and account health', () => {
   test('health lists, CSV export and a password reset of selected accounts', async ({ page }, info) => {
     test.setTimeout(240_000);
     await signInMFA(page, info, 'lab.admin', env.adminPassword);
-    await page.getByTestId('nav-link-health').click();
+    await navTo(page, 'health');
     // Expiring within 365 days covers the 20-day PSO whatever the date.
     await page.goto('/admin/health?kind=expiring&days=365');
     const expiring = await page.getByTestId('health-row-user0101').count();

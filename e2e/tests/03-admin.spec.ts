@@ -1,4 +1,4 @@
-import { test, expect, env, shot, signIn, signInMFA, signOut, enroll } from './helpers';
+import { test, expect, env, shot, signIn, signInMFA, signOut, enroll, navTo, openNav } from './helpers';
 
 test.describe.serial('administrator', () => {
   test('forced 2FA enrollment through the one-time link', async ({ page }, info) => {
@@ -28,9 +28,16 @@ test.describe.serial('administrator', () => {
     await expect(page).toHaveURL(/\/admin$/);
     await expect(page.getByTestId('dashboard-text-users')).toHaveText(/^2[5-9]\d\d$/);
     await expect(page.getByTestId('dashboard-link-locked-locked-user')).toBeVisible();
+    // Grouped sidebar: every group for an administrator, the current page marked.
+    await openNav(page);
+    for (const g of ['overview', 'directory', 'policies', 'network', 'operations', 'audit', 'account']) {
+      await expect(page.getByTestId('nav-group-' + g)).toBeVisible();
+    }
+    await expect(page.getByTestId('nav-link-dashboard')).toHaveAttribute('aria-current', 'page');
+    await expect(page.getByTestId('nav-link-security')).toBeVisible();
     await shot(page, info, '03-dashboard');
 
-    await page.getByTestId('nav-link-users').click();
+    await navTo(page, 'users');
     await expect(page.getByTestId('users-table')).toBeVisible();
     await expect(page.getByTestId('pager-link-next')).toBeVisible();
     await page.getByTestId('pager-link-next').click();
@@ -51,7 +58,7 @@ test.describe.serial('administrator', () => {
 
   test('domain information through conductor-helper', async ({ page }, info) => {
     await signInMFA(page, info, 'lab.admin', env.adminPassword);
-    await page.getByTestId('nav-link-domain').click();
+    await navTo(page, 'domain');
     await expect(page.getByTestId('domain-text-helper')).toBeVisible();
     await expect(page.getByTestId('domain-text-domain')).toContainText('2016');
     await expect(page.getByTestId('domain-list-dcs')).toContainText('DC1');

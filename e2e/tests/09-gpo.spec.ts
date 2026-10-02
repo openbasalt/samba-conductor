@@ -1,9 +1,9 @@
-import { test, expect, env, shot, signInMFA, apply, rand } from './helpers';
+import { test, expect, env, shot, signInMFA, apply, rand, navTo } from './helpers';
 
 test.describe.serial('Group Policy', () => {
   test('GPOs and links; settings editing is out of scope', async ({ page }, info) => {
     await signInMFA(page, info, 'lab.admin', env.adminPassword);
-    await page.getByTestId('nav-link-gpo').click();
+    await navTo(page, 'gpo');
     await expect(page.getByTestId('gpo-text-scope')).toBeVisible();
     await expect(page.getByTestId('gpo-row-lab-baseline')).toContainText('Enforced');
     await expect(page.getByTestId('gpo-text-unlinked-lab-unlinked')).toBeVisible();

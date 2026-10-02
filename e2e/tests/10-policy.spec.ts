@@ -1,4 +1,4 @@
-import { test, expect, env, shot, signInMFA, apply, rand } from './helpers';
+import { test, expect, env, shot, signInMFA, apply, rand, navTo } from './helpers';
 
 const reauth = (info: any) => ({ info, user: 'lab.admin', password: env.adminPassword });
 
@@ -6,7 +6,7 @@ test.describe.serial('password policy', () => {
   test('domain policy: view, change with re-authentication, lockout warning', async ({ page }, info) => {
     test.setTimeout(240_000);
     await signInMFA(page, info, 'lab.admin', env.adminPassword);
-    await page.getByTestId('nav-link-policy').click();
+    await navTo(page, 'policy');
     await expect(page.getByTestId('policy-text-threshold').first()).toHaveText('10');
     await expect(page.getByTestId('policy-text-no-lockout')).toHaveCount(0);
     await expect(page.getByTestId('policy-row-lab-staff-20d')).toBeVisible();
