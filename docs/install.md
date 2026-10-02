@@ -85,7 +85,8 @@ Interactive; flags exist for every question (`conductor setup -h`). It:
 4. generates the TOTP key `/etc/conductor/credentials/totp-key` (0600,
    root). **Back it up**: without it every 2FA enrollment is lost;
 5. writes `/etc/conductor/conductor.toml` (root:conductor 0640) after
-   validating it;
+   validating it; security keys (WebAuthn) are enabled for the host name of
+   `--public-url` (or `--webauthn-rp-id NAME`), off without either;
 6. optionally (`--first-admin NAME`) issues the **first administrator's
    2FA enrollment link**, created as the `conductor` user so the database
    stays owned by it.
@@ -98,6 +99,12 @@ printf '%s\n' "$PASSWORD" | sudo conductor setup --non-interactive \
   --admin-user lab.admin --helpdesk-group Helpdesk --auditor-group Auditors \
   --mfa-policy optional --first-admin lab.admin --public-url https://dc1.lab.conductor.test:8443
 ```
+
+Group Policy object creation and deletion run `samba-tool` (default
+`/usr/bin/samba-tool`, `[tools] samba_tool`) as the `conductor` user with the
+signed-in administrator's own Kerberos ticket; the Samba packages of a DC
+provide it, nothing else is needed. The shipped unit's sandbox allows it
+(verified on Debian 13 / Samba 4.22).
 
 ## 5. Start
 

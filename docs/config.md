@@ -42,8 +42,19 @@ by SID, never by name or DN. Accounts that belong to the administrator
 groups or to the well-known privileged groups (Domain/Enterprise/Schema
 Admins, Domain Controllers, Administrators, Account/Server/Print/Backup
 Operators) are **protected**: helpdesk cannot act on them, and
-administrators re-authenticate (password + TOTP) to change them or the
-membership of those groups.
+administrators re-authenticate (password + TOTP or a security key) to
+change them or the membership of those groups.
+
+What each role may do on the P2 pages:
+
+| Page | admin | helpdesk | auditor |
+|---|---|---|---|
+| DNS zones and records | read, write | — | read |
+| Group Policy (GPOs, links, inheritance) | read, write | — | read |
+| Password policy, PSOs, effective policy | read, write | — | read |
+| Lockouts (all DCs), account health, CSV export | read | read | read |
+| Actions on selected accounts | all | unlock, enable/disable, reset password | — |
+| Bulk CSV import | yes | — | — |
 
 ## `[mfa]`
 
@@ -74,7 +85,7 @@ membership of those groups.
 
 | Key | Default | Meaning |
 |---|---|---|
-| `database` | `"/var/lib/conductor/conductor.db"` | SQLite database (sessions metadata, 2FA, enrollment links, audit). Created 0600. |
+| `database` | `"/var/lib/conductor/conductor.db"` | SQLite database (sessions metadata, 2FA secrets and security keys, enrollment links, bulk job reports, audit). Created 0600. |
 
 ## `[helper]`
 
@@ -88,6 +99,36 @@ membership of those groups.
 | Key | Default | Meaning |
 |---|---|---|
 | `default_language` | `"en"` | `en` or `pt-BR`; users switch in the footer, and `Accept-Language` is honoured. |
+
+## `[webauthn]`
+
+Security keys and platform authenticators (WebAuthn) as a second factor,
+next to TOTP. Off while `rp_id` is empty.
+
+| Key | Default | Meaning |
+|---|---|---|
+| `rp_id` | `""` | The host name users open conductor with (the WebAuthn relying party ID), e.g. `conductor.example.com`. Keys registered for one RP ID only work there: changing it invalidates every registered key. |
+| `origins` | derived | Origins allowed in ceremonies, `https://host[:port]`, host = `rp_id` or below it. Default: `https://<rp_id>` plus the `listen` port when it is not 443 (behind a proxy: no port). |
+| `display_name` | `"Samba Conductor"` | Name the browser shows while registering a key. |
+| `admin_required` | `false` | Administrators must use a security key: TOTP codes are no longer accepted for them at sign-in and re-authentication (recovery codes are, as the emergency path). An administrator without a key registers one right after the TOTP step. |
+
+The browser part is `/static/webauthn.js`, the only script conductor has.
+It is loaded only on the second-factor pages (sign-in 2FA, enrollment,
+security page, key removal, key re-authentication) with a per-response CSP
+nonce and Subresource Integrity; it makes no requests of its own
+(`connect-src 'none'`). Every other page keeps `script-src 'none'`.
+
+## `[bulk]`
+
+| Key | Default | Meaning |
+|---|---|---|
+| `max_rows` | `1000` | Most rows per batch: CSV import (create or update) and actions on selected accounts (1-100000). |
+
+## `[tools]`
+
+| Key | Default | Meaning |
+|---|---|---|
+| `samba_tool` | `"/usr/bin/samba-tool"` | samba-tool, run for GPO creation and deletion (they write SYSVOL as well as LDAP) with the signed-in user's own Kerberos ticket, written for the run to a private credential cache in conductor's own `/tmp` (systemd `PrivateTmp`) and removed afterwards. No password is involved. |
 
 ## Files
 

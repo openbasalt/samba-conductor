@@ -2,11 +2,14 @@
 
 Web administrator and self-service portal for Samba Active Directory
 (`conductor`), plus the privileged local helper (`conductor-helper`). Part of
-Samba Conductor v2; design in `../planning/docs/architecture.md`, phase spec
-in `../planning/docs/p1-spec.md`.
+Samba Conductor v2; design in `../planning/docs/architecture.md`, phase specs
+in `../planning/docs/p1-spec.md` and `../planning/docs/p2-spec.md`.
 
-Status: **P1 complete** (2026-10-02). Validated end to end in the two-DC
-server-home lab, desktop and mobile: [`docs/usage-p1.md`](docs/usage-p1.md).
+Status: **P2 complete** (2026-10-02): DNS, Group Policy links, password
+policies, lockouts across DCs, account health, bulk operations and
+security keys, on top of P1. Validated end to end in the two-DC
+server-home lab, desktop and mobile: [`docs/usage-p2.md`](docs/usage-p2.md)
+(P1: [`docs/usage-p1.md`](docs/usage-p1.md)).
 
 | | |
 |---|---|
@@ -47,6 +50,28 @@ server-home lab, desktop and mobile: [`docs/usage-p1.md`](docs/usage-p1.md).
 - **Preview before every write**: the exact LDAP changes (passwords
   redacted) are shown and applied only after confirmation; changes to
   administrator accounts and privileged groups need password + TOTP again.
+- **DNS** (P2): AD-integrated zones and records (A, AAAA, CNAME, MX, TXT,
+  SRV, PTR, NS) over LDAP with the user's own credentials, paging and
+  search, zone create/delete (forward and reverse); the AD zones and the
+  records AD manages (locators, DC records, apex SOA/NS) are read-only, with
+  DCs discovered from the directory, never configured by name.
+- **Group Policy** (P2): GPOs and where they are linked; link, unlink,
+  enable/disable, enforce, link order, block inheritance; GPO create/delete
+  through samba-tool with the user's Kerberos ticket. Settings inside a GPO
+  stay with RSAT/GPMC.
+- **Password policy** (P2): domain policy (warns when lockout is off),
+  fine-grained policies (PSOs) and their targets, the effective policy of a
+  user.
+- **Lockouts and account health** (P2): lockout state and bad-password
+  counters from every DC, expiring/expired passwords, never signed in,
+  stale, disabled, CSV export, actions on selected accounts.
+- **Bulk** (P2): CSV import (create, update) with a strict template, every
+  row validated before anything is written, the full preview, a background
+  apply with a per-row audit and report, retry of failed rows; generated
+  passwords shown once and downloadable.
+- **Security keys** (P2): WebAuthn keys and platform authenticators next to
+  TOTP (register, name, remove; sign-in and re-authentication); optionally
+  mandatory for administrators.
 - **Self-service**: profile, edit of the attributes Samba lets users write
   on themselves (phones, office, address, web page), password change,
   2FA, sessions and "sign out everywhere".
@@ -59,8 +84,11 @@ server-home lab, desktop and mobile: [`docs/usage-p1.md`](docs/usage-p1.md).
 
 ## Security notes
 
-- No JavaScript at all: CSP `script-src 'none'`, styles and images from the
-  same origin only, `frame-ancestors 'none'`, HSTS, `Referrer-Policy:
+- No JavaScript except one small self-hosted script on the second-factor
+  pages (WebAuthn needs the browser API), loaded with a per-response CSP
+  nonce and Subresource Integrity and making no requests of its own; every
+  other page has CSP `script-src 'none'`. Styles and images from the same
+  origin only, `frame-ancestors 'none'`, HSTS, `Referrer-Policy:
   no-referrer`.
 - CSRF token on every POST plus Fetch-metadata/Origin checks; the sign-in
   form uses a double-submit pre-session cookie.
@@ -81,7 +109,7 @@ server-home lab, desktop and mobile: [`docs/usage-p1.md`](docs/usage-p1.md).
 
 - [Install (Debian 13 / Ubuntu 26.04)](docs/install.md)
 - [Configuration reference](docs/config.md)
-- [P1 lab run (e2e transcript)](docs/usage-p1.md) and [screenshots](docs/screenshots/)
+- [P2 lab run (e2e transcript)](docs/usage-p2.md), [P1 lab run](docs/usage-p1.md) and [screenshots](docs/screenshots/)
 
 ## Development
 
