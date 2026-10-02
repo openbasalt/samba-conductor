@@ -3,7 +3,7 @@
 # (planning/lab/conductor-install.sh, which follows docs/install.md).
 #
 #   scripts/lab-deploy.sh               # build + install/upgrade on dc1
-#   scripts/lab-deploy.sh --snapshot    # … and snapshot both DCs as conductor-p1
+#   scripts/lab-deploy.sh --snapshot    # … and snapshot both DCs as conductor-p2
 #   LAB_HOST=server-home (default)
 set -euo pipefail
 cd "$(dirname "${BASH_SOURCE[0]}")/../.."   # the family directory

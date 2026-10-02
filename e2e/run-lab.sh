@@ -2,9 +2,10 @@
 # Run the Playwright suite on server-home against conductor on the lab's
 # dc1, once per project (desktop, mobile), each on a freshly reset lab.
 #
-#   e2e/run-lab.sh                    # deploy + snapshot conductor-p1, run both
-#   e2e/run-lab.sh --no-deploy        # reuse the conductor-p1 snapshot
+#   e2e/run-lab.sh                    # deploy + snapshot conductor-p2, run both
+#   e2e/run-lab.sh --no-deploy        # reuse the conductor-p2 snapshot
 #   e2e/run-lab.sh --no-deploy desktop
+#   E2E_GREP='administrator|WebAuthn' e2e/run-lab.sh --no-deploy desktop   # a subset
 #
 # Secrets stay on server-home: they go from ~/conductor-lab/secrets.env to
 # the container through a 0600 env file that is deleted afterwards. After
@@ -34,14 +35,15 @@ fi
 rc=0
 for p in "${projects[@]}"; do
   echo "=== project $p"
-  ssh -o BatchMode=yes "$LAB_HOST" bash -s -- "$p" <<'REMOTE' || rc=$?
+  # ssh joins its arguments into one remote command line: quote the grep.
+  ssh -o BatchMode=yes "$LAB_HOST" bash -s -- "$p" "$(printf '%q' "${E2E_GREP:-}")" <<'REMOTE' || rc=$?
 set -euo pipefail
-project="$1"
+project="$1" grep="${2:-}"
 LAB_HOME="$HOME/conductor-lab"
 E2E="$HOME/samba-conductor/conductor/e2e"
 SSH="ssh -n -i $LAB_HOME/id_ed25519 -o BatchMode=yes -o UserKnownHostsFile=$LAB_HOME/known_hosts -o LogLevel=ERROR debian@10.93.0.10"
 cd "$HOME/samba-conductor/planning/lab"
-./reset.sh conductor-p1 </dev/null >/dev/null 2>&1
+./reset.sh conductor-p2 </dev/null >/dev/null 2>&1
 $SSH 'for i in $(seq 90); do ss -ltn | grep -q ":8443 " && exit 0; sleep 1; done; exit 1'
 link="$($SSH 'sudo -u conductor conductor enroll-link --user lab.admin --base-url https://dc1.lab.conductor.test:8443' | tail -n 1)"
 spki="$(openssl x509 -in "$LAB_HOME/tls/conductor-dc1.pem" -pubkey -noout | openssl pkey -pubin -outform der | openssl dgst -sha256 -binary | base64)"
@@ -56,8 +58,8 @@ trap 'rm -f "$envf"' EXIT
     "$LAB_USER_PASSWORD" "$LAB_TESTADMIN_PASSWORD" "$LAB_HELPDESK_PASSWORD" "$link" "$spki" >"$envf" )
 docker run --rm --network host --add-host dc1.lab.conductor.test:10.93.0.10 --security-opt label=disable \
   -u "$(id -u):$(id -g)" -e HOME=/tmp -e CI=1 -e NODE_EXTRA_CA_CERTS=/work/.auth/lab-ca.pem --env-file "$envf" \
-  -v "$E2E:/work" -w /work mcr.microsoft.com/playwright:v1.62.1-noble </dev/null \
-  sh -c "npm ci --no-audit --no-fund --loglevel=error >/dev/null && npx playwright test --project=$project" || test_rc=$?
+  -e E2E_GREP="$grep" -v "$E2E:/work" -w /work mcr.microsoft.com/playwright:v1.62.1-noble </dev/null \
+  sh -c 'npm ci --no-audit --no-fund --loglevel=error >/dev/null && npx playwright test --project='"$project"' ${E2E_GREP:+--grep "$E2E_GREP"}' || test_rc=$?
 echo "=== audit chain on dc1 after the $project run"
 $SSH 'sudo -u conductor conductor audit verify'
 exit "${test_rc:-0}"
