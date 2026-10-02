@@ -28,7 +28,7 @@ simple_bind_fallback = false
 [roles]
 # AD group SIDs. Empty admin_groups = the domain's Domain Admins (RID 512).
 admin_groups = []
-helpdesk_groups = ["S-1-5-21-0000000000-0000000000-0000000000-1105"]
+helpdesk_groups = ["S-1-5-21-1111111111-2222222222-3333333333-1105"]
 auditor_groups = []
 # Roles are re-checked against AD at most this often (0-60 seconds).
 cache_seconds = 60
@@ -65,3 +65,20 @@ socket = "/run/conductor-helper/helper.sock"
 
 [ui]
 default_language = "en"   # or "pt-BR"
+
+[webauthn]
+# Security keys and platform authenticators as a second factor. rp_id is
+# the host name users open conductor with; empty turns WebAuthn off.
+rp_id = ""
+# origins = ["https://conductor.example.com:8443"]   # default: from rp_id + listen port
+display_name = "Samba Conductor"
+# Administrators must sign in with a security key (TOTP refused for them).
+admin_required = false
+
+[bulk]
+# Most rows per CSV import or action on selected accounts.
+max_rows = 1000
+
+[tools]
+# Run for GPO creation/deletion with the signed-in user's Kerberos ticket.
+samba_tool = "/usr/bin/samba-tool"

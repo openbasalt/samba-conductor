@@ -104,3 +104,10 @@ func TestWebAuthnAndBulk(t *testing.T) {
 		t.Errorf("subdomain origin refused: %v", err)
 	}
 }
+
+// TestExampleLoads keeps conductor.toml.example valid.
+func TestExampleLoads(t *testing.T) {
+	if _, err := Load("../../conductor.toml.example"); err != nil {
+		t.Fatal(err)
+	}
+}

@@ -12,6 +12,7 @@ import (
 	"flag"
 	"fmt"
 	"net"
+	"net/url"
 	"os"
 	"os/exec"
 	"os/user"
@@ -53,6 +54,7 @@ type setupOpts struct {
 	serviceUser    string
 	force          bool
 	nonInteractive bool
+	webauthnRPID   string
 }
 
 func cmdSetup(args []string) error {
@@ -77,6 +79,7 @@ func cmdSetup(args []string) error {
 	fs.StringVar(&o.serviceUser, "service-user", "conductor", "system user conductor runs as")
 	fs.BoolVar(&o.force, "force", false, "overwrite an existing configuration file")
 	fs.BoolVar(&o.nonInteractive, "non-interactive", false, "never prompt (passwords from stdin)")
+	fs.StringVar(&o.webauthnRPID, "webauthn-rp-id", "", "host name users open conductor with, to enable security keys (default: the host of --public-url)")
 	_ = fs.Parse(args)
 	if os.Geteuid() != 0 {
 		return errors.New("setup writes /etc/conductor: run it as root")
@@ -404,6 +407,18 @@ socket = "/run/conductor-helper/helper.sock"
 
 [ui]
 default_language = "en"
+
+[webauthn]
+# Security keys and platform authenticators as a second factor: rp_id is
+# the host name users open conductor with (empty = off).
+rp_id = {{q .RPID}}
+admin_required = false
+
+[bulk]
+max_rows = 1000
+
+[tools]
+samba_tool = "/usr/bin/samba-tool"
 `))
 
 func renderConfig(o setupOpts, caPath string, roles config.Roles) ([]byte, error) {
@@ -411,8 +426,14 @@ func renderConfig(o setupOpts, caPath string, roles config.Roles) ([]byte, error
 	if o.behindProxy && listen == ":8443" {
 		listen = "127.0.0.1:8080"
 	}
+	rpID := o.webauthnRPID
+	if rpID == "" && o.publicURL != "" {
+		if u, err := url.Parse(o.publicURL); err == nil {
+			rpID = u.Hostname()
+		}
+	}
 	var sb strings.Builder
-	err := configTemplate.Execute(&sb, map[string]any{"Now": time.Now().UTC().Format(time.RFC3339), "Listen": listen,
+	err := configTemplate.Execute(&sb, map[string]any{"Now": time.Now().UTC().Format(time.RFC3339), "Listen": listen, "RPID": rpID,
 		"BehindProxy": o.behindProxy, "TLSCert": o.tlsCert, "TLSKey": o.tlsKey, "Realm": o.realm, "CAFile": caPath,
 		"Preferred": []string{o.dc}, "Roles": roles, "MFAPolicy": o.mfaPolicy})
 	return []byte(sb.String()), err

@@ -99,6 +99,12 @@ func (s *Server) handlePolicy(rc *reqCtx) {
 			}
 			data["PSOHidden"] = true
 		}
+		// By default AD shows PSOs to administrators only, and an
+		// unreadable object is simply absent from a search: an empty list
+		// for anyone else does not mean there are none.
+		if len(psos) == 0 && !rc.roles.Admin {
+			data["PSOHidden"] = true
+		}
 		rc.render(http.StatusOK, "policy", data)
 		return nil
 	})

@@ -517,7 +517,7 @@
   "policy.pso_delete": "Delete policy",
   "policy.pso_delete.title": "Delete policy {0}",
   "policy.pso_edit.title": "Change policy {0}",
-  "policy.pso_hidden": "Fine-grained policies are not visible to your account.",
+  "policy.pso_hidden": "Fine-grained policies are not visible to your account (by default AD shows them to administrators only).",
   "policy.pso_new": "New policy",
   "policy.pso_new.done": "The policy was created; apply it to users or groups.",
   "policy.pso_new.title": "New fine-grained password policy",

@@ -517,7 +517,7 @@
   "policy.pso_delete": "Excluir política",
   "policy.pso_delete.title": "Excluir a política {0}",
   "policy.pso_edit.title": "Alterar a política {0}",
-  "policy.pso_hidden": "As políticas refinadas não são visíveis para a sua conta.",
+  "policy.pso_hidden": "As políticas refinadas não são visíveis para a sua conta (por padrão o AD as mostra só a administradores).",
   "policy.pso_new": "Nova política",
   "policy.pso_new.done": "A política foi criada; aplique-a a usuários ou grupos.",
   "policy.pso_new.title": "Nova política de senha refinada",
