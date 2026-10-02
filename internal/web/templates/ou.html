@@ -13,6 +13,7 @@
     <dt>{{t "nav.computers"}}</dt><dd>{{index .D.Counts "computers"}}</dd>
     <dt>{{t "nav.ous"}}</dt><dd>{{index .D.Counts "ous"}}</dd>
   </dl>
+  {{if has .Nav "gpo.read"}}<p><a href="/admin/gpo/links?dn={{dnq .D.O.DN}}" data-e2e="ou-link-gpo">{{t "gpo.container_title" .D.O.Name}}</a></p>{{end}}
 </section>
 {{if and (has .Nav "dir.write") (not .D.Protected)}}<section class="card" aria-labelledby="ou-actions">
   <h2 id="ou-actions">{{t "user.actions"}}</h2>

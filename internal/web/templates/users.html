@@ -12,9 +12,11 @@
   </select>
   <button class="btn" type="submit" data-e2e="users-btn-search">{{t "form.search"}}</button>
 </form>
-{{if .D.Users}}<table class="table" data-e2e="users-table">
-  <thead><tr><th>{{t "attr.sAMAccountName"}}</th><th>{{t "attr.displayName"}}</th><th>{{t "attr.mail"}}</th><th>{{t "users.status"}}</th></tr></thead>
+{{if .D.Users}}{{$act := has .Nav "users.helpdesk"}}{{if $act}}{{template "select-actions" (dict "P" $ "Back" "/admin/users")}}{{end}}
+<table class="table" data-e2e="users-table">
+  <thead><tr>{{if $act}}<th><span class="sr">{{t "sel.action"}}</span></th>{{end}}<th>{{t "attr.sAMAccountName"}}</th><th>{{t "attr.displayName"}}</th><th>{{t "attr.mail"}}</th><th>{{t "users.status"}}</th></tr></thead>
   <tbody>{{range .D.Users}}<tr data-e2e="users-row-{{e2e .SAMAccountName}}">
+    {{if $act}}<td>{{template "sel-check" .}}</td>{{end}}
     <td data-label="{{t "attr.sAMAccountName"}}"><a href="/admin/users/{{.GUID}}" data-e2e="users-link-{{e2e .SAMAccountName}}">{{.SAMAccountName}}</a></td>
     <td data-label="{{t "attr.displayName"}}">{{.DisplayName}}</td>
     <td data-label="{{t "attr.mail"}}">{{.Mail}}</td>

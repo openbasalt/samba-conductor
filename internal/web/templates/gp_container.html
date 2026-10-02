@@ -1,0 +1,41 @@
+{{define "title"}}{{t "gpo.container_title" .D.Name}}{{end}}
+{{define "content"}}{{$c := .D.C}}{{$w := has .Nav "gpo.write"}}
+<h1 data-e2e="gpc-text-name">{{t "gpo.container_title" .D.Name}}</h1>
+<p class="muted small"><code>{{$c.DN}}</code></p>
+{{if $c.BlockInheritance}}<p><span class="badge badge-warn" data-e2e="gpc-badge-blocked">{{t "gpo.blocks"}}</span></p>{{end}}
+<section class="card" aria-labelledby="gpc-links">
+  <h2 id="gpc-links">{{t "gpo.links"}}</h2>
+  <p class="hint">{{t "gpo.order_hint"}}</p>
+  {{if .D.Rows}}<table class="table" data-e2e="gpc-table-links">
+    <thead><tr><th>{{t "gpo.order_col"}}</th><th>{{t "gpo.name"}}</th><th>{{t "gpo.link_state"}}</th>{{if $w}}<th>{{t "user.actions"}}</th>{{end}}</tr></thead>
+    <tbody>{{range .D.Rows}}<tr data-e2e="gpc-row-{{e2e .G.DisplayName}}">
+      <td data-label="{{t "gpo.order_col"}}" data-e2e="gpc-text-order-{{e2e .G.DisplayName}}">{{.Order}}</td>
+      <td data-label="{{t "gpo.name"}}">{{if .Dangling}}<code>{{.ID}}</code> <span class="badge badge-danger">{{t "gpo.dangling"}}</span>{{else}}<a href="{{.GPOLink}}">{{.G.DisplayName}}</a>{{end}}</td>
+      <td data-label="{{t "gpo.link_state"}}">{{if .Enabled}}<span class="badge badge-ok">{{t "gpo.link_enabled"}}</span>{{else}}<span class="badge" data-e2e="gpc-badge-disabled-{{e2e .G.DisplayName}}">{{t "gpo.link_disabled"}}</span>{{end}}{{if .Enforced}} <span class="badge badge-warn" data-e2e="gpc-badge-enforced-{{e2e .G.DisplayName}}">{{t "gpo.enforced"}}</span>{{end}}</td>
+      {{if $w}}<td data-label="{{t "user.actions"}}"><div class="actions">{{$id := .ShortID}}{{$n := e2e .G.DisplayName}}
+        {{if not .First}}{{template "gpc-action" (dict "C" $ "DN" $c.DN "ID" $id "A" "up" "L" "gpo.action.up" "N" $n)}}{{end}}
+        {{if not .Last}}{{template "gpc-action" (dict "C" $ "DN" $c.DN "ID" $id "A" "down" "L" "gpo.action.down" "N" $n)}}{{end}}
+        {{if .Enabled}}{{template "gpc-action" (dict "C" $ "DN" $c.DN "ID" $id "A" "disable" "L" "gpo.action.disable" "N" $n)}}{{else}}{{template "gpc-action" (dict "C" $ "DN" $c.DN "ID" $id "A" "enable" "L" "gpo.action.enable" "N" $n)}}{{end}}
+        {{if .Enforced}}{{template "gpc-action" (dict "C" $ "DN" $c.DN "ID" $id "A" "unenforce" "L" "gpo.action.unenforce" "N" $n)}}{{else}}{{template "gpc-action" (dict "C" $ "DN" $c.DN "ID" $id "A" "enforce" "L" "gpo.action.enforce" "N" $n)}}{{end}}
+        {{template "gpc-action" (dict "C" $ "DN" $c.DN "ID" $id "A" "unlink" "L" "gpo.action.unlink" "N" $n)}}
+      </div></td>{{end}}
+    </tr>{{end}}</tbody>
+  </table>{{else}}<p class="muted" data-e2e="gpc-text-none">{{t "gpo.no_links"}}</p>{{end}}
+  {{if and $w .D.Unlinked}}<form method="post" action="/admin/gpo/links" class="row">
+    {{template "csrf" .}}
+    <input type="hidden" name="dn" value="{{$c.DN}}"><input type="hidden" name="action" value="link">
+    <label class="sr" for="gpc-gpo">{{t "gpo.name"}}</label>
+    <select class="grow" id="gpc-gpo" name="gpo" data-e2e="gpc-select-gpo">{{range .D.Unlinked}}<option value="{{.ID}}">{{.DisplayName}}</option>{{end}}</select>
+    <button class="btn" type="submit" data-e2e="gpc-btn-link">{{t "gpo.link"}}</button>
+  </form>{{end}}
+</section>
+{{if and $w (eq $c.Kind "ou")}}<section class="card" aria-labelledby="gpc-inh">
+  <h2 id="gpc-inh">{{t "gpo.inheritance"}}</h2>
+  <p class="hint">{{t "gpo.inheritance_hint"}}</p>
+  <form method="post" action="/admin/gpo/inheritance">
+    {{template "csrf" .}}
+    <input type="hidden" name="dn" value="{{$c.DN}}">
+    {{if $c.BlockInheritance}}<input type="hidden" name="block" value="0"><button class="btn" type="submit" data-e2e="gpc-btn-allow">{{t "gpo.allow_inheritance"}}</button>
+    {{else}}<input type="hidden" name="block" value="1"><button class="btn" type="submit" data-e2e="gpc-btn-block">{{t "gpo.block_inheritance"}}</button>{{end}}
+  </form>
+</section>{{end}}{{end}}

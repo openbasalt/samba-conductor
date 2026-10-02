@@ -35,6 +35,11 @@ type pageData struct {
 	Path    string
 	Query   url.Values
 	Version string
+	// Nonce is set on the few pages that load the WebAuthn script (CSP
+	// nonce); empty everywhere else, so no <script> is rendered.
+	Nonce string
+	// ScriptSRI is the Subresource Integrity hash of that script.
+	ScriptSRI string
 	// D is the page's own data.
 	D map[string]any
 }
@@ -132,7 +137,15 @@ func (s *Server) funcs(lang string) template.FuncMap {
 			return m
 		},
 		"langs": func() []string { return i18n.Languages },
-		"has":   func(m map[string]bool, k string) bool { return m[k] },
+		"days":  func(d time.Duration) int64 { return int64(d / (24 * time.Hour)) },
+		"mins":  func(d time.Duration) int64 { return int64(d / time.Minute) },
+		"ago": func(t time.Time) int64 {
+			if t.IsZero() {
+				return -1
+			}
+			return int64(s.now().Sub(t) / (24 * time.Hour))
+		},
+		"has": func(m map[string]bool, k string) bool { return m[k] },
 	}
 }
 
@@ -169,7 +182,11 @@ func (rc *reqCtx) render(status int, page string, d map[string]any) {
 		http.Error(rc.w, "internal error", http.StatusInternalServerError)
 		return
 	}
-	pd := pageData{Lang: rc.lang, Theme: rc.theme, Path: rc.r.URL.Path, Query: rc.r.URL.Query(), Version: rc.s.version, D: d, Nav: map[string]bool{}}
+	pd := pageData{Lang: rc.lang, Theme: rc.theme, Path: rc.r.URL.Path, Query: rc.r.URL.Query(), Version: rc.s.version, D: d, Nav: map[string]bool{},
+		Nonce: rc.nonce}
+	if rc.nonce != "" {
+		pd.ScriptSRI = rc.s.scriptSRI
+	}
 	if rc.sess != nil {
 		rc.sess.mu.Lock()
 		pd.CSRF = rc.sess.csrf
@@ -179,8 +196,7 @@ func (rc *reqCtx) render(status int, page string, d map[string]any) {
 		rc.sess.mu.Unlock()
 		pd.Flashes = rc.sess.takeFlashes()
 		if pd.User != nil {
-			for _, p := range []Perm{PermDashboard, PermUsersRead, PermUsersHelpdesk, PermUsersWrite, PermDirRead,
-				PermDirWrite, PermAuditRead, PermDomainRead, PermMFAManage} {
+			for _, p := range allPerms {
 				pd.Nav[string(p)] = rc.roles.Has(p)
 			}
 			pd.Nav["admin"] = rc.roles.Privileged()

@@ -76,6 +76,9 @@ func (s *Server) handleUser(rc *reqCtx) {
 			s.log.Warn("protection check", "dn", u.DN, "err", perr)
 		}
 		_, mfaErr := s.store.GetTOTP(ctx, u.SID.String())
+		if mfaErr != nil && s.keyCount(ctx, u.SID.String()) > 0 {
+			mfaErr = nil
+		}
 		rc.sess.mu.Lock()
 		link := rc.sess.issuedLink
 		rc.sess.issuedLink = ""
@@ -402,10 +405,13 @@ func (s *Server) handleUserMFAReset(rc *reqCtx) {
 	s.userAction(rc, PermMFAManage, func(ctx context.Context, conn *ad.Conn, u ad.User) (*pendingOp, error) {
 		target := u.SID.String()
 		return &pendingOp{action: "mfa.reset", title: rc.T("user.mfa_reset.title", u.SAMAccountName),
-			summary: rc.T("user.mfa_reset.summary"), preview: "remove the TOTP enrollment and recovery codes of " + u.SAMAccountName +
+			summary: rc.T("user.mfa_reset.summary"), preview: "remove the TOTP enrollment, security keys and recovery codes of " + u.SAMAccountName +
 				" (" + target + ")\nend every conductor session of that user",
 			run: func(ctx context.Context, rc *reqCtx) error {
 				if err := s.store.DeleteTOTP(ctx, target); err != nil {
+					return err
+				}
+				if err := s.store.DeleteWebAuthnCredentials(ctx, target); err != nil {
 					return err
 				}
 				s.sess.destroyUser(ctx, target)

@@ -1,0 +1,9 @@
+{{define "title"}}{{t "policy.effective.title" .D.U.SAMAccountName}}{{end}}
+{{define "content"}}{{$e := .D.E}}
+<h1 data-e2e="effective-text-title">{{t "policy.effective.title" .D.U.SAMAccountName}}</h1>
+<section class="card">
+  <p data-e2e="effective-text-source">{{if $e.PSO}}{{t "policy.effective.pso"}} <a href="/admin/policy/pso/{{.D.PSOGUID}}" data-e2e="effective-link-pso">{{$e.PSO.Name}}</a>{{else if $e.PSODN}}{{t "policy.effective.pso"}} <code>{{$e.PSODN}}</code> <span class="muted">({{t "policy.pso_hidden"}})</span>{{else}}{{t "policy.effective.domain"}}{{end}}</p>
+  <p data-e2e="effective-text-expiry">{{if $e.NeverExpires}}{{t "policy.effective.never_expires_flag"}}{{else if $e.PasswordExpires.IsZero}}{{t "policy.effective.no_expiry"}}{{else}}{{t "policy.effective.expires" (time $e.PasswordExpires)}}{{end}}</p>
+  {{if not (and $e.PSODN (not $e.PSO))}}{{template "policy-props" $e.Policy}}{{end}}
+  <div class="actions"><a class="btn" href="/admin/users/{{.D.U.GUID}}" data-e2e="effective-link-back">{{t "form.back"}}</a></div>
+</section>{{end}}

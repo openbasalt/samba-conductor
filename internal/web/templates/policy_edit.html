@@ -1,0 +1,15 @@
+{{define "title"}}{{if .D.New}}{{t "policy.pso_new.title"}}{{else}}{{t "policy.edit.title"}}{{end}}{{end}}
+{{define "content"}}{{$f := .D.F}}<div class="card narrow">
+  <h1>{{if .D.New}}{{t "policy.pso_new.title"}}{{else}}{{t "policy.edit.title"}}{{end}}</h1>
+  {{if .D.Recommend}}<div class="alert-warn" data-e2e="policyedit-text-recommend">{{t "policy.recommend_prefilled"}}</div>{{end}}
+  {{template "error-alert" .D.Error}}
+  <form method="post" action="{{.D.Action}}">
+    {{template "csrf" .}}
+    {{if .D.New}}<div class="field"><label for="p-name">{{t "policy.name"}}</label><input id="p-name" name="name" type="text" value="{{$f.Name}}" required maxlength="64" data-e2e="policyedit-input-name"></div>{{end}}
+    {{template "policy-fields" (dict "F" $f "PSO" (not .D.Domain))}}
+    <div class="actions">
+      <button class="btn btn-primary" type="submit" data-e2e="policyedit-btn-preview">{{t "form.preview"}}</button>
+      <a class="btn" href="{{.D.Back}}" data-e2e="policyedit-link-cancel">{{t "form.cancel"}}</a>
+    </div>
+  </form>
+</div>{{end}}

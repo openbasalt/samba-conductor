@@ -1,0 +1,14 @@
+{{define "title"}}{{t "nav.lockouts"}}{{end}}
+{{define "content"}}<h1>{{t "nav.lockouts"}}</h1>
+<p class="hint">{{t "lockouts.intro" (join .D.Hosts ", ")}}</p>
+{{range .D.Unreachable}}<div class="alert-warn" role="alert" data-e2e="lockouts-text-unreachable">{{t "lockouts.unreachable" .}}</div>{{end}}
+{{if .D.Rows}}{{if .D.CanAct}}{{template "select-actions" (dict "P" $ "Back" "/admin/lockouts")}}{{end}}
+<table class="table" data-e2e="lockouts-table">
+  <thead><tr>{{if .D.CanAct}}<th><span class="sr">{{t "sel.action"}}</span></th>{{end}}<th>{{t "attr.sAMAccountName"}}</th><th>{{t "lockouts.state"}}</th>{{range .D.Hosts}}<th>{{.}}</th>{{end}}</tr></thead>
+  <tbody>{{range .D.Rows}}<tr data-e2e="lockouts-row-{{e2e .User.SAMAccountName}}">
+    {{if $.D.CanAct}}<td>{{template "sel-check" .User}}</td>{{end}}
+    <td data-label="{{t "attr.sAMAccountName"}}"><a href="/admin/users/{{.User.GUID}}" data-e2e="lockouts-link-{{e2e .User.SAMAccountName}}">{{.User.SAMAccountName}}</a></td>
+    <td data-label="{{t "lockouts.state"}}">{{if .Locked}}<span class="badge badge-warn" data-e2e="lockouts-badge-locked-{{e2e .User.SAMAccountName}}">{{t "status.locked"}}</span>{{else}}<span class="badge">{{t "lockouts.failed_attempts"}}</span>{{end}}</td>
+    {{range .DCs}}<td data-label="{{.Host}}" class="small">{{if .Seen}}{{if .Locked}}<b>{{t "status.locked"}}</b> {{filetime .LockoutTime}}<br>{{end}}{{t "lockouts.bad" .BadPwdCount}}{{if .BadPwdCount}} · {{filetime .BadTime}}{{end}}{{else}}<span class="muted">{{t "lockouts.clean"}}</span>{{end}}</td>{{end}}
+  </tr>{{end}}</tbody>
+</table>{{else}}<p class="muted" data-e2e="lockouts-text-none">{{t "lockouts.none"}}</p>{{end}}{{end}}

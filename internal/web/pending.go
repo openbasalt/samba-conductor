@@ -7,7 +7,10 @@ import (
 	"time"
 
 	"github.com/samba-conductor/ad"
+	"github.com/samba-conductor/ad/sambatool"
+	"github.com/samba-conductor/conductor/internal/directory"
 	"github.com/samba-conductor/conductor/internal/store"
+	"github.com/samba-conductor/conductor/internal/totp"
 )
 
 // pendingTTL bounds how long a preview may wait for confirmation.
@@ -103,6 +106,16 @@ func (s *Server) confirmData(p *pendingOp, errMsg string) map[string]any {
 		"Preview": p.preview, "Reauth": p.reauth, "Back": p.back, "Error": errMsg, "Target": p.target}
 }
 
+// confirmPageData adds what the re-authentication form needs.
+func (s *Server) confirmPageData(rc *reqCtx, p *pendingOp, errMsg string) map[string]any {
+	d := s.confirmData(p, errMsg)
+	if p.reauth {
+		d["HasKeys"] = s.hasKeys(rc)
+		d["CodeAllowed"] = !s.keyRequired(rc.roles)
+	}
+	return d
+}
+
 func (s *Server) handleConfirmPage(rc *reqCtx) {
 	p := rc.pendingOp()
 	if p == nil {
@@ -112,7 +125,7 @@ func (s *Server) handleConfirmPage(rc *reqCtx) {
 	if !s.confirmAllowed(rc, p) {
 		return
 	}
-	rc.render(http.StatusOK, "confirm", s.confirmData(p, ""))
+	rc.render(http.StatusOK, "confirm", s.confirmPageData(rc, p, ""))
 }
 
 func (s *Server) handleCancel(rc *reqCtx) {
@@ -144,11 +157,29 @@ func (s *Server) reauthenticate(ctx context.Context, rc *reqCtx) string {
 		}
 		return "err.directory"
 	}
-	ok, _, err := s.verifySecondFactor(ctx, sess, rc.form("code"))
-	if err != nil || !ok {
-		cred.Close()
-		s.mfaFails.Fail(sess.sam)
-		return "mfa.err.code"
+	if resp := rc.rawForm("response"); resp != "" {
+		// A security key instead of a code.
+		if err := s.verifyKey(ctx, sess, waReauth, resp); err != nil {
+			cred.Close()
+			s.mfaFails.Fail(sess.sam)
+			s.log.Info("security key re-authentication refused", "user", sess.sam, "err", err)
+			return "mfa.err.key"
+		}
+	} else {
+		code := rc.form("code")
+		sess.mu.Lock()
+		keyRequired := s.keyRequired(sess.roles)
+		sess.mu.Unlock()
+		if keyRequired && !totp.LooksLikeRecoveryCode(code) {
+			cred.Close()
+			return "mfa.err.key_required"
+		}
+		ok, _, err := s.verifySecondFactor(ctx, sess, code)
+		if err != nil || !ok {
+			cred.Close()
+			s.mfaFails.Fail(sess.sam)
+			return "mfa.err.code"
+		}
 	}
 	sess.mu.Lock()
 	old := sess.cred
@@ -174,7 +205,7 @@ func (s *Server) handleConfirm(rc *reqCtx) {
 	if p.reauth {
 		if key := s.reauthenticate(ctx, rc); key != "" {
 			s.audit(ctx, rc, p.action, p.target, "re-authentication failed", store.ResultDenied)
-			rc.render(http.StatusUnauthorized, "confirm", s.confirmData(p, rc.T(key)))
+			rc.render(http.StatusUnauthorized, "confirm", s.confirmPageData(rc, p, rc.T(key)))
 			return
 		}
 	}
@@ -240,6 +271,14 @@ func (s *Server) adErrorKey(err error) string {
 		return "err.ad.no_change"
 	case errors.Is(err, ad.ErrProtectedObject):
 		return "err.protected"
+	case errors.Is(err, ad.ErrInvalid):
+		return "form.invalid"
+	case errors.Is(err, directory.ErrNoTicket):
+		return "err.no_ticket"
+	}
+	var te *sambatool.ExitError
+	if errors.As(err, &te) {
+		return "err.tool"
 	}
 	if isNotAllowedOnNonLeaf(err) {
 		return "err.ad.not_empty"

@@ -1,0 +1,11 @@
+{{define "title"}}{{t "nav.dns"}}{{end}}
+{{define "content"}}<div class="row"><h1 class="grow">{{t "nav.dns"}}</h1>{{if has .Nav "dns.write"}}<a class="btn btn-primary" href="/admin/dns/new" data-e2e="dns-link-new-zone">{{t "dns.zone_new"}}</a>{{end}}</div>
+<p class="muted small" data-e2e="dns-text-dcs">{{t "dns.dcs" (join .D.DCs ", ")}}</p>
+{{if .D.Zones}}<table class="table" data-e2e="dns-table-zones">
+  <thead><tr><th>{{t "dns.zone"}}</th><th>{{t "dns.kind"}}</th><th>{{t "dns.partition"}}</th></tr></thead>
+  <tbody>{{range .D.Zones}}<tr data-e2e="dns-row-{{e2e .Z.Name}}">
+    <td data-label="{{t "dns.zone"}}"><a href="{{.Link}}" data-e2e="dns-link-zone-{{e2e .Z.Name}}">{{.Z.Name}}</a>{{if .AD}} <span class="badge badge-warn" data-e2e="dns-badge-ad-{{e2e .Z.Name}}">{{t "dns.ad_zone"}}</span>{{end}}</td>
+    <td data-label="{{t "dns.kind"}}">{{if .Z.Reverse}}{{t "dns.reverse"}}{{else}}{{t "dns.forward"}}{{end}}</td>
+    <td data-label="{{t "dns.partition"}}">{{.Z.Partition}}</td>
+  </tr>{{end}}</tbody>
+</table>{{else}}<p class="muted" data-e2e="dns-text-empty">{{t "list.empty"}}</p>{{end}}{{end}}

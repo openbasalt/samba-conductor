@@ -58,6 +58,10 @@ func (f *fakeBackend) Connect(context.Context, *directory.Credential) (*ad.Conn,
 	return nil, errors.New("fake backend: no LDAP")
 }
 
+func (f *fakeBackend) ConnectTo(context.Context, *directory.Credential, string) (*ad.Conn, error) {
+	return nil, errors.New("fake backend: no LDAP")
+}
+
 func (f *fakeBackend) ChangeExpiredPassword(_ context.Context, username, oldPw, _ string) error {
 	f.mu.Lock()
 	defer f.mu.Unlock()
@@ -90,7 +94,7 @@ type harness struct {
 	groups map[string][]sid.SID
 }
 
-func newHarness(t *testing.T) *harness {
+func newHarness(t *testing.T, mutate ...func(*config.Config)) *harness {
 	t.Helper()
 	cfg := config.Default()
 	cfg.Domain.Realm = "LAB.TEST"
@@ -99,6 +103,9 @@ func newHarness(t *testing.T) *harness {
 	cfg.Roles.HelpdeskGroups = []string{helpdeskSID}
 	cfg.Roles.AuditorGroups = []string{auditorSID}
 	cfg.RateLimit.PerIPPerMinute = 1000
+	for _, m := range mutate {
+		m(cfg)
+	}
 	st, err := store.Open(context.Background(), filepath.Join(t.TempDir(), "c.db"))
 	if err != nil {
 		t.Fatal(err)
@@ -223,6 +230,8 @@ func (h *harness) sentinel() map[string]int {
 func concretePath(p string) string {
 	p = strings.ReplaceAll(p, "{guid}", "00112233-4455-6677-8899-aabbccddeeff")
 	p = strings.ReplaceAll(p, "{id}", "pending-id-000000000000")
+	p = strings.ReplaceAll(p, "{zone}", "apps.example")
+	p = strings.ReplaceAll(p, "{kind}", "create.csv")
 	return strings.ReplaceAll(p, "{$}", "")
 }
 

@@ -1,0 +1,22 @@
+{{define "title"}}{{t (print "sel.action." .D.Action)}}{{end}}
+{{define "content"}}<div class="card narrow">
+  <h1 data-e2e="sel-text-title">{{t (print "sel.action." .D.Action)}}</h1>
+  <p>{{t "sel.count" .D.Count}}</p>
+  <p class="small muted" data-e2e="sel-text-names">{{join .D.Names ", "}}</p>
+  {{template "error-alert" .D.Error}}
+  <form method="post" action="/admin/users/selected" autocomplete="off">
+    {{template "csrf" .}}
+    <input type="hidden" name="action" value="{{.D.Action}}"><input type="hidden" name="back" value="{{.D.Back}}"><input type="hidden" name="step" value="go">
+    {{range .D.Sel}}<input type="hidden" name="sel" value="{{.}}">{{end}}
+    {{if eq .D.Action "move"}}<div class="field"><label for="parent">{{t "form.parent"}}</label>{{template "ou-select" (dict "OUs" .D.OUs "Selected" "")}}</div>{{end}}
+    {{if or (eq .D.Action "group_add") (eq .D.Action "group_remove")}}<div class="field"><label for="sel-group">{{t "user.groups.add_label"}}</label><input id="sel-group" name="group" type="text" required data-e2e="sel-input-group"></div>{{end}}
+    {{if eq .D.Action "reset"}}<div class="check"><input id="sel-mc" name="must_change" type="checkbox" value="1" checked data-e2e="sel-check-must-change"><label for="sel-mc">{{t "user.reset.must_change"}}</label></div>
+    <p class="hint">{{t "sel.reset_hint"}}</p>{{end}}
+    {{if eq .D.Action "delete"}}<div class="alert-warn">{{t "confirm.warn.delete"}}</div>
+    <div class="field"><label for="sel-confirm">{{t "sel.delete_confirm" .D.Count}}</label><input id="sel-confirm" name="confirm" type="text" inputmode="numeric" required data-e2e="sel-input-confirm"></div>{{end}}
+    <div class="actions">
+      <button class="btn btn-primary" type="submit" data-e2e="sel-btn-preview">{{t "form.preview"}}</button>
+      <a class="btn" href="{{.D.Back}}" data-e2e="sel-link-cancel">{{t "form.cancel"}}</a>
+    </div>
+  </form>
+</div>{{end}}

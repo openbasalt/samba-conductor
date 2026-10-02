@@ -1,8 +1,9 @@
 {{define "title"}}{{t "enroll.title"}}{{end}}
 {{define "content"}}<div class="card narrow">
   <h1>{{t "enroll.title"}}</h1>
-  <p>{{t "enroll.intro"}}</p>
   {{template "error-alert" .D.Error}}
+  {{if not .D.KeyOnly}}
+  <p>{{t "enroll.intro"}}</p>
   {{if .D.QR}}<img class="qr" src="{{.D.QR}}" alt="{{t "enroll.qr_alt"}}" width="220" height="220" data-e2e="enroll-img-qr">{{end}}
   <p class="small">{{t "enroll.manual"}}</p>
   <p class="secret" data-e2e="enroll-text-secret">{{.D.Secret}}</p>
@@ -15,4 +16,8 @@
     </div>
     <button class="btn btn-primary btn-block" type="submit" data-e2e="enroll-btn-submit">{{t "enroll.submit"}}</button>
   </form>
+  {{else}}<p data-e2e="enroll-text-key-only">{{t "enroll.key_only"}}</p>{{end}}
+  {{if .D.KeyOptions}}<h2>{{if .D.KeyOnly}}{{t "keys.register_title"}}{{else}}{{t "enroll.or_key"}}{{end}}</h2>
+  <p class="small">{{t "keys.register_hint"}}</p>
+  {{template "key-register" (dict "P" $ "Action" .D.KeyAction "Options" .D.KeyOptions)}}{{end}}
 </div>{{end}}

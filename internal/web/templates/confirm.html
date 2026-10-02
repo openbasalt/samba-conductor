@@ -9,20 +9,11 @@
   <pre data-e2e="confirm-text-preview">{{.D.Preview}}</pre>
   <form method="post" action="/confirm/{{.D.ID}}" autocomplete="off">
     {{template "csrf" .}}
-    {{if .D.Reauth}}
-    <div class="alert-info" data-e2e="confirm-text-reauth">{{t "confirm.reauth"}}</div>
-    <div class="field">
-      <label for="password">{{t "signin.password"}}</label>
-      <input id="password" name="password" type="password" autocomplete="current-password" required data-e2e="confirm-input-password">
-    </div>
-    <div class="field">
-      <label for="code">{{t "mfa.code"}}</label>
-      <input id="code" name="code" type="text" autocomplete="one-time-code" required maxlength="16" data-e2e="confirm-input-code">
-    </div>
-    {{end}}
+    {{if .D.Reauth}}{{template "reauth-fields" .}}{{end}}
     <div class="actions">
       <button class="btn btn-primary" type="submit" data-e2e="confirm-btn-apply">{{t "confirm.apply"}}</button>
     </div>
   </form>
+  {{if and .D.Reauth .D.HasKeys}}<p class="small"><a href="/confirm/{{.D.ID}}/key" data-e2e="confirm-link-key">{{t "reauth.use_key"}}</a></p>{{end}}
   <form method="post" action="/confirm/{{.D.ID}}/cancel" class="actions">{{template "csrf" .}}<button class="btn" type="submit" data-e2e="confirm-btn-cancel">{{t "form.cancel"}}</button></form>
 </div>{{end}}

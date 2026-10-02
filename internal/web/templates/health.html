@@ -1,0 +1,25 @@
+{{define "title"}}{{t "nav.health"}}{{end}}
+{{define "content"}}<h1>{{t "nav.health"}}</h1>
+<nav class="tabs" aria-label="{{t "health.kinds"}}">{{range .D.Kinds}}<a href="/admin/health?kind={{.}}"{{if eq . $.D.Kind}} aria-current="page"{{end}} data-e2e="health-link-{{.}}">{{t (print "health.kind." .)}}</a>{{end}}</nav>
+<p class="hint" data-e2e="health-text-hint">{{t (print "health.hint." .D.Kind) .D.Days}}</p>
+<form method="get" action="/admin/health" class="card row">
+  <input type="hidden" name="kind" value="{{.D.Kind}}">
+  {{if or (eq .D.Kind "expiring") (eq .D.Kind "stale")}}<label for="h-days">{{t "health.days"}}</label>
+  <input id="h-days" name="days" type="text" inputmode="numeric" value="{{.D.Days}}" class="grow" data-e2e="health-input-days">
+  <button class="btn" type="submit" data-e2e="health-btn-apply">{{t "health.apply"}}</button>{{end}}
+  <a class="btn" href="/admin/health/export.csv?kind={{.D.Kind}}&amp;days={{.D.Days}}" data-e2e="health-link-export">{{t "health.export"}}</a>
+</form>
+{{if .D.Users}}{{if .D.CanAct}}{{template "select-actions" (dict "P" $ "Back" (print "/admin/health?kind=" .D.Kind "&days=" .D.Days))}}{{end}}
+<table class="table" data-e2e="health-table">
+  <thead><tr>{{if .D.CanAct}}<th><span class="sr">{{t "sel.action"}}</span></th>{{end}}<th>{{t "attr.sAMAccountName"}}</th><th>{{t "attr.displayName"}}</th><th>{{t "users.status"}}</th><th>{{t "health.password_expires"}}</th><th>{{t "attr.lastLogon"}}</th></tr></thead>
+  <tbody>{{range .D.Users}}<tr data-e2e="health-row-{{e2e .SAMAccountName}}">
+    {{if $.D.CanAct}}<td>{{template "sel-check" .}}</td>{{end}}
+    <td data-label="{{t "attr.sAMAccountName"}}"><a href="/admin/users/{{.GUID}}" data-e2e="health-link-{{e2e .SAMAccountName}}">{{.SAMAccountName}}</a></td>
+    <td data-label="{{t "attr.displayName"}}">{{.DisplayName}}</td>
+    <td data-label="{{t "users.status"}}">{{template "user-status" .}}</td>
+    <td data-label="{{t "health.password_expires"}}">{{if .PasswordExpires.IsZero}}—{{else}}{{time .PasswordExpires}}{{end}}</td>
+    <td data-label="{{t "attr.lastLogon"}}">{{filetime .LastLogon}}</td>
+  </tr>{{end}}</tbody>
+</table>
+{{template "pager" .}}
+{{else}}<p class="muted" data-e2e="health-text-empty">{{t "list.empty"}}</p>{{end}}{{end}}

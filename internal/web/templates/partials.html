@@ -15,3 +15,78 @@
 {{define "ou-select"}}<select id="parent" name="parent" required data-e2e="form-select-parent">
   {{range .OUs}}<option value="{{.DN}}"{{if eq .DN $.Selected}} selected{{end}}>{{.Label}}</option>{{end}}
 </select>{{end}}
+
+{{define "gpo-status"}}{{if and .UserEnabled .ComputerEnabled}}<span class="badge badge-ok">{{t "gpo.enabled"}}</span>{{else if .UserEnabled}}<span class="badge badge-warn">{{t "gpo.computer_disabled"}}</span>{{else if .ComputerEnabled}}<span class="badge badge-warn">{{t "gpo.user_disabled"}}</span>{{else}}<span class="badge badge-danger">{{t "gpo.all_disabled"}}</span>{{end}}{{end}}
+
+{{define "gpc-action"}}<form method="post" action="/admin/gpo/links">{{template "csrf" .C}}<input type="hidden" name="dn" value="{{.DN}}"><input type="hidden" name="gpo" value="{{.ID}}"><input type="hidden" name="action" value="{{.A}}"><button class="btn btn-small" type="submit" data-e2e="gpc-btn-{{.A}}-{{.N}}">{{t .L}}</button></form>{{end}}
+
+{{define "max-age"}}{{if eq (days .MaxAge) 0}}{{t "policy.never"}}{{else}}{{t "policy.days" (days .MaxAge)}}{{end}}{{end}}
+
+{{define "policy-props"}}<dl class="props" data-e2e="policy-list-props">
+  <dt>{{t "policy.min_length"}}</dt><dd data-e2e="policy-text-min-length">{{.MinLength}}</dd>
+  <dt>{{t "policy.history"}}</dt><dd>{{.History}}</dd>
+  <dt>{{t "policy.complexity"}}</dt><dd>{{if .Complexity}}{{t "form.yes"}}{{else}}{{t "form.no"}}{{end}}</dd>
+  <dt>{{t "policy.reversible"}}</dt><dd>{{if .ReversibleEncryption}}{{t "form.yes"}}{{else}}{{t "form.no"}}{{end}}</dd>
+  <dt>{{t "policy.min_age"}}</dt><dd>{{t "policy.days" (days .MinAge)}}</dd>
+  <dt>{{t "policy.max_age"}}</dt><dd data-e2e="policy-text-max-age">{{template "max-age" .}}</dd>
+  <dt>{{t "policy.threshold"}}</dt><dd data-e2e="policy-text-threshold">{{if eq .LockoutThreshold 0}}{{t "policy.never_locks"}}{{else}}{{.LockoutThreshold}}{{end}}</dd>
+  <dt>{{t "policy.duration"}}</dt><dd>{{if eq (mins .LockoutDuration) 0}}{{t "policy.until_unlocked"}}{{else}}{{t "policy.minutes" (mins .LockoutDuration)}}{{end}}</dd>
+  <dt>{{t "policy.window"}}</dt><dd>{{t "policy.minutes" (mins .ObservationWindow)}}</dd>
+</dl>{{end}}
+
+{{define "policy-fields"}}{{$f := .F}}<div class="grid grid-2">
+  {{if .PSO}}<div class="field"><label for="p-prec">{{t "policy.precedence"}}</label><input id="p-prec" name="precedence" type="text" inputmode="numeric" value="{{$f.Precedence}}" required data-e2e="policy-input-precedence"><span class="hint">{{t "policy.precedence_hint"}}</span></div>{{end}}
+  <div class="field"><label for="p-len">{{t "policy.min_length"}}</label><input id="p-len" name="min_length" type="text" inputmode="numeric" value="{{$f.MinLength}}" required data-e2e="policy-input-min-length"></div>
+  <div class="field"><label for="p-hist">{{t "policy.history"}}</label><input id="p-hist" name="history" type="text" inputmode="numeric" value="{{$f.History}}" required data-e2e="policy-input-history"></div>
+  <div class="field"><label for="p-min">{{t "policy.min_age_days"}}</label><input id="p-min" name="min_age" type="text" inputmode="numeric" value="{{$f.MinAgeDays}}" required data-e2e="policy-input-min-age"></div>
+  <div class="field"><label for="p-max">{{t "policy.max_age_days"}}</label><input id="p-max" name="max_age" type="text" inputmode="numeric" value="{{$f.MaxAgeDays}}" required data-e2e="policy-input-max-age"><span class="hint">{{t "policy.zero_never"}}</span></div>
+  <div class="field"><label for="p-thr">{{t "policy.threshold"}}</label><input id="p-thr" name="threshold" type="text" inputmode="numeric" value="{{$f.Threshold}}" required data-e2e="policy-input-threshold"><span class="hint">{{t "policy.threshold_hint"}}</span></div>
+  <div class="field"><label for="p-dur">{{t "policy.duration_mins"}}</label><input id="p-dur" name="duration" type="text" inputmode="numeric" value="{{$f.DurationMins}}" required data-e2e="policy-input-duration"><span class="hint">{{t "policy.zero_unlock"}}</span></div>
+  <div class="field"><label for="p-win">{{t "policy.window_mins"}}</label><input id="p-win" name="window" type="text" inputmode="numeric" value="{{$f.WindowMin}}" required data-e2e="policy-input-window"></div>
+</div>
+<div class="check"><input id="p-cx" name="complexity" type="checkbox" value="1"{{if $f.Complexity}} checked{{end}} data-e2e="policy-check-complexity"><label for="p-cx">{{t "policy.complexity"}}</label></div>
+<div class="check"><input id="p-rev" name="reversible" type="checkbox" value="1"{{if $f.Reversible}} checked{{end}} data-e2e="policy-check-reversible"><label for="p-rev">{{t "policy.reversible"}} <span class="hint">{{t "policy.reversible_hint"}}</span></label></div>{{end}}
+
+{{define "select-actions"}}<form id="sel-form" method="post" action="/admin/users/selected" class="card row" data-e2e="sel-form">
+  {{template "csrf" .P}}
+  <input type="hidden" name="back" value="{{.Back}}">
+  <span class="grow small muted">{{t "sel.hint"}}</span>
+  <label class="sr" for="sel-action">{{t "sel.action"}}</label>
+  <select id="sel-action" name="action" data-e2e="sel-select-action">
+    <option value="unlock">{{t "sel.action.unlock"}}</option>
+    <option value="enable">{{t "sel.action.enable"}}</option>
+    <option value="disable">{{t "sel.action.disable"}}</option>
+    <option value="reset">{{t "sel.action.reset"}}</option>
+    {{if has .P.Nav "users.write"}}<option value="move">{{t "sel.action.move"}}</option>
+    <option value="group_add">{{t "sel.action.group_add"}}</option>
+    <option value="group_remove">{{t "sel.action.group_remove"}}</option>
+    <option value="delete">{{t "sel.action.delete"}}</option>{{end}}
+  </select>
+  <button class="btn" type="submit" data-e2e="sel-btn-go">{{t "sel.go"}}</button>
+</form>{{end}}
+
+{{define "sel-check"}}<input type="checkbox" name="sel" value="{{.GUID}}" form="sel-form" aria-label="{{t "sel.select" .SAMAccountName}}" data-e2e="sel-check-{{e2e .SAMAccountName}}">{{end}}
+
+{{define "key-assert"}}<form method="post" action="{{.Action}}" data-webauthn="get" data-options="{{.Options}}" autocomplete="off" data-e2e="key-form-assert">
+  {{template "csrf" .P}}
+  <input type="hidden" name="response" value="">
+  {{if .Password}}<div class="field"><label for="ka-pw">{{t "signin.password"}}</label><input id="ka-pw" name="password" type="password" autocomplete="current-password" required data-e2e="key-input-password"></div>{{end}}
+  <button class="btn btn-primary btn-block" type="button" data-webauthn-start disabled data-e2e="key-btn-use">{{t "keys.use"}}</button>
+  <p class="alert-error" role="alert" data-webauthn-error hidden data-e2e="key-text-error">{{t "keys.err.browser"}}</p>
+  <p class="hint" data-webauthn-unsupported hidden>{{t "keys.unsupported"}}</p>
+  <noscript><p class="hint">{{t "keys.noscript"}}</p></noscript>
+</form>{{end}}
+
+{{define "key-register"}}<form method="post" action="{{.Action}}" data-webauthn="register" data-options="{{.Options}}" autocomplete="off" data-e2e="key-form-register">
+  {{template "csrf" .P}}
+  <input type="hidden" name="response" value="">
+  <div class="field"><label for="kr-name">{{t "keys.name"}}</label><input id="kr-name" name="name" type="text" maxlength="64" required placeholder="{{t "keys.name_hint"}}" data-e2e="key-input-name"></div>
+  <button class="btn btn-primary" type="button" data-webauthn-start disabled data-e2e="key-btn-register">{{t "keys.register"}}</button>
+  <p class="alert-error" role="alert" data-webauthn-error hidden data-e2e="key-text-error">{{t "keys.err.browser"}}</p>
+  <p class="hint" data-webauthn-unsupported hidden>{{t "keys.unsupported"}}</p>
+  <noscript><p class="hint">{{t "keys.noscript"}}</p></noscript>
+</form>{{end}}
+
+{{define "reauth-fields"}}<div class="alert-info" data-e2e="confirm-text-reauth">{{if .D.CodeAllowed}}{{t "confirm.reauth"}}{{else}}{{t "confirm.reauth_key"}}{{end}}</div>
+<div class="field"><label for="password">{{t "signin.password"}}</label><input id="password" name="password" type="password" autocomplete="current-password" required data-e2e="confirm-input-password"></div>
+<div class="field"><label for="code">{{if .D.CodeAllowed}}{{t "mfa.code"}}{{else}}{{t "mfa.recovery_code"}}{{end}}</label><input id="code" name="code" type="text" autocomplete="one-time-code" required maxlength="16" data-e2e="confirm-input-code"></div>{{end}}

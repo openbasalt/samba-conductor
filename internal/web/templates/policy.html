@@ -1,0 +1,24 @@
+{{define "title"}}{{t "nav.policy"}}{{end}}
+{{define "content"}}{{$p := .D.P}}
+<div class="row"><h1 class="grow">{{t "nav.policy"}}</h1>{{if has .Nav "policy.write"}}<a class="btn" href="/admin/policy/edit" data-e2e="policy-link-edit">{{t "policy.edit"}}</a>{{end}}</div>
+{{if $p.LockoutDisabled}}<div class="alert-warn" role="alert" data-e2e="policy-text-no-lockout">{{t "policy.warn.no_lockout" .D.Threshold .D.Minutes}}</div>{{end}}
+<section class="card" aria-labelledby="pol-domain">
+  <h2 id="pol-domain">{{t "policy.domain"}}</h2>
+  {{template "policy-props" $p}}
+</section>
+<section class="card" aria-labelledby="pol-psos">
+  <div class="row"><h2 class="grow" id="pol-psos">{{t "policy.psos"}}</h2>{{if has .Nav "policy.write"}}<a class="btn btn-small" href="/admin/policy/pso/new" data-e2e="policy-link-new-pso">{{t "policy.pso_new"}}</a>{{end}}</div>
+  <p class="hint">{{t "policy.psos_hint"}}</p>
+  {{if .D.PSOHidden}}<p class="muted" data-e2e="policy-text-pso-hidden">{{t "policy.pso_hidden"}}</p>
+  {{else if .D.PSOs}}<table class="table" data-e2e="policy-table-psos">
+    <thead><tr><th>{{t "policy.name"}}</th><th>{{t "policy.precedence"}}</th><th>{{t "policy.min_length"}}</th><th>{{t "policy.max_age"}}</th><th>{{t "policy.threshold"}}</th><th>{{t "policy.applies_to"}}</th></tr></thead>
+    <tbody>{{range .D.PSOs}}<tr data-e2e="policy-row-{{e2e .Name}}">
+      <td data-label="{{t "policy.name"}}"><a href="/admin/policy/pso/{{.GUID}}" data-e2e="policy-link-pso-{{e2e .Name}}">{{.Name}}</a></td>
+      <td data-label="{{t "policy.precedence"}}">{{.Precedence}}</td>
+      <td data-label="{{t "policy.min_length"}}">{{.Policy.MinLength}}</td>
+      <td data-label="{{t "policy.max_age"}}">{{template "max-age" .Policy}}</td>
+      <td data-label="{{t "policy.threshold"}}">{{.Policy.LockoutThreshold}}</td>
+      <td data-label="{{t "policy.applies_to"}}">{{len .AppliesTo}}</td>
+    </tr>{{end}}</tbody>
+  </table>{{else}}<p class="muted">{{t "list.empty"}}</p>{{end}}
+</section>{{end}}

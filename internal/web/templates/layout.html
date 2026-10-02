@@ -7,6 +7,8 @@
 <meta name="robots" content="noindex, nofollow">
 <title>{{template "title" .}} · Samba Conductor</title>
 <link rel="stylesheet" href="/static/app.css?v={{.Version}}">
+{{if .Nonce}}<script src="/static/webauthn.js?v={{.Version}}" nonce="{{.Nonce}}" integrity="{{.ScriptSRI}}" defer></script>{{end}}
+{{if .D.Refresh}}<meta http-equiv="refresh" content="2">{{end}}
 <link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
 </head>
 <body>
@@ -25,6 +27,12 @@
       <li><a href="/admin/ous" data-e2e="nav-link-ous"{{if active .Path "/admin/ous"}} aria-current="page"{{end}}>{{t "nav.ous"}}</a></li>
       <li><a href="/admin/computers" data-e2e="nav-link-computers"{{if active .Path "/admin/computers"}} aria-current="page"{{end}}>{{t "nav.computers"}}</a></li>{{end}}
       {{if has .Nav "audit.read"}}<li><a href="/admin/audit" data-e2e="nav-link-audit"{{if active .Path "/admin/audit"}} aria-current="page"{{end}}>{{t "nav.audit"}}</a></li>{{end}}
+      {{if has .Nav "health.read"}}<li><a href="/admin/lockouts" data-e2e="nav-link-lockouts"{{if active .Path "/admin/lockouts"}} aria-current="page"{{end}}>{{t "nav.lockouts"}}</a></li>
+      <li><a href="/admin/health" data-e2e="nav-link-health"{{if active .Path "/admin/health"}} aria-current="page"{{end}}>{{t "nav.health"}}</a></li>{{end}}
+      {{if has .Nav "dns.read"}}<li><a href="/admin/dns" data-e2e="nav-link-dns"{{if active .Path "/admin/dns"}} aria-current="page"{{end}}>{{t "nav.dns"}}</a></li>{{end}}
+      {{if has .Nav "gpo.read"}}<li><a href="/admin/gpo" data-e2e="nav-link-gpo"{{if active .Path "/admin/gpo"}} aria-current="page"{{end}}>{{t "nav.gpo"}}</a></li>{{end}}
+      {{if has .Nav "policy.read"}}<li><a href="/admin/policy" data-e2e="nav-link-policy"{{if active .Path "/admin/policy"}} aria-current="page"{{end}}>{{t "nav.policy"}}</a></li>{{end}}
+      {{if has .Nav "bulk"}}<li><a href="/admin/bulk" data-e2e="nav-link-bulk"{{if active .Path "/admin/bulk"}} aria-current="page"{{end}}>{{t "nav.bulk"}}</a></li>{{end}}
       {{if has .Nav "domain.read"}}<li><a href="/admin/domain" data-e2e="nav-link-domain"{{if active .Path "/admin/domain"}} aria-current="page"{{end}}>{{t "nav.domain"}}</a></li>{{end}}
       <li class="sep"><a href="/me" data-e2e="nav-link-me"{{if or (eq .Path "/me") (active .Path "/me")}} aria-current="page"{{end}}>{{t "nav.me"}}</a></li>
       <li><form method="post" action="/signout">{{template "csrf" .}}<button type="submit" data-e2e="nav-btn-signout">{{t "nav.signout"}}</button></form></li>

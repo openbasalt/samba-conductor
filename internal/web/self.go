@@ -190,10 +190,22 @@ func (s *Server) handleSecurity(rc *reqCtx) {
 	current := rc.sess.hash
 	rc.sess.mu.Unlock()
 	required := s.mfaRequired(rc.roles)
-	canEnroll := !enrolled && (s.cfg.MFA.Policy != config.MFAOff || required) && !(rc.roles.Admin && s.cfg.AdminEnrollmentLinkRequired())
-	rc.render(http.StatusOK, "me_security", map[string]any{"Enrolled": enrolled, "Since": rec.CreatedAt, "CodesLeft": left,
-		"Required": required, "CanEnroll": canEnroll, "CanDisable": enrolled && !required, "Sessions": sessions, "Current": current,
-		"Policy": s.cfg.MFA.Policy})
+	allowed := s.cfg.MFA.Policy != config.MFAOff || required
+	canEnroll := !enrolled && allowed && !(rc.roles.Admin && s.cfg.AdminEnrollmentLinkRequired()) && !s.keyRequired(rc.roles)
+	d := map[string]any{"Enrolled": enrolled, "Since": rec.CreatedAt, "CodesLeft": left,
+		"Required": required, "CanEnroll": canEnroll, "Sessions": sessions, "Current": current,
+		"Policy": s.cfg.MFA.Policy, "WebAuthn": s.wa != nil, "KeyRequired": s.keyRequired(rc.roles)}
+	keys, _ := s.store.WebAuthnCredentials(ctx, userSID)
+	d["Keys"] = keys
+	// TOTP can be turned off when 2FA is optional, or when keys remain.
+	d["CanDisable"] = enrolled && (!required || len(keys) > 0)
+	d["HasCodes"] = enrolled || len(keys) > 0
+	if s.wa != nil && allowed && (enrolled || len(keys) > 0 || !(rc.roles.Admin && s.cfg.AdminEnrollmentLinkRequired())) {
+		if opts, err := s.beginCeremony(ctx, rc.sess, waRegister); err == nil {
+			d["KeyOptions"] = opts
+		}
+	}
+	rc.render(http.StatusOK, "me_security", d)
 }
 
 func (s *Server) handleSelfEnrollStart(rc *reqCtx) {
@@ -208,6 +220,10 @@ func (s *Server) handleSelfEnrollStart(rc *reqCtx) {
 	if rc.roles.Admin && s.cfg.AdminEnrollmentLinkRequired() {
 		// Administrators enroll through a link only.
 		rc.errorPage(http.StatusForbidden, "signin.err.admin_link")
+		return
+	}
+	if s.keyRequired(rc.roles) {
+		rc.errorPage(http.StatusForbidden, "mfa.err.key_required")
 		return
 	}
 	rc.render(http.StatusOK, "enroll", s.enrollData(rc, "/me/2fa/qr.png", "/me/2fa/enroll"))
@@ -242,7 +258,7 @@ func (s *Server) handleSelfEnroll(rc *reqCtx) {
 func (s *Server) handleSelfDisable(rc *reqCtx) {
 	ctx, cancel := context.WithTimeout(rc.ctx(), requestTimeout)
 	defer cancel()
-	if s.mfaRequired(rc.roles) {
+	if s.mfaRequired(rc.roles) && s.keyCount(ctx, rc.sess.userSID.String()) == 0 {
 		rc.errorPage(http.StatusForbidden, "mfa.err.required")
 		return
 	}

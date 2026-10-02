@@ -1,0 +1,10 @@
+{{define "title"}}{{.D.Title}}{{end}}
+{{define "content"}}<div class="card narrow" data-e2e="confirmkey-card">
+  <h1>{{.D.Title}}</h1>
+  <p>{{.D.Summary}}</p>
+  {{if .D.Warning}}<div class="alert-warn" role="alert">{{.D.Warning}}</div>{{end}}
+  {{if .D.Preview}}<details><summary>{{t "confirm.preview"}}</summary><pre data-e2e="confirmkey-text-preview">{{.D.Preview}}</pre></details>{{end}}
+  <div class="alert-info">{{t "reauth.key_intro"}}</div>
+  {{if .D.KeyOptions}}{{template "key-assert" (dict "P" $ "Action" .D.Action "Options" .D.KeyOptions "Password" true)}}{{else}}<p class="alert-error">{{t "keys.none"}}</p>{{end}}
+  <div class="actions"><a class="btn" href="{{.D.Back}}" data-e2e="confirmkey-link-back">{{t "form.back"}}</a></div>
+</div>{{end}}

@@ -1,0 +1,19 @@
+{{define "title"}}{{t "dns.zone_new.title"}}{{end}}
+{{define "content"}}<div class="card narrow">
+  <h1>{{t "dns.zone_new.title"}}</h1>
+  <p class="hint">{{t "dns.zone_new.intro"}}</p>
+  {{template "error-alert" .D.Error}}
+  <form method="post" action="/admin/dns/new">
+    {{template "csrf" .}}
+    <div class="field"><label for="z-name">{{t "dns.zone"}}</label><input id="z-name" name="name" type="text" value="{{index .D.F "name"}}" placeholder="apps.example.com" data-e2e="dnsnew-input-name"></div>
+    <div class="field"><label for="z-net">{{t "dns.network"}}</label><input id="z-net" name="network" type="text" value="{{index .D.F "network"}}" placeholder="192.0.2.0/24" data-e2e="dnsnew-input-network"><span class="hint">{{t "dns.network_hint"}}</span></div>
+    <div class="field"><label for="z-part">{{t "dns.partition"}}</label><select id="z-part" name="partition" data-e2e="dnsnew-select-partition">
+      <option value="DomainDnsZones"{{if eq (index .D.F "partition") "DomainDnsZones"}} selected{{end}}>{{t "dns.partition.domain"}}</option>
+      <option value="ForestDnsZones"{{if eq (index .D.F "partition") "ForestDnsZones"}} selected{{end}}>{{t "dns.partition.forest"}}</option>
+    </select></div>
+    <div class="actions">
+      <button class="btn btn-primary" type="submit" data-e2e="dnsnew-btn-preview">{{t "form.preview"}}</button>
+      <a class="btn" href="/admin/dns" data-e2e="dnsnew-link-cancel">{{t "form.cancel"}}</a>
+    </div>
+  </form>
+</div>{{end}}

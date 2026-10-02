@@ -6,14 +6,18 @@ package web
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/base64"
 	"errors"
 	"fmt"
 	"html/template"
 	"log/slog"
 	"net/http"
 	"net/netip"
+	"sync"
 	"time"
 
+	"github.com/go-webauthn/webauthn/webauthn"
 	"github.com/samba-conductor/ad"
 	"github.com/samba-conductor/ad/helper"
 	"github.com/samba-conductor/ad/sid"
@@ -31,6 +35,8 @@ type Backend interface {
 	Realm() string
 	SignIn(ctx context.Context, username, password string) (*directory.Credential, error)
 	Connect(ctx context.Context, c *directory.Credential) (*ad.Conn, error)
+	// ConnectTo binds to one given DC (per-DC attributes).
+	ConnectTo(ctx context.Context, c *directory.Credential, host string) (*ad.Conn, error)
 	ChangeExpiredPassword(ctx context.Context, username, oldPassword, newPassword string) error
 }
 
@@ -79,6 +85,14 @@ type Server struct {
 
 	mux    *http.ServeMux
 	routes []route
+
+	// wa is nil when WebAuthn is not configured.
+	wa *webauthn.WebAuthn
+	// scriptSRI is the Subresource Integrity hash of static/webauthn.js.
+	scriptSRI string
+	// jobs holds bulk jobs in memory; bgJobs tracks running ones.
+	jobs   jobs
+	bgJobs sync.WaitGroup
 }
 
 // New builds the server.
@@ -114,6 +128,15 @@ func New(d Deps) (*Server, error) {
 		idle: d.Config.IdleTimeout(), abs: d.Config.AbsoluteTimeout()}
 	s.identify = s.identifyAD
 	s.groupsOf = s.groupsOfAD
+	if s.wa, err = newWebAuthn(d.Config); err != nil {
+		return nil, fmt.Errorf("web: webauthn: %w", err)
+	}
+	js, err := staticFS.ReadFile("static/webauthn.js")
+	if err != nil {
+		return nil, err
+	}
+	sum := sha256.Sum256(js)
+	s.scriptSRI = "sha256-" + base64.StdEncoding.EncodeToString(sum[:])
 	if s.tmpl, err = s.loadTemplates(); err != nil {
 		return nil, err
 	}
@@ -157,6 +180,13 @@ func (s *Server) Handler() http.Handler { return s.mux }
 func (s *Server) Start(ctx context.Context) error {
 	if err := s.store.DeleteAllSessions(ctx); err != nil {
 		return err
+	}
+	// Bulk jobs that were running when the previous process stopped:
+	// their unattempted rows stay "pending" in the report.
+	if n, err := s.store.InterruptBulkJobs(ctx); err != nil {
+		return err
+	} else if n > 0 {
+		s.log.Warn("bulk jobs interrupted by a restart", "jobs", n)
 	}
 	go func() {
 		t := time.NewTicker(time.Minute)

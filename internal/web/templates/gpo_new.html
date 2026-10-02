@@ -1,0 +1,14 @@
+{{define "title"}}{{t "gpo.new.title"}}{{end}}
+{{define "content"}}<div class="card narrow">
+  <h1>{{t "gpo.new.title"}}</h1>
+  <p class="hint">{{t "gpo.new.intro"}}</p>
+  {{template "error-alert" .D.Error}}
+  <form method="post" action="/admin/gpo/new">
+    {{template "csrf" .}}
+    <div class="field"><label for="g-name">{{t "gpo.name"}}</label><input id="g-name" name="name" type="text" value="{{.D.Name}}" required maxlength="200" data-e2e="gponew-input-name"></div>
+    <div class="actions">
+      <button class="btn btn-primary" type="submit" data-e2e="gponew-btn-preview">{{t "form.preview"}}</button>
+      <a class="btn" href="/admin/gpo" data-e2e="gponew-link-cancel">{{t "form.cancel"}}</a>
+    </div>
+  </form>
+</div>{{end}}

@@ -1,0 +1,40 @@
+{{define "title"}}{{t "nav.bulk"}}{{end}}
+{{define "content"}}<h1>{{t "nav.bulk"}}</h1>
+<p class="hint">{{t "bulk.intro" .D.MaxRows}}</p>
+<div class="grid grid-2">
+<section class="card" aria-labelledby="bulk-create">
+  <h2 id="bulk-create">{{t "bulk.kind.import-create"}}</h2>
+  <p class="small">{{t "bulk.create_hint"}}</p>
+  <p class="small"><code data-e2e="bulk-text-create-columns">{{.D.CreateColumns}}</code></p>
+  <p><a href="/admin/bulk-templates/create.csv" data-e2e="bulk-link-template-create">{{t "bulk.template"}}</a></p>
+  <form method="post" action="/admin/bulk/upload" enctype="multipart/form-data">
+    {{template "csrf" .}}<input type="hidden" name="kind" value="import-create">
+    <div class="field"><label for="f-create">{{t "bulk.file"}}</label><input id="f-create" name="file" type="file" accept=".csv,text/csv" required data-e2e="bulk-input-create-file"></div>
+    <button class="btn btn-primary" type="submit" data-e2e="bulk-btn-create">{{t "bulk.validate"}}</button>
+  </form>
+</section>
+<section class="card" aria-labelledby="bulk-update">
+  <h2 id="bulk-update">{{t "bulk.kind.import-update"}}</h2>
+  <p class="small">{{t "bulk.update_hint"}}</p>
+  <p class="small"><code data-e2e="bulk-text-update-columns">{{.D.UpdateColumns}}</code></p>
+  <p><a href="/admin/bulk-templates/update.csv" data-e2e="bulk-link-template-update">{{t "bulk.template"}}</a></p>
+  <form method="post" action="/admin/bulk/upload" enctype="multipart/form-data">
+    {{template "csrf" .}}<input type="hidden" name="kind" value="import-update">
+    <div class="field"><label for="f-update">{{t "bulk.file"}}</label><input id="f-update" name="file" type="file" accept=".csv,text/csv" required data-e2e="bulk-input-update-file"></div>
+    <button class="btn btn-primary" type="submit" data-e2e="bulk-btn-update">{{t "bulk.validate"}}</button>
+  </form>
+</section>
+</div>
+<section class="card" aria-labelledby="bulk-jobs">
+  <h2 id="bulk-jobs">{{t "bulk.jobs"}}</h2>
+  {{if .D.Jobs}}<table class="table" data-e2e="bulk-table-jobs">
+    <thead><tr><th>{{t "audit.time"}}</th><th>{{t "bulk.kind"}}</th><th>{{t "audit.actor"}}</th><th>{{t "bulk.status"}}</th><th>{{t "bulk.rows"}}</th></tr></thead>
+    <tbody>{{range .D.Jobs}}<tr>
+      <td data-label="{{t "audit.time"}}"><a href="/admin/bulk/{{.ID}}" data-e2e="bulk-link-job-{{.ID}}">{{time .CreatedAt}}</a></td>
+      <td data-label="{{t "bulk.kind"}}">{{t (print "bulk.kind." .Kind)}}</td>
+      <td data-label="{{t "audit.actor"}}">{{.OwnerName}}</td>
+      <td data-label="{{t "bulk.status"}}">{{t (print "bulk.status." .Status)}}</td>
+      <td data-label="{{t "bulk.rows"}}">{{.Total}}</td>
+    </tr>{{end}}</tbody>
+  </table>{{else}}<p class="muted">{{t "list.empty"}}</p>{{end}}
+</section>{{end}}

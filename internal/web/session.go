@@ -11,6 +11,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/go-webauthn/webauthn/webauthn"
 	"github.com/samba-conductor/ad/sid"
 	"github.com/samba-conductor/conductor/internal/directory"
 	"github.com/samba-conductor/conductor/internal/store"
@@ -89,6 +90,14 @@ type Session struct {
 	mfaFailures int
 	// issued enrollment link to show once
 	issuedLink string
+	// pending WebAuthn ceremony (challenge) and its purpose, single use
+	waCeremony *webauthn.SessionData
+	waPurpose  string
+	// keyOK: this sign-in used a security key (or a recovery code, or
+	// registered a key); required when administrators must use keys.
+	keyOK bool
+	// enrollKeyOnly: the enrollment stage accepts only a security key.
+	enrollKeyOnly bool
 }
 
 type flash struct {
@@ -237,6 +246,7 @@ func (m *sessions) destroy(ctx context.Context, s *Session) {
 	}
 	s.pending = nil
 	s.enrollSecret = nil
+	s.waCeremony = nil
 	s.mu.Unlock()
 	_ = m.store.DeleteSession(ctx, s.hash)
 }

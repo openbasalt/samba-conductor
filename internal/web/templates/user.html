@@ -17,6 +17,7 @@
     <dt>{{t "attr.accountExpires"}}</dt><dd>{{filetime $u.AccountExpires}}</dd>
     <dt>{{t "attr.uac"}}</dt><dd><code>{{$u.UAC}}</code></dd>
   </dl>
+  {{if has .Nav "policy.read"}}<p><a href="/admin/users/{{$g}}/policy" data-e2e="user-link-policy">{{t "user.policy_link"}}</a></p>{{end}}
 </section>
 <section class="card" aria-labelledby="u-actions">
   <h2 id="u-actions">{{t "user.actions"}}</h2>

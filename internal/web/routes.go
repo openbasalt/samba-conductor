@@ -11,10 +11,14 @@ func (s *Server) routeTable() []route {
 		// Sign-in steps (a session in a specific stage).
 		{method: "GET", pattern: "/signin/password", perm: PermPreAuth, stages: []stage{stageMustChange}, h: s.handleExpiredPasswordPage},
 		{method: "POST", pattern: "/signin/password", perm: PermPreAuth, stages: []stage{stageMustChange}, h: s.handleExpiredPassword},
-		{method: "GET", pattern: "/signin/2fa", perm: PermPreAuth, stages: []stage{stageMFA}, h: s.handleMFAPage},
+		// The second-factor pages are the only ones allowed the WebAuthn
+		// script (script: true).
+		{method: "GET", pattern: "/signin/2fa", perm: PermPreAuth, stages: []stage{stageMFA}, h: s.handleMFAPage, script: true},
 		{method: "POST", pattern: "/signin/2fa", perm: PermPreAuth, stages: []stage{stageMFA}, h: s.handleMFA},
-		{method: "GET", pattern: "/signin/enroll", perm: PermPreAuth, stages: []stage{stageEnroll}, h: s.handleEnrollPage},
+		{method: "POST", pattern: "/signin/2fa/key", perm: PermPreAuth, stages: []stage{stageMFA}, h: s.handleMFAKey},
+		{method: "GET", pattern: "/signin/enroll", perm: PermPreAuth, stages: []stage{stageEnroll}, h: s.handleEnrollPage, script: true},
 		{method: "POST", pattern: "/signin/enroll", perm: PermPreAuth, stages: []stage{stageEnroll}, h: s.handleEnroll},
+		{method: "POST", pattern: "/signin/enroll/key", perm: PermPreAuth, stages: []stage{stageEnroll}, h: s.handleEnrollKey},
 		{method: "GET", pattern: "/signin/enroll/qr.png", perm: PermPreAuth, stages: []stage{stageEnroll}, h: s.handleEnrollQR},
 		{method: "POST", pattern: "/signout", perm: PermPreAuth, stages: allStages, h: s.handleSignout},
 
@@ -25,7 +29,7 @@ func (s *Server) routeTable() []route {
 		{method: "POST", pattern: "/me/edit", perm: PermSelf, h: s.handleMeEdit},
 		{method: "GET", pattern: "/me/password", perm: PermSelf, h: s.handleMePasswordPage},
 		{method: "POST", pattern: "/me/password", perm: PermSelf, h: s.handleMePassword},
-		{method: "GET", pattern: "/me/security", perm: PermSelf, h: s.handleSecurity},
+		{method: "GET", pattern: "/me/security", perm: PermSelf, h: s.handleSecurity, script: true},
 		{method: "GET", pattern: "/me/recovery-codes", perm: PermSelf, h: s.handleRecoveryCodes},
 		{method: "GET", pattern: "/me/2fa/enroll", perm: PermSelf, h: s.handleSelfEnrollStart},
 		{method: "POST", pattern: "/me/2fa/enroll", perm: PermSelf, h: s.handleSelfEnroll},
@@ -33,12 +37,16 @@ func (s *Server) routeTable() []route {
 		{method: "POST", pattern: "/me/2fa/disable", perm: PermSelf, h: s.handleSelfDisable},
 		{method: "POST", pattern: "/me/2fa/recovery-codes", perm: PermSelf, h: s.handleNewRecoveryCodes},
 		{method: "POST", pattern: "/me/sessions/signout-all", perm: PermSelf, h: s.handleSignoutEverywhere},
+		{method: "POST", pattern: "/me/2fa/keys/register", perm: PermSelf, h: s.handleKeyRegister},
+		{method: "GET", pattern: "/me/2fa/keys/{id}/remove", perm: PermSelf, h: s.handleKeyRemovePage, script: true},
+		{method: "POST", pattern: "/me/2fa/keys/{id}/remove", perm: PermSelf, h: s.handleKeyRemove},
 
 		// Previews awaiting confirmation; each operation re-checks its own
 		// permission (pendingOp.perm) before showing or applying.
 		{method: "GET", pattern: "/confirm/{id}", perm: PermSelf, h: s.handleConfirmPage},
 		{method: "POST", pattern: "/confirm/{id}", perm: PermSelf, h: s.handleConfirm},
 		{method: "POST", pattern: "/confirm/{id}/cancel", perm: PermSelf, h: s.handleCancel},
+		{method: "GET", pattern: "/confirm/{id}/key", perm: PermSelf, h: s.handleConfirmKeyPage, script: true},
 
 		// Administration.
 		{method: "GET", pattern: "/admin", perm: PermDashboard, h: s.handleDashboard},
@@ -84,6 +92,65 @@ func (s *Server) routeTable() []route {
 		{method: "POST", pattern: "/admin/computers/{guid}/disable", perm: PermDirWrite, h: s.handleComputerDisable},
 		{method: "POST", pattern: "/admin/computers/{guid}/move", perm: PermDirWrite, h: s.handleComputerMove},
 		{method: "POST", pattern: "/admin/computers/{guid}/delete", perm: PermDirWrite, h: s.handleComputerDelete},
+
+		{method: "GET", pattern: "/admin/users/{guid}/policy", perm: PermPolicyRead, h: s.handleUserPolicy},
+		// Actions on accounts selected in a list; each action re-checks
+		// its own permission (helpdesk: enable/disable/unlock/reset).
+		{method: "POST", pattern: "/admin/users/selected", perm: PermUsersHelpdesk, h: s.handleSelected},
+
+		// DNS.
+		{method: "GET", pattern: "/admin/dns", perm: PermDNSRead, h: s.handleDNSZones},
+		{method: "GET", pattern: "/admin/dns/new", perm: PermDNSWrite, h: s.handleDNSZoneNewPage},
+		{method: "POST", pattern: "/admin/dns/new", perm: PermDNSWrite, h: s.handleDNSZoneNew},
+		{method: "GET", pattern: "/admin/dns/zones/{zone}", perm: PermDNSRead, h: s.handleDNSZone},
+		{method: "POST", pattern: "/admin/dns/zones/{zone}/delete", perm: PermDNSWrite, h: s.handleDNSZoneDelete},
+		{method: "POST", pattern: "/admin/dns/zones/{zone}/records/new", perm: PermDNSWrite, h: s.handleDNSRecordNew},
+		{method: "GET", pattern: "/admin/dns/zones/{zone}/records/edit", perm: PermDNSWrite, h: s.handleDNSRecordEditPage},
+		{method: "POST", pattern: "/admin/dns/zones/{zone}/records/edit", perm: PermDNSWrite, h: s.handleDNSRecordEdit},
+		{method: "POST", pattern: "/admin/dns/zones/{zone}/records/delete", perm: PermDNSWrite, h: s.handleDNSRecordDelete},
+
+		// Group Policy (links and flags; settings are edited with RSAT/GPMC).
+		{method: "GET", pattern: "/admin/gpo", perm: PermGPORead, h: s.handleGPOs},
+		{method: "GET", pattern: "/admin/gpo/new", perm: PermGPOWrite, h: s.handleGPONewPage},
+		{method: "POST", pattern: "/admin/gpo/new", perm: PermGPOWrite, h: s.handleGPONew},
+		{method: "GET", pattern: "/admin/gpo/links", perm: PermGPORead, h: s.handleGPContainer},
+		{method: "POST", pattern: "/admin/gpo/links", perm: PermGPOWrite, h: s.handleGPContainerAction},
+		{method: "POST", pattern: "/admin/gpo/inheritance", perm: PermGPOWrite, h: s.handleGPInheritance},
+		{method: "GET", pattern: "/admin/gpo/{id}", perm: PermGPORead, h: s.handleGPO},
+		{method: "POST", pattern: "/admin/gpo/{id}/link", perm: PermGPOWrite, h: s.handleGPOLinkTo},
+		{method: "POST", pattern: "/admin/gpo/{id}/delete", perm: PermGPOWrite, h: s.handleGPODelete},
+
+		// Password policy.
+		{method: "GET", pattern: "/admin/policy", perm: PermPolicyRead, h: s.handlePolicy},
+		{method: "GET", pattern: "/admin/policy/edit", perm: PermPolicyWrite, h: s.handlePolicyEditPage},
+		{method: "POST", pattern: "/admin/policy/edit", perm: PermPolicyWrite, h: s.handlePolicyEdit},
+		{method: "GET", pattern: "/admin/policy/pso/new", perm: PermPolicyWrite, h: s.handlePSONewPage},
+		{method: "POST", pattern: "/admin/policy/pso/new", perm: PermPolicyWrite, h: s.handlePSONew},
+		{method: "GET", pattern: "/admin/policy/pso/{guid}", perm: PermPolicyRead, h: s.handlePSO},
+		{method: "POST", pattern: "/admin/policy/pso/{guid}/edit", perm: PermPolicyWrite, h: s.handlePSOEdit},
+		{method: "POST", pattern: "/admin/policy/pso/{guid}/delete", perm: PermPolicyWrite, h: s.handlePSODelete},
+		{method: "POST", pattern: "/admin/policy/pso/{guid}/apply", perm: PermPolicyWrite, h: s.handlePSOApply},
+		{method: "POST", pattern: "/admin/policy/pso/{guid}/unapply", perm: PermPolicyWrite, h: s.handlePSOUnapply},
+
+		// Lockouts and account health.
+		{method: "GET", pattern: "/admin/lockouts", perm: PermHealthRead, h: s.handleLockouts},
+		{method: "GET", pattern: "/admin/health", perm: PermHealthRead, h: s.handleHealth},
+		{method: "GET", pattern: "/admin/health/export.csv", perm: PermHealthRead, h: s.handleHealthExport},
+
+		// Bulk jobs: CSV import (administrators), and the preview/apply/
+		// report of every job, shown to its owner only.
+		{method: "GET", pattern: "/admin/bulk", perm: PermBulk, h: s.handleBulkIndex},
+		{method: "GET", pattern: "/admin/bulk-templates/{kind}", perm: PermBulk, h: s.handleBulkTemplate},
+		{method: "POST", pattern: "/admin/bulk/upload", perm: PermBulk, h: s.handleBulkUpload, maxBody: maxUpload + 64<<10},
+		{method: "GET", pattern: "/admin/bulk/{id}", perm: PermUsersHelpdesk, h: s.handleBulkJob},
+		{method: "GET", pattern: "/admin/bulk/{id}/key", perm: PermUsersHelpdesk, h: s.handleBulkKeyPage, script: true},
+		{method: "POST", pattern: "/admin/bulk/{id}/apply", perm: PermUsersHelpdesk, h: s.handleBulkApply},
+		{method: "POST", pattern: "/admin/bulk/{id}/cancel", perm: PermUsersHelpdesk, h: s.handleBulkCancel},
+		{method: "POST", pattern: "/admin/bulk/{id}/retry", perm: PermUsersHelpdesk, h: s.handleBulkRetry},
+		{method: "GET", pattern: "/admin/bulk/{id}/report.csv", perm: PermUsersHelpdesk, h: s.handleBulkReport},
+		{method: "GET", pattern: "/admin/bulk/{id}/preview.ldif", perm: PermUsersHelpdesk, h: s.handleBulkPreviewLDIF},
+		{method: "GET", pattern: "/admin/bulk/{id}/passwords.csv", perm: PermUsersHelpdesk, h: s.handleBulkPasswords},
+		{method: "POST", pattern: "/admin/bulk/{id}/passwords/dismiss", perm: PermUsersHelpdesk, h: s.handleBulkPasswords},
 
 		{method: "GET", pattern: "/admin/audit", perm: PermAuditRead, h: s.handleAudit},
 		{method: "GET", pattern: "/admin/audit/export", perm: PermAuditRead, h: s.handleAuditExport},

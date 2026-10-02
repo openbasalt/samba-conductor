@@ -21,10 +21,32 @@
     </form>
     {{else}}<p class="hint" data-e2e="security-text-mfa-required">{{t "mfa.required_note"}}</p>{{end}}
   {{else}}
-    <p data-e2e="security-text-mfa-off"><span class="badge">{{t "mfa.off"}}</span> {{if .D.Required}}{{t "mfa.required_note"}}{{else}}{{t (print "mfa.policy." .D.Policy)}}{{end}}</p>
+    {{if .D.Keys}}<p data-e2e="security-text-totp-off-keys"><span class="badge">{{t "mfa.totp_off"}}</span> {{t "mfa.totp_off_keys"}}</p>
+    <form method="post" action="/me/2fa/recovery-codes" class="row">
+      {{template "csrf" .}}
+      <label class="sr" for="rc-code2">{{t "mfa.recovery_code"}}</label>
+      <input class="grow" id="rc-code2" name="code" type="text" autocomplete="one-time-code" placeholder="{{t "mfa.recovery_code"}}" required maxlength="16" data-e2e="security-input-recovery-code">
+      <button class="btn" type="submit" data-e2e="security-btn-new-codes">{{t "mfa.new_codes"}}</button>
+    </form>
+    {{else}}<p data-e2e="security-text-mfa-off"><span class="badge">{{t "mfa.off"}}</span> {{if .D.Required}}{{t "mfa.required_note"}}{{else}}{{t (print "mfa.policy." .D.Policy)}}{{end}}</p>{{end}}
     {{if .D.CanEnroll}}<div class="actions"><a class="btn btn-primary" href="/me/2fa/enroll" data-e2e="security-link-enroll">{{t "mfa.enroll"}}</a></div>{{end}}
   {{end}}
 </section>
+{{if .D.WebAuthn}}<section class="card" aria-labelledby="sec-keys">
+  <h2 id="sec-keys">{{t "keys.title"}}</h2>
+  <p class="hint">{{t "keys.intro"}}{{if .D.KeyRequired}} {{t "keys.required_note"}}{{end}}</p>
+  {{if .D.Keys}}<table class="table" data-e2e="security-table-keys">
+    <thead><tr><th>{{t "keys.name"}}</th><th>{{t "keys.added"}}</th><th>{{t "keys.last_used"}}</th><th><span class="sr">{{t "user.actions"}}</span></th></tr></thead>
+    <tbody>{{range .D.Keys}}<tr data-e2e="security-row-key-{{e2e .Name}}">
+      <td data-label="{{t "keys.name"}}">{{.Name}}</td>
+      <td data-label="{{t "keys.added"}}">{{time .CreatedAt}}</td>
+      <td data-label="{{t "keys.last_used"}}">{{time .LastUsedAt}}</td>
+      <td><a class="btn btn-small" href="/me/2fa/keys/{{.ID}}/remove" data-e2e="security-link-remove-key-{{e2e .Name}}">{{t "keys.remove"}}</a></td>
+    </tr>{{end}}</tbody>
+  </table>{{else}}<p class="muted" data-e2e="security-text-no-keys">{{t "keys.none"}}</p>{{end}}
+  {{if .D.KeyOptions}}<h3>{{t "keys.register_title"}}</h3>
+  {{template "key-register" (dict "P" $ "Action" "/me/2fa/keys/register" "Options" .D.KeyOptions)}}{{end}}
+</section>{{end}}
 <section class="card" aria-labelledby="sec-sessions">
   <h2 id="sec-sessions">{{t "sessions.title"}}</h2>
   <table class="table" data-e2e="security-table-sessions">

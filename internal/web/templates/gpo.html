@@ -1,0 +1,35 @@
+{{define "title"}}{{.D.G.DisplayName}}{{end}}
+{{define "content"}}{{$g := .D.G}}
+<h1 data-e2e="gpo-text-name">{{$g.DisplayName}}</h1>
+<div class="grid grid-2">
+<section class="card" aria-labelledby="gpo-props">
+  <h2 id="gpo-props">{{t "user.properties"}}</h2>
+  <dl class="props">
+    <dt>GUID</dt><dd><code data-e2e="gpo-text-id">{{$g.ID}}</code></dd>
+    <dt>{{t "gpo.status"}}</dt><dd data-e2e="gpo-text-status">{{template "gpo-status" $g}}</dd>
+    <dt>{{t "gpo.version"}}</dt><dd>{{t "gpo.version_value" $g.UserVersion $g.ComputerVersion}}</dd>
+    <dt>DN</dt><dd><code>{{$g.DN}}</code></dd>
+    <dt>SYSVOL</dt><dd><code>{{.D.SysvolPath}}</code></dd>
+  </dl>
+  <div class="alert-info" data-e2e="gpo-text-settings-note">{{t "gpo.settings_note"}}</div>
+</section>
+<section class="card" aria-labelledby="gpo-links">
+  <h2 id="gpo-links">{{t "gpo.linked_to"}}</h2>
+  {{if .D.Links}}<table class="table" data-e2e="gpo-table-links"><tbody>{{range .D.Links}}<tr>
+    <td><a href="{{.Link}}" data-e2e="gpo-link-container-{{e2e .Container.Name}}">{{.Container.Name}}</a></td>
+    <td>{{t "gpo.order" .Order}}{{if .Enforced}} <span class="badge badge-warn">{{t "gpo.enforced"}}</span>{{end}}{{if not .Enabled}} <span class="badge">{{t "gpo.link_disabled"}}</span>{{end}}</td>
+  </tr>{{end}}</tbody></table>{{else}}<p class="muted" data-e2e="gpo-text-not-linked">{{t "gpo.not_linked"}}</p>{{end}}
+  {{if has .Nav "gpo.write"}}
+  <h3>{{t "gpo.link_to"}}</h3>
+  <form method="post" action="{{.D.Link}}/link" class="row">
+    {{template "csrf" .}}
+    <label class="sr" for="l-dn">{{t "gpo.container"}}</label>
+    <select class="grow" id="l-dn" name="dn" data-e2e="gpo-select-link">{{range .D.Options}}<option value="{{.DN}}">{{.Label}}</option>{{end}}</select>
+    <button class="btn" type="submit" data-e2e="gpo-btn-link">{{t "gpo.link"}}</button>
+  </form>
+  <h3>{{t "gpo.delete"}}</h3>
+  {{if .D.Links}}<p class="hint" data-e2e="gpo-text-delete-linked">{{t "gpo.delete_linked"}}</p>
+  {{else}}<form method="post" action="{{.D.Link}}/delete">{{template "csrf" .}}<button class="btn btn-danger" type="submit" data-e2e="gpo-btn-delete">{{t "gpo.delete"}}</button></form>{{end}}
+  {{end}}
+</section>
+</div>{{end}}

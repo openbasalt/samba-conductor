@@ -273,6 +273,15 @@ func describeMembers(ctx context.Context, conn *ad.Conn, dns []string) ([]member
 	return out, nil
 }
 
+// rdnOf returns the value of a DN's first RDN (the DN itself if it does
+// not parse).
+func rdnOf(dn string) string {
+	if _, v, err := escape.ParentDN(dn); err == nil {
+		return v
+	}
+	return dn
+}
+
 func contains(list []string, v string) bool {
 	for _, x := range list {
 		if strings.EqualFold(x, v) {

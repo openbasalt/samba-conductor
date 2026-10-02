@@ -1,0 +1,42 @@
+{{define "title"}}{{t "bulk.job.title"}}{{end}}
+{{define "content"}}{{$j := .D.Job}}{{$id := $j.ID}}
+<h1 data-e2e="job-text-title">{{with .D.Title}}{{.}}{{else}}{{t (print "bulk.kind." $j.Kind)}}{{end}}</h1>
+<p class="muted small">{{t "bulk.job.meta" $j.OwnerName (time $j.CreatedAt) $j.Total}}</p>
+<p><span class="badge{{if eq $j.Status "done"}} badge-ok{{else if eq $j.Status "running"}} badge-warn{{end}}" data-e2e="job-text-status">{{t (print "bulk.status." $j.Status)}}</span>
+ <span data-e2e="job-text-counts">{{t "bulk.counts" (index .D.Counts "ok") (index .D.Counts "failed") (index .D.Counts "pending") (index .D.Counts "skipped")}}</span></p>
+{{if eq $j.Status "running"}}<p class="hint" data-e2e="job-text-running">{{t "bulk.running"}}</p>{{end}}
+{{if eq $j.Status "interrupted"}}<div class="alert-warn" data-e2e="job-text-interrupted">{{t "bulk.interrupted"}}</div>{{end}}
+{{if .D.Passwords}}<section class="card" aria-labelledby="job-pw">
+  <h2 id="job-pw">{{t "bulk.passwords"}}</h2>
+  <div class="alert-warn">{{t "bulk.passwords_once"}}</div>
+  <table class="table" data-e2e="job-table-passwords"><tbody>{{range .D.Passwords}}<tr><td>{{index . 0}}</td><td><code data-e2e="job-text-password">{{index . 1}}</code></td></tr>{{end}}</tbody></table>
+  <div class="actions">
+    <a class="btn btn-primary" href="/admin/bulk/{{$id}}/passwords.csv" data-e2e="job-link-passwords">{{t "bulk.passwords_download"}}</a>
+    <form method="post" action="/admin/bulk/{{$id}}/passwords/dismiss">{{template "csrf" .}}<input type="hidden" name="dismiss" value="1"><button class="btn" type="submit" data-e2e="job-btn-dismiss">{{t "bulk.passwords_dismiss"}}</button></form>
+  </div>
+</section>{{end}}
+{{if .D.CanApply}}<section class="card" aria-labelledby="job-apply">
+  <h2 id="job-apply">{{t "bulk.apply_title"}}</h2>
+  <p>{{t "bulk.apply_hint"}}</p>
+  <form method="post" action="/admin/bulk/{{$id}}/apply" autocomplete="off">
+    {{template "csrf" .}}
+    {{if .D.Reauth}}{{template "reauth-fields" .}}{{end}}
+    <div class="actions"><button class="btn btn-primary" type="submit" data-e2e="job-btn-apply">{{t "bulk.apply" $j.Total}}</button></div>
+  </form>
+  {{if and .D.Reauth .D.HasKeys}}<p class="small"><a href="/admin/bulk/{{$id}}/key" data-e2e="job-link-key">{{t "reauth.use_key"}}</a></p>{{end}}
+  <form method="post" action="/admin/bulk/{{$id}}/cancel" class="actions">{{template "csrf" .}}<button class="btn" type="submit" data-e2e="job-btn-cancel">{{t "form.cancel"}}</button></form>
+</section>{{end}}
+<div class="actions">
+  <a class="btn btn-small" href="/admin/bulk/{{$id}}/preview.ldif" data-e2e="job-link-ldif">{{t "bulk.download_preview"}}</a>
+  <a class="btn btn-small" href="/admin/bulk/{{$id}}/report.csv" data-e2e="job-link-report">{{t "bulk.download_report"}}</a>
+  {{if .D.Retry}}<form method="post" action="/admin/bulk/{{$id}}/retry">{{template "csrf" .}}<button class="btn btn-small" type="submit" data-e2e="job-btn-retry">{{t "bulk.retry"}}</button></form>{{end}}
+</div>
+<table class="table" data-e2e="job-table-rows">
+  <thead><tr><th>{{t "bulk.row"}}</th><th>{{t "bulk.label"}}</th><th>{{t "bulk.status"}}</th><th>{{t "bulk.changes"}}</th></tr></thead>
+  <tbody>{{range .D.Rows}}<tr data-e2e="job-row-{{e2e .Label}}">
+    <td data-label="{{t "bulk.row"}}">{{.No}}</td>
+    <td data-label="{{t "bulk.label"}}">{{.Label}}</td>
+    <td data-label="{{t "bulk.status"}}"><span class="badge{{if eq .Status "ok"}} badge-ok{{else if eq .Status "failed"}} badge-danger{{end}}" data-e2e="job-text-row-status-{{e2e .Label}}">{{t (print "bulk.row." .Status)}}</span>{{with .Error}} <span class="small" data-e2e="job-text-row-error-{{e2e $.D.Job.ID}}">{{.}}</span>{{end}}</td>
+    <td data-label="{{t "bulk.changes"}}">{{if .Preview}}<details><summary>{{t "bulk.show_changes"}}</summary><pre>{{.Preview}}</pre></details>{{else}}<span class="muted">{{t "bulk.no_change"}}</span>{{end}}</td>
+  </tr>{{end}}</tbody>
+</table>{{end}}

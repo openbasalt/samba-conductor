@@ -1,0 +1,31 @@
+{{define "title"}}{{.D.PSO.Name}}{{end}}
+{{define "content"}}{{$w := has .Nav "policy.write"}}{{$link := .D.Link}}
+<h1 data-e2e="pso-text-name">{{.D.PSO.Name}}</h1>
+<p class="muted small">{{t "policy.precedence"}}: <span data-e2e="pso-text-precedence">{{.D.PSO.Precedence}}</span> · <code>{{.D.PSO.DN}}</code></p>
+<div class="grid grid-2">
+<section class="card" aria-labelledby="pso-settings">
+  <h2 id="pso-settings">{{t "policy.settings"}}</h2>
+  {{template "policy-props" .D.PSO.Policy}}
+  {{if $w}}<details><summary data-e2e="pso-link-edit">{{t "policy.edit"}}</summary>
+  <form method="post" action="{{$link}}/edit">
+    {{template "csrf" .}}
+    {{template "policy-fields" (dict "F" .D.F "PSO" true)}}
+    <button class="btn btn-primary" type="submit" data-e2e="pso-btn-preview">{{t "form.preview"}}</button>
+  </form></details>{{end}}
+</section>
+<section class="card" aria-labelledby="pso-targets">
+  <h2 id="pso-targets">{{t "policy.applies_to"}}</h2>
+  {{if .D.Targets}}<table class="table" data-e2e="pso-table-targets"><tbody>{{range .D.Targets}}<tr data-e2e="pso-row-{{e2e .Name}}">
+    <td>{{.Name}} <span class="muted small">{{t (print "kind." .Kind)}}</span></td>
+    <td>{{if $w}}<form method="post" action="{{$link}}/unapply">{{template "csrf" $}}<input type="hidden" name="dn" value="{{.DN}}"><button class="btn btn-small" type="submit" data-e2e="pso-btn-unapply-{{e2e .Name}}">{{t "policy.unapply"}}</button></form>{{end}}</td>
+  </tr>{{end}}</tbody></table>{{else}}<p class="muted" data-e2e="pso-text-no-targets">{{t "policy.no_targets"}}</p>{{end}}
+  {{if $w}}<form method="post" action="{{$link}}/apply" class="row">
+    {{template "csrf" .}}
+    <label class="sr" for="pso-target">{{t "policy.target"}}</label>
+    <input class="grow" id="pso-target" name="target" type="text" placeholder="{{t "policy.target"}}" required data-e2e="pso-input-target">
+    <button class="btn" type="submit" data-e2e="pso-btn-apply">{{t "policy.apply"}}</button>
+  </form>
+  <h3>{{t "policy.pso_delete"}}</h3>
+  <form method="post" action="{{$link}}/delete">{{template "csrf" .}}<button class="btn btn-danger" type="submit" data-e2e="pso-btn-delete">{{t "policy.pso_delete"}}</button></form>{{end}}
+</section>
+</div>{{end}}

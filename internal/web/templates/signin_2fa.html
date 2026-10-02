@@ -1,16 +1,19 @@
 {{define "title"}}{{t "mfa.title"}}{{end}}
 {{define "content"}}<div class="card narrow">
   <h1>{{t "mfa.title"}}</h1>
-  <p>{{t "mfa.intro"}}</p>
   {{template "error-alert" .D.Error}}
+  {{if .D.KeyOptions}}<p>{{t "mfa.intro_key"}}</p>
+  {{template "key-assert" (dict "P" $ "Action" "/signin/2fa/key" "Options" .D.KeyOptions "Password" false)}}
+  <h2>{{if .D.KeyRequired}}{{t "mfa.or_recovery"}}{{else}}{{t "mfa.or_code"}}{{end}}</h2>
+  {{else}}<p>{{if .D.KeyRequired}}{{t "mfa.key_required_intro"}}{{else}}{{t "mfa.intro"}}{{end}}</p>{{end}}
   <form method="post" action="/signin/2fa" autocomplete="off">
     {{template "csrf" .}}
     <div class="field">
-      <label for="code">{{t "mfa.code"}}</label>
+      <label for="code">{{if .D.KeyRequired}}{{t "mfa.recovery_code"}}{{else}}{{t "mfa.code"}}{{end}}</label>
       <input id="code" name="code" type="text" inputmode="text" autocomplete="one-time-code" autocapitalize="none" spellcheck="false" required maxlength="16" data-e2e="mfa-input-code">
-      <span class="hint">{{t "mfa.code_hint"}}</span>
+      <span class="hint">{{if .D.KeyRequired}}{{t "mfa.recovery_hint"}}{{else}}{{t "mfa.code_hint"}}{{end}}</span>
     </div>
-    <button class="btn btn-primary btn-block" type="submit" data-e2e="mfa-btn-submit">{{t "mfa.submit"}}</button>
+    <button class="btn btn-block" type="submit" data-e2e="mfa-btn-submit">{{t "mfa.submit"}}</button>
   </form>
   <form method="post" action="/signout" class="actions">{{template "csrf" .}}<button class="btn btn-block" type="submit" data-e2e="mfa-btn-cancel">{{t "form.cancel"}}</button></form>
 </div>{{end}}

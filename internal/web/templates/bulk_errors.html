@@ -1,0 +1,10 @@
+{{define "title"}}{{t "bulk.errors.title"}}{{end}}
+{{define "content"}}<div class="card">
+  <h1>{{t "bulk.errors.title"}}</h1>
+  <div class="alert-error" role="alert" data-e2e="bulk-text-errors">{{t "bulk.errors.intro" (len .D.Errors)}}</div>
+  <table class="table" data-e2e="bulk-table-errors">
+    <thead><tr><th>{{t "bulk.row"}}</th><th>{{t "bulk.label"}}</th><th>{{t "bulk.error"}}</th></tr></thead>
+    <tbody>{{range .D.Errors}}<tr><td data-label="{{t "bulk.row"}}">{{if .No}}{{.No}}{{else}}—{{end}}</td><td data-label="{{t "bulk.label"}}">{{.Label}}</td><td data-label="{{t "bulk.error"}}" data-e2e="bulk-text-error">{{.Msg}}</td></tr>{{end}}</tbody>
+  </table>
+  <div class="actions"><a class="btn" href="{{.D.Back}}" data-e2e="bulk-link-back">{{t "form.back"}}</a></div>
+</div>{{end}}

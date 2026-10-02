@@ -1,0 +1,20 @@
+{{define "title"}}{{t "nav.gpo"}}{{end}}
+{{define "content"}}<div class="row"><h1 class="grow">{{t "nav.gpo"}}</h1>{{if has .Nav "gpo.write"}}<a class="btn btn-primary" href="/admin/gpo/new" data-e2e="gpo-link-new">{{t "gpo.new"}}</a>{{end}}</div>
+<p class="hint" data-e2e="gpo-text-scope">{{t "gpo.scope_note"}}</p>
+{{if .D.GPOs}}<table class="table" data-e2e="gpo-table">
+  <thead><tr><th>{{t "gpo.name"}}</th><th>{{t "gpo.status"}}</th><th>{{t "gpo.linked_to"}}</th></tr></thead>
+  <tbody>{{range .D.GPOs}}<tr data-e2e="gpo-row-{{e2e .G.DisplayName}}">
+    <td data-label="{{t "gpo.name"}}"><a href="{{.Link}}" data-e2e="gpo-link-{{e2e .G.DisplayName}}">{{.G.DisplayName}}</a><br><span class="muted small"><code>{{.G.ID}}</code></span></td>
+    <td data-label="{{t "gpo.status"}}">{{template "gpo-status" .G}}</td>
+    <td data-label="{{t "gpo.linked_to"}}">{{if .Links}}{{range .Links}}<a href="{{.Link}}">{{.Container.Name}}</a>{{if .Enforced}} <span class="badge badge-warn">{{t "gpo.enforced"}}</span>{{end}}{{if not .Enabled}} <span class="badge">{{t "gpo.link_disabled"}}</span>{{end}}<br>{{end}}{{else}}<span class="muted" data-e2e="gpo-text-unlinked-{{e2e .G.DisplayName}}">{{t "gpo.not_linked"}}</span>{{end}}</td>
+  </tr>{{end}}</tbody>
+</table>{{else}}<p class="muted">{{t "list.empty"}}</p>{{end}}
+<section class="card" aria-labelledby="gp-containers">
+  <h2 id="gp-containers">{{t "gpo.containers"}}</h2>
+  <ul data-e2e="gpo-list-containers">{{range .D.Containers}}<li><a href="{{.Link}}" data-e2e="gpo-link-container-{{e2e .C.Name}}">{{.C.Name}}</a> <span class="muted small">{{t (print "gpo.kind." .C.Kind)}} · {{t "gpo.links_count" (len .C.Links)}}{{if .C.BlockInheritance}} · {{t "gpo.blocks"}}{{end}}</span></li>{{end}}</ul>
+  <form method="get" action="/admin/gpo/links" class="row">
+    <label class="sr" for="c-dn">{{t "gpo.container"}}</label>
+    <select class="grow" id="c-dn" name="dn" data-e2e="gpo-select-container">{{range .D.Options}}<option value="{{.DN}}">{{.Label}}</option>{{end}}</select>
+    <button class="btn" type="submit" data-e2e="gpo-btn-container">{{t "gpo.manage_links"}}</button>
+  </form>
+</section>{{end}}

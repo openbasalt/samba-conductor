@@ -1,0 +1,15 @@
+{{define "title"}}{{t "keys.remove_title" .D.Name}}{{end}}
+{{define "content"}}<div class="card narrow">
+  <h1>{{t "keys.remove_title" .D.Name}}</h1>
+  {{if .D.Refused}}<div class="alert-error" role="alert" data-e2e="keyremove-text-refused">{{t "keys.err.last"}}</div>
+  {{else}}
+  <p>{{t "keys.remove_intro"}}</p>
+  <form method="post" action="{{.D.Action}}" autocomplete="off">
+    {{template "csrf" .}}
+    {{template "reauth-fields" .}}
+    <button class="btn btn-danger" type="submit" data-e2e="keyremove-btn-code">{{t "keys.remove"}}</button>
+  </form>
+  {{if .D.KeyOptions}}<h2>{{t "reauth.or_key"}}</h2>{{template "key-assert" (dict "P" $ "Action" .D.Action "Options" .D.KeyOptions "Password" true)}}{{end}}
+  {{end}}
+  <div class="actions"><a class="btn" href="/me/security" data-e2e="keyremove-link-back">{{t "form.back"}}</a></div>
+</div>{{end}}

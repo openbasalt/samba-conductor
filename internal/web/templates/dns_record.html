@@ -1,0 +1,17 @@
+{{define "title"}}{{t "dns.record_edit.title" .D.FQDN}}{{end}}
+{{define "content"}}<div class="card narrow">
+  <h1>{{t "dns.record_edit.title" .D.FQDN}}</h1>
+  <p><code>{{.D.R.Type}}</code> <code data-e2e="dnsrec-text-current">{{.D.R.Data}}</code></p>
+  {{template "error-alert" .D.Error}}
+  <form method="post" action="{{.D.Link}}/records/edit">
+    {{template "csrf" .}}
+    <input type="hidden" name="name" value="{{.D.Node.Name}}">
+    <input type="hidden" name="rid" value="{{.D.ID}}">
+    <div class="field"><label for="r-data">{{t "dns.data"}}</label><input id="r-data" name="data" type="text" value="{{.D.R.Data}}" required data-e2e="dnsrec-input-data"><span class="hint">{{t "dns.data_hint"}}</span></div>
+    <div class="field"><label for="r-ttl">{{t "dns.ttl"}}</label><input id="r-ttl" name="ttl" type="text" inputmode="numeric" value="{{.D.R.TTL}}" data-e2e="dnsrec-input-ttl"></div>
+    <div class="actions">
+      <button class="btn btn-primary" type="submit" data-e2e="dnsrec-btn-preview">{{t "form.preview"}}</button>
+      <a class="btn" href="{{.D.Link}}" data-e2e="dnsrec-link-cancel">{{t "form.cancel"}}</a>
+    </div>
+  </form>
+</div>{{end}}

@@ -1,0 +1,47 @@
+{{define "title"}}{{.D.Z.Name}}{{end}}
+{{define "content"}}{{$link := .D.Link}}{{$w := has .Nav "dns.write"}}
+<div class="row"><h1 class="grow" data-e2e="dns-text-zone">{{.D.Z.Name}}</h1>{{if .D.AD}}<span class="badge badge-warn" data-e2e="dns-badge-ad-zone">{{t "dns.ad_zone"}}</span>{{end}}</div>
+<p class="muted small">{{if .D.Z.Reverse}}{{t "dns.reverse"}}{{else}}{{t "dns.forward"}}{{end}} · {{.D.Z.Partition}}{{if .D.AD}} · {{t "dns.ad_zone_note"}}{{end}}</p>
+<form method="get" action="{{$link}}" class="card row" role="search">
+  <label class="sr" for="q">{{t "form.search"}}</label>
+  <input class="grow" id="q" name="q" type="search" value="{{.D.Q}}" placeholder="{{t "dns.search_hint"}}" data-e2e="dns-input-search">
+  <button class="btn" type="submit" data-e2e="dns-btn-search">{{t "form.search"}}</button>
+</form>
+{{if .D.Rows}}<table class="table" data-e2e="dns-table-records">
+  <thead><tr><th>{{t "dns.name"}}</th><th>{{t "dns.type"}}</th><th>{{t "dns.data"}}</th><th>{{t "dns.ttl"}}</th><th>{{t "user.actions"}}</th></tr></thead>
+  <tbody>{{range .D.Rows}}<tr data-e2e="dns-row-{{e2e .Name}}-{{e2e .Record.Type}}">
+    <td data-label="{{t "dns.name"}}">{{if .First}}<span title="{{.FQDN}}">{{.Name}}</span>{{else}}<span class="muted">{{.Name}}</span>{{end}}</td>
+    <td data-label="{{t "dns.type"}}"><code>{{.Record.Type}}</code></td>
+    <td data-label="{{t "dns.data"}}"><code data-e2e="dns-text-data-{{e2e .Name}}-{{e2e .Record.Type}}">{{.Record.Data}}</code>{{if not .Record.Static}} <span class="badge">{{t "dns.dynamic"}}</span>{{end}}</td>
+    <td data-label="{{t "dns.ttl"}}">{{.Record.TTL}}</td>
+    <td data-label="{{t "user.actions"}}">{{if .Protected}}<span class="badge badge-warn" data-e2e="dns-badge-protected-{{e2e .Name}}-{{e2e .Record.Type}}">{{t "dns.ad_managed"}}</span>{{else if $w}}<div class="actions">
+      <a class="btn btn-small" href="{{$link}}/records/edit?name={{.Name}}&amp;rid={{.ID}}" data-e2e="dns-link-edit-{{e2e .Name}}-{{e2e .Record.Type}}">{{t "dns.edit"}}</a>
+      <form method="post" action="{{$link}}/records/delete">{{template "csrf" $}}<input type="hidden" name="name" value="{{.Name}}"><input type="hidden" name="rid" value="{{.ID}}"><button class="btn btn-small" type="submit" data-e2e="dns-btn-delete-{{e2e .Name}}-{{e2e .Record.Type}}">{{t "dns.delete"}}</button></form>
+    </div>{{end}}</td>
+  </tr>{{end}}</tbody>
+</table>
+{{template "pager" .}}
+{{else}}<p class="muted" data-e2e="dns-text-empty">{{t "list.empty"}}</p>{{end}}
+{{if $w}}<section class="card" aria-labelledby="dns-add">
+  <h2 id="dns-add">{{t "dns.record_new"}}</h2>
+  <form method="post" action="{{$link}}/records/new">
+    {{template "csrf" .}}
+    <div class="grid grid-2">
+      <div class="field"><label for="r-name">{{t "dns.name"}}</label><input id="r-name" name="name" type="text" placeholder="@" data-e2e="dns-input-name"><span class="hint">{{t "dns.name_hint" .D.Z.Name}}</span></div>
+      <div class="field"><label for="r-type">{{t "dns.type"}}</label><select id="r-type" name="type" data-e2e="dns-select-type">{{range .D.Types}}<option value="{{.}}"{{if eq (print .) (index $.D.F "type")}} selected{{end}}>{{.}}</option>{{end}}</select></div>
+      <div class="field"><label for="r-data">{{t "dns.data"}}</label><input id="r-data" name="data" type="text" required data-e2e="dns-input-data"><span class="hint">{{t "dns.data_hint"}}</span></div>
+      <div class="field"><label for="r-ttl">{{t "dns.ttl"}}</label><input id="r-ttl" name="ttl" type="text" inputmode="numeric" placeholder="3600" data-e2e="dns-input-ttl"></div>
+    </div>
+    <button class="btn btn-primary" type="submit" data-e2e="dns-btn-add">{{t "form.preview"}}</button>
+  </form>
+</section>
+{{if not .D.AD}}<section class="card" aria-labelledby="dns-del">
+  <h2 id="dns-del">{{t "dns.zone_delete"}}</h2>
+  <p class="hint">{{t "dns.zone_delete_hint"}}</p>
+  <form method="post" action="{{$link}}/delete" class="row">
+    {{template "csrf" .}}
+    <label class="sr" for="z-confirm">{{t "dns.zone_delete_confirm"}}</label>
+    <input class="grow" id="z-confirm" name="confirm" type="text" autocomplete="off" placeholder="{{.D.Z.Name}}" required data-e2e="dns-input-zone-confirm">
+    <button class="btn btn-danger" type="submit" data-e2e="dns-btn-zone-delete">{{t "dns.zone_delete"}}</button>
+  </form>
+</section>{{end}}{{end}}{{end}}

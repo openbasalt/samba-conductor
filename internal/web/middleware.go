@@ -22,6 +22,12 @@ type route struct {
 	// stages allowed for PermPreAuth routes.
 	stages []stage
 	h      func(*reqCtx)
+	// script allows the self-hosted WebAuthn script on this page (CSP
+	// nonce). Only second-factor pages set it; every other page stays
+	// script-free (script-src 'none').
+	script bool
+	// maxBody overrides the request body limit (CSV uploads).
+	maxBody int64
 }
 
 // reqCtx carries one request through a handler.
@@ -37,6 +43,8 @@ type reqCtx struct {
 	route route
 	// actorHint names the actor of anonymous audit events (typed username).
 	actorHint string
+	// nonce of the page's script (script routes only).
+	nonce string
 }
 
 func (rc *reqCtx) ctx() context.Context { return rc.r.Context() }
@@ -50,6 +58,14 @@ const maxBody = 64 << 10
 // cspPolicy: no script at all, styles and images only from this origin.
 const cspPolicy = "default-src 'none'; script-src 'none'; style-src 'self'; img-src 'self'; font-src 'self'; " +
 	"connect-src 'none'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'"
+
+// cspWithScript is the policy of the second-factor pages: the same, except
+// that the one script carrying this response's nonce may run. The script
+// makes no requests of its own (connect-src stays 'none'): it fills a form
+// field and submits the form.
+func cspWithScript(nonce string) string {
+	return strings.Replace(cspPolicy, "script-src 'none'", "script-src 'nonce-"+nonce+"'", 1)
+}
 
 func (s *Server) securityHeaders(h http.Header) {
 	h.Set("Content-Security-Policy", cspPolicy)
@@ -107,8 +123,16 @@ func (s *Server) wrap(rt route) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		s.securityHeaders(w.Header())
 		w.Header().Set("Cache-Control", "no-store")
-		r.Body = http.MaxBytesReader(w, r.Body, maxBody)
+		limit := int64(maxBody)
+		if rt.maxBody > 0 {
+			limit = rt.maxBody
+		}
+		r.Body = http.MaxBytesReader(w, r.Body, limit)
 		rc := &reqCtx{s: s, w: w, r: r, route: rt, ip: s.clientIP(r)}
+		if rt.script && r.Method == http.MethodGet {
+			rc.nonce = newToken()[:24]
+			w.Header().Set("Content-Security-Policy", cspWithScript(rc.nonce))
+		}
 		s.prefs(rc)
 		if c, err := r.Cookie(sessionCookie); err == nil {
 			rc.sess = s.sess.get(r.Context(), c.Value)
@@ -172,7 +196,13 @@ func (s *Server) checkCSRF(rc *reqCtx) bool {
 			return false
 		}
 	}
-	if err := r.ParseForm(); err != nil {
+	if strings.HasPrefix(r.Header.Get("Content-Type"), "multipart/form-data") {
+		// Uploads (CSV import) only on routes that raised the body limit;
+		// parsed in memory (the limit bounds it), never to disk.
+		if rc.route.maxBody == 0 || r.ParseMultipartForm(rc.route.maxBody) != nil {
+			return false
+		}
+	} else if err := r.ParseForm(); err != nil {
 		return false
 	}
 	tok := r.PostForm.Get("csrf")
@@ -250,9 +280,9 @@ func (s *Server) guard(rc *reqCtx) bool {
 		return false
 	}
 	rc.sess.mu.Lock()
-	verified := rc.sess.mfaVerified
+	verified, keyOK := rc.sess.mfaVerified, rc.sess.keyOK
 	rc.sess.mu.Unlock()
-	if s.mfaRequired(roles) && !verified {
+	if (s.mfaRequired(roles) && !verified) || (s.keyRequired(roles) && !keyOK) {
 		// The user gained a role that needs 2FA after signing in without
 		// it: start over so the sign-in flow enforces it.
 		s.audit(rc.ctx(), rc, "access.denied", rc.r.Method+" "+rc.r.URL.Path, "2FA required for this role", "denied")

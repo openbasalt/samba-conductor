@@ -28,7 +28,21 @@ const (
 	PermAuditRead     Perm = "audit.read"
 	PermDomainRead    Perm = "domain.read" // helper: functional levels, FSMO, DCs
 	PermMFAManage     Perm = "mfa.manage"  // reset another user's 2FA, issue enrollment links
+
+	PermDNSRead     Perm = "dns.read"     // DNS zones and records
+	PermDNSWrite    Perm = "dns.write"    // create/change/delete zones and records
+	PermGPORead     Perm = "gpo.read"     // GPOs and their links
+	PermGPOWrite    Perm = "gpo.write"    // create/delete GPOs, links, inheritance
+	PermPolicyRead  Perm = "policy.read"  // domain password policy, PSOs, effective policy
+	PermPolicyWrite Perm = "policy.write" // change them
+	PermHealthRead  Perm = "health.read"  // lockouts across DCs, account health, CSV export
+	PermBulk        Perm = "bulk"         // CSV import (create/update users)
 )
+
+// allPerms lists every privileged permission (navigation, tests).
+var allPerms = []Perm{PermDashboard, PermUsersRead, PermUsersHelpdesk, PermUsersWrite, PermDirRead, PermDirWrite,
+	PermAuditRead, PermDomainRead, PermMFAManage, PermDNSRead, PermDNSWrite, PermGPORead, PermGPOWrite,
+	PermPolicyRead, PermPolicyWrite, PermHealthRead, PermBulk}
 
 // privileged reports whether p is beyond self-service.
 func (p Perm) privileged() bool {
@@ -43,10 +57,10 @@ type Roles struct {
 }
 
 var rolePerms = map[string][]Perm{
-	"admin": {PermDashboard, PermUsersRead, PermUsersHelpdesk, PermUsersWrite, PermDirRead, PermDirWrite,
-		PermAuditRead, PermDomainRead, PermMFAManage},
-	"helpdesk": {PermUsersRead, PermUsersHelpdesk},
-	"auditor":  {PermDashboard, PermUsersRead, PermDirRead, PermAuditRead, PermDomainRead},
+	"admin":    allPerms,
+	"helpdesk": {PermUsersRead, PermUsersHelpdesk, PermHealthRead},
+	"auditor": {PermDashboard, PermUsersRead, PermDirRead, PermAuditRead, PermDomainRead, PermDNSRead, PermGPORead,
+		PermPolicyRead, PermHealthRead},
 }
 
 // Has reports whether the roles grant p.

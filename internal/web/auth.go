@@ -155,7 +155,7 @@ func (s *Server) handleSignin(rc *reqCtx) {
 	}
 	s.accountFails.Reset(sam)
 	roles := s.roleSIDs.resolve(id.SID, groups)
-	enrolled := false
+	enrolled := s.keyCount(ctx, id.SID.String()) > 0
 	if _, err := s.store.GetTOTP(ctx, id.SID.String()); err == nil {
 		enrolled = true
 	} else if !errors.Is(err, store.ErrNotFound) {
@@ -184,6 +184,7 @@ func (s *Server) handleSignin(rc *reqCtx) {
 			sess.enrollLink = linkHash(enroll)
 		}
 		sess.stage = stageEnroll
+		sess.enrollKeyOnly = s.keyRequired(roles)
 	default:
 		sess.stage = stageFull
 	}
@@ -333,8 +334,56 @@ func passwordChangeError(err error) (string, string) {
 
 // ---- second factor ----
 
+// mfaPageData prepares the second-factor page: the code form (TOTP or
+// recovery code) and, when the user has security keys, a key assertion.
+func (s *Server) mfaPageData(rc *reqCtx, errMsg string) map[string]any {
+	sess := rc.sess
+	sess.mu.Lock()
+	roles := sess.roles
+	sess.mu.Unlock()
+	d := map[string]any{"Error": errMsg, "KeyRequired": s.keyRequired(roles)}
+	if s.wa != nil {
+		if opts, err := s.beginCeremony(rc.ctx(), sess, waSignin); err == nil {
+			d["KeyOptions"] = opts
+		}
+	}
+	return d
+}
+
 func (s *Server) handleMFAPage(rc *reqCtx) {
-	rc.render(http.StatusOK, "signin_2fa", map[string]any{})
+	rc.render(http.StatusOK, "signin_2fa", s.mfaPageData(rc, ""))
+}
+
+// secondFactorDone ends the sign-in after a verified second factor: a full
+// session with a new cookie value, unless administrators must use a
+// security key and this one has none yet (then registering one is next).
+func (s *Server) secondFactorDone(rc *reqCtx, detail string) {
+	ctx := rc.ctx()
+	sess := rc.sess
+	sess.mu.Lock()
+	sess.mfaVerified = true
+	roles, keyOK := sess.roles, sess.keyOK
+	userSID := sess.userSID.String()
+	sess.mu.Unlock()
+	next := stageFull
+	if s.keyRequired(roles) && !keyOK && s.keyCount(ctx, userSID) == 0 {
+		sess.mu.Lock()
+		sess.enrollKeyOnly = true
+		sess.mu.Unlock()
+		next = stageEnroll
+	}
+	tok, err := s.sess.rotate(ctx, sess, next)
+	if err != nil {
+		rc.render(http.StatusInternalServerError, "signin_2fa", s.mfaPageData(rc, rc.T("err.internal")))
+		return
+	}
+	setCookie(rc.w, sessionCookie, tok, 0)
+	s.audit(ctx, rc, "mfa.verify", sess.sam, detail, store.ResultOK)
+	if next == stageEnroll {
+		rc.redirect("/signin/enroll")
+		return
+	}
+	rc.redirect(landing(roles))
 }
 
 // verifySecondFactor checks a TOTP or recovery code for the session's user,
@@ -369,7 +418,7 @@ func (s *Server) handleMFA(rc *reqCtx) {
 	ctx := rc.ctx()
 	sess := rc.sess
 	fail := func(status int, key string) {
-		rc.render(status, "signin_2fa", map[string]any{"Error": rc.T(key)})
+		rc.render(status, "signin_2fa", s.mfaPageData(rc, rc.T(key)))
 	}
 	if !s.ipLimit.Allow("2fa:" + rc.ip) {
 		fail(http.StatusTooManyRequests, "signin.err.rate_ip")
@@ -383,8 +432,19 @@ func (s *Server) handleMFA(rc *reqCtx) {
 		rc.render(http.StatusTooManyRequests, "signin", map[string]any{"Error": rc.T("signin.err.rate_account")})
 		return
 	}
-	ok, recovery, err := s.verifySecondFactor(ctx, sess, rc.form("code"))
-	if err != nil {
+	sess.mu.Lock()
+	keyRequired := s.keyRequired(sess.roles)
+	sess.mu.Unlock()
+	code := rc.form("code")
+	if keyRequired && !totp.LooksLikeRecoveryCode(code) {
+		// Administrators must use a security key; a recovery code is the
+		// only other way in.
+		s.audit(ctx, rc, "mfa.verify", sess.sam, "TOTP refused: security key required", store.ResultDenied)
+		fail(http.StatusUnauthorized, "mfa.err.key_required")
+		return
+	}
+	ok, recovery, err := s.verifySecondFactor(ctx, sess, code)
+	if err != nil && !errors.Is(err, store.ErrNotFound) {
 		s.log.Error("2FA verification", "user", sess.sam, "err", err)
 		fail(http.StatusInternalServerError, "err.internal")
 		return
@@ -406,24 +466,19 @@ func (s *Server) handleMFA(rc *reqCtx) {
 		return
 	}
 	s.mfaFails.Reset(sess.sam)
-	sess.mu.Lock()
-	sess.mfaVerified = true
-	roles := sess.roles
-	sess.mu.Unlock()
-	tok, err := s.sess.rotate(ctx, sess, stageFull)
-	if err != nil {
-		fail(http.StatusInternalServerError, "err.internal")
-		return
-	}
-	setCookie(rc.w, sessionCookie, tok, 0)
 	detail := "totp"
 	if recovery {
 		detail = "recovery code"
 		left, _ := s.store.RecoveryCodesLeft(ctx, sess.userSID.String())
 		sess.addFlash("info", rc.T("mfa.recovery_used", left))
+		if keyRequired {
+			// The emergency path of a key-only administrator.
+			sess.mu.Lock()
+			sess.keyOK = true
+			sess.mu.Unlock()
+		}
 	}
-	s.audit(ctx, rc, "mfa.verify", sess.sam, detail, store.ResultOK)
-	rc.redirect(landing(roles))
+	s.secondFactorDone(rc, detail)
 }
 
 // ---- enrollment (sign-in flow and self-service share it) ----
@@ -450,8 +505,27 @@ func (s *Server) enrollData(rc *reqCtx, qrPath, action string) map[string]any {
 		"Account": rc.sess.sam + "@" + s.backend.Realm(), "Issuer": s.cfg.MFA.Issuer}
 }
 
+// enrollPageData prepares the sign-in enrollment page: TOTP (unless only a
+// security key is accepted) and the registration of a key.
+func (s *Server) enrollPageData(rc *reqCtx) map[string]any {
+	rc.sess.mu.Lock()
+	keyOnly := rc.sess.enrollKeyOnly
+	rc.sess.mu.Unlock()
+	d := map[string]any{"KeyOnly": keyOnly, "KeyAction": "/signin/enroll/key"}
+	if !keyOnly {
+		d = s.enrollData(rc, "/signin/enroll/qr.png", "/signin/enroll")
+		d["KeyAction"] = "/signin/enroll/key"
+	}
+	if s.wa != nil {
+		if opts, err := s.beginCeremony(rc.ctx(), rc.sess, waRegister); err == nil {
+			d["KeyOptions"] = opts
+		}
+	}
+	return d
+}
+
 func (s *Server) handleEnrollPage(rc *reqCtx) {
-	rc.render(http.StatusOK, "enroll", s.enrollData(rc, "/signin/enroll/qr.png", "/signin/enroll"))
+	rc.render(http.StatusOK, "enroll", s.enrollPageData(rc))
 }
 
 // handleEnrollQR renders the otpauth URI of the pending secret as a PNG.
@@ -533,14 +607,23 @@ func (s *Server) completeEnrollment(ctx context.Context, rc *reqCtx) ([]string, 
 
 func (s *Server) handleEnroll(rc *reqCtx) {
 	ctx := rc.ctx()
+	rc.sess.mu.Lock()
+	keyOnly := rc.sess.enrollKeyOnly
+	rc.sess.mu.Unlock()
+	if keyOnly {
+		d := s.enrollPageData(rc)
+		d["Error"] = rc.T("mfa.err.key_required")
+		rc.render(http.StatusForbidden, "enroll", d)
+		return
+	}
 	if !s.ipLimit.Allow("2fa:" + rc.ip) {
-		d := s.enrollData(rc, "/signin/enroll/qr.png", "/signin/enroll")
+		d := s.enrollPageData(rc)
 		d["Error"] = rc.T("signin.err.rate_ip")
 		rc.render(http.StatusTooManyRequests, "enroll", d)
 		return
 	}
 	if _, key := s.completeEnrollment(ctx, rc); key != "" {
-		d := s.enrollData(rc, "/signin/enroll/qr.png", "/signin/enroll")
+		d := s.enrollPageData(rc)
 		d["Error"] = rc.T(key)
 		rc.render(http.StatusUnauthorized, "enroll", d)
 		return
