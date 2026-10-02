@@ -3,7 +3,7 @@
 Go rewrite of Samba Conductor (v1 = Meteor/MongoDB at
 `../samba-conductor`, to be archived). Web admin + self-service for Samba AD,
 plus separate optional components: OIDC provider, provisioning sync
-(Google Workspace first), encrypted domain backup. Design: `docs/architecture.md`.
+(Google Workspace first), encrypted domain backup. Design: `../planning/docs/architecture.md`.
 
 - Security first: AD operations with the signed-in user's own identity
   (Kerberos/LDAPS); root only in `conductor-helper` (typed allowlist, no argv
