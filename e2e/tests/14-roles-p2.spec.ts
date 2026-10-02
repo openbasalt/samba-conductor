@@ -63,6 +63,9 @@ test.describe.serial('roles on the P2 pages', () => {
     await page.getByTestId('nav-link-lockouts').click();
     await expect(page.getByTestId('lockouts-table').or(page.getByTestId('lockouts-text-none'))).toBeVisible();
     await page.getByTestId('nav-link-health').click();
+    // The never-signed-in tab always has accounts (the selection form is
+    // shown with a non-empty list only).
+    await page.getByTestId('health-link-never').click();
     await expect(page.getByTestId('sel-form')).toBeVisible();
     // Only the helpdesk actions are offered.
     const options = await page.getByTestId('sel-select-action').locator('option').allInnerTexts();
