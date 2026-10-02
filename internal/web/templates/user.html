@@ -1,6 +1,6 @@
 {{define "title"}}{{.D.U.SAMAccountName}}{{end}}
 {{define "content"}}{{$u := .D.U}}{{$g := print .D.U.GUID}}
-<div class="row"><h1 class="grow" data-e2e="user-text-name">{{$u.DisplayName}} <span class="muted">({{$u.SAMAccountName}})</span></h1></div>
+<div class="row"><h1 class="grow" data-e2e="user-text-name">{{with $u.DisplayName}}{{.}}{{else}}{{rdn $u.DN}}{{end}} <span class="muted">({{$u.SAMAccountName}})</span></h1></div>
 <p>{{template "user-status" $u}}{{if .D.Protected}} <span class="badge badge-warn" data-e2e="user-badge-protected">{{t "user.protected"}}</span>{{end}}
 {{if .D.MFA}} <span class="badge badge-ok" data-e2e="user-badge-mfa">{{t "mfa.on"}}</span>{{end}}</p>
 {{if .D.Link}}<div class="alert-info" role="status"><p>{{t "user.enroll_link.show"}}</p><p><code data-e2e="user-text-enroll-link">{{.D.Link}}</code></p></div>{{end}}

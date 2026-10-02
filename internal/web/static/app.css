@@ -125,9 +125,11 @@ input:focus, select:focus { border-color: var(--accent); }
 @media (max-width: 719px) {
   .table thead { display: none; }
   .table, .table tbody, .table tr, .table td { display: block; width: 100%; }
-  .table tr { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); margin-bottom: .6rem; padding: .35rem .25rem; }
-  .table td { border: 0; padding: .25rem .5rem; }
-  .table td[data-label]::before { content: attr(data-label); display: block; font-size: .75rem; color: var(--muted); text-transform: uppercase; }
+  .table tr { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); margin-bottom: .5rem; padding: .3rem .25rem; }
+  .table td { border: 0; padding: .15rem .5rem; font-size: .925rem; }
+  .table td[data-label]::before { content: attr(data-label) ": "; color: var(--muted); font-size: .8rem; }
+  .table td:first-child { font-weight: 600; }
+  .table td:first-child::before { content: none; }
 }
 dl.props { display: grid; grid-template-columns: 1fr; gap: .15rem .75rem; margin: 0; }
 dl.props dt { color: var(--muted); font-size: .825rem; margin-top: .5rem; }

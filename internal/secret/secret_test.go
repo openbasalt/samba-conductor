@@ -56,6 +56,17 @@ func TestLoadKeyFile(t *testing.T) {
 	if _, err := LoadKeyFile(loose); err == nil || !strings.Contains(err.Error(), "group or others") {
 		t.Fatalf("world-readable key accepted: %v", err)
 	}
+	// A systemd credential (0440 in the private credentials directory).
+	credDir := t.TempDir()
+	cred := filepath.Join(credDir, "totp-key")
+	_ = os.WriteFile(cred, []byte(hexKey), 0o440)
+	if _, err := LoadKeyFile(cred); err == nil {
+		t.Error("group-readable key accepted outside the credentials directory")
+	}
+	t.Setenv("CREDENTIALS_DIRECTORY", credDir)
+	if _, err := LoadKeyFile(cred); err != nil {
+		t.Errorf("systemd credential refused: %v", err)
+	}
 	short := filepath.Join(dir, "short")
 	_ = os.WriteFile(short, []byte("abcd"), 0o600)
 	if _, err := LoadKeyFile(short); err == nil {

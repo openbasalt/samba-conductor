@@ -3,6 +3,7 @@ package web
 import (
 	"context"
 	"net/http"
+	"net/url"
 	"strconv"
 	"strings"
 
@@ -146,11 +147,11 @@ func (s *Server) userEnable(rc *reqCtx, enable bool) {
 		if err != nil {
 			return nil, err
 		}
-		action, title := "user.disable", rc.T("user.disable.title", u.SAMAccountName)
+		action, title, summary := "user.disable", rc.T("user.disable.title", u.SAMAccountName), rc.T("confirm.summary.disable", u.SAMAccountName)
 		if enable {
-			action, title = "user.enable", rc.T("user.enable.title", u.SAMAccountName)
+			action, title, summary = "user.enable", rc.T("user.enable.title", u.SAMAccountName), rc.T("confirm.summary.enable", u.SAMAccountName)
 		}
-		return &pendingOp{action: action, op: op, title: title, summary: op.Preview().Summary, done: rc.T("op.done")}, nil
+		return &pendingOp{action: action, op: op, title: title, summary: summary, done: rc.T("op.done")}, nil
 	})
 }
 
@@ -167,7 +168,7 @@ func (s *Server) handleUserUnlock(rc *reqCtx) {
 			return nil, err
 		}
 		return &pendingOp{action: "user.unlock", op: op, title: rc.T("user.unlock.title", u.SAMAccountName),
-			summary: op.Preview().Summary, done: rc.T("op.done")}, nil
+			summary: rc.T("confirm.summary.unlock", u.SAMAccountName), done: rc.T("op.done")}, nil
 	})
 }
 
@@ -204,8 +205,12 @@ func (s *Server) handleUserReset(rc *reqCtx) {
 		if err != nil {
 			return nil, err
 		}
+		summary := rc.T("confirm.summary.reset", u.SAMAccountName)
+		if mustChange {
+			summary = rc.T("confirm.summary.reset_must_change", u.SAMAccountName)
+		}
 		return &pendingOp{action: "user.reset_password", op: op, title: rc.T("user.reset.title", u.SAMAccountName),
-			summary: op.Preview().Summary, done: rc.T("user.reset.done")}, nil
+			summary: summary, done: rc.T("user.reset.done")}, nil
 	})
 }
 
@@ -256,7 +261,7 @@ func (s *Server) handleUserDelete(rc *reqCtx) {
 			return nil, err
 		}
 		return &pendingOp{action: "user.delete", op: op, title: rc.T("user.delete.title", u.SAMAccountName),
-			summary: op.Preview().Summary, warning: rc.T("confirm.warn.delete"), back: "/admin/users", done: rc.T("op.deleted")}, nil
+			summary: rc.T("confirm.summary.delete", u.SAMAccountName), warning: rc.T("confirm.warn.delete"), back: "/admin/users", done: rc.T("op.deleted")}, nil
 	})
 }
 
@@ -307,7 +312,7 @@ func (s *Server) handleUserGroupAdd(rc *reqCtx) {
 			return nil, err
 		}
 		p := &pendingOp{action: "group.add_member", target: grp.DN, op: op, title: rc.T("group.add.title", u.SAMAccountName, grp.Name),
-			summary: op.Preview().Summary, done: rc.T("op.done")}
+			summary: rc.T("confirm.summary.member_add", u.SAMAccountName, grp.Name), done: rc.T("op.done")}
 		if s.roleSIDs.isProtectedGroup(grp.SID) {
 			p.reauth, p.warning = true, rc.T("confirm.warn.admin_group")
 		}
@@ -330,7 +335,7 @@ func (s *Server) handleUserGroupRemove(rc *reqCtx) {
 			return nil, err
 		}
 		p := &pendingOp{action: "group.remove_member", target: grp.DN, op: op, title: rc.T("group.remove.title", u.SAMAccountName, grp.Name),
-			summary: op.Preview().Summary, done: rc.T("op.done")}
+			summary: rc.T("confirm.summary.member_remove", u.SAMAccountName, grp.Name), done: rc.T("op.done")}
 		if s.roleSIDs.isProtectedGroup(grp.SID) {
 			p.reauth, p.warning = true, rc.T("confirm.warn.admin_group")
 		}
@@ -386,7 +391,7 @@ func (s *Server) handleUserNew(rc *reqCtx) {
 			return fail("form.invalid")
 		}
 		rc.propose(&pendingOp{perm: PermUsersWrite, action: "user.create", target: op.Preview().Changes[0].DN, op: op,
-			title: rc.T("user.new.title"), summary: op.Preview().Summary, back: "/admin/users?q=" + f["sam"], done: rc.T("user.new.done")})
+			title: rc.T("user.new.title"), summary: rc.T("confirm.summary.create_user", f["sam"], ouPath(f["parent"], conn.BaseDN())), back: "/admin/users?q=" + url.QueryEscape(f["sam"]), done: rc.T("user.new.done")})
 		return nil
 	})
 }

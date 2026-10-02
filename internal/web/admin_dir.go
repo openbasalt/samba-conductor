@@ -139,7 +139,7 @@ func (s *Server) handleOURename(rc *reqCtx) {
 		if err != nil {
 			return nil, err
 		}
-		return &pendingOp{action: "ou.rename", op: op, title: rc.T("ou.rename.title", o.Name), summary: op.Preview().Summary,
+		return &pendingOp{action: "ou.rename", op: op, title: rc.T("ou.rename.title", o.Name), summary: rc.T("confirm.summary.rename", o.Name, rc.form("name")),
 			back: "/admin/ous", done: rc.T("op.done")}, nil
 	})
 }
@@ -168,7 +168,7 @@ func (s *Server) handleOUDelete(rc *reqCtx) {
 		if err != nil {
 			return nil, err
 		}
-		return &pendingOp{action: "ou.delete", op: op, title: rc.T("ou.delete.title", o.Name), summary: op.Preview().Summary,
+		return &pendingOp{action: "ou.delete", op: op, title: rc.T("ou.delete.title", o.Name), summary: rc.T("confirm.summary.delete", o.Name),
 			warning: rc.T("ou.delete.warn"), back: "/admin/ous", done: rc.T("op.deleted")}, nil
 	})
 }
@@ -188,7 +188,7 @@ func (s *Server) handleOUNew(rc *reqCtx) {
 			return nil
 		}
 		rc.propose(&pendingOp{perm: PermDirWrite, action: "ou.create", target: op.Preview().Changes[0].DN, op: op,
-			title: rc.T("ou.new.title"), summary: op.Preview().Summary, back: "/admin/ous", done: rc.T("op.created")})
+			title: rc.T("ou.new.title"), summary: rc.T("confirm.summary.create_ou", rc.form("name"), ouPathOrRoot(parent, conn.BaseDN())), back: "/admin/ous", done: rc.T("op.created")})
 		return nil
 	})
 }
@@ -283,11 +283,11 @@ func (s *Server) computerEnable(rc *reqCtx, enable bool) {
 		if err != nil {
 			return nil, err
 		}
-		action, key := "computer.disable", "computer.disable.title"
+		action, key, sum := "computer.disable", "computer.disable.title", "confirm.summary.disable"
 		if enable {
-			action, key = "computer.enable", "computer.enable.title"
+			action, key, sum = "computer.enable", "computer.enable.title", "confirm.summary.enable"
 		}
-		return &pendingOp{action: action, op: op, title: rc.T(key, c.SAMAccountName), summary: op.Preview().Summary, done: rc.T("op.done")}, nil
+		return &pendingOp{action: action, op: op, title: rc.T(key, c.SAMAccountName), summary: rc.T(sum, c.SAMAccountName), done: rc.T("op.done")}, nil
 	})
 }
 
@@ -315,7 +315,7 @@ func (s *Server) handleComputerDelete(rc *reqCtx) {
 			return nil, err
 		}
 		return &pendingOp{action: "computer.delete", op: op, title: rc.T("computer.delete.title", c.SAMAccountName),
-			summary: op.Preview().Summary, warning: rc.T("confirm.warn.delete"), back: "/admin/computers", done: rc.T("op.deleted")}, nil
+			summary: rc.T("confirm.summary.delete", c.SAMAccountName), warning: rc.T("confirm.warn.delete"), back: "/admin/computers", done: rc.T("op.deleted")}, nil
 	})
 }
 
@@ -350,4 +350,12 @@ func (s *Server) handleObject(rc *reqCtx) {
 		}
 		return nil
 	})
+}
+
+// ouPathOrRoot is ouPath, or the domain's DNS-style name for the root.
+func ouPathOrRoot(dn, base string) string {
+	if p := ouPath(dn, base); p != "" {
+		return p
+	}
+	return base
 }

@@ -3,6 +3,7 @@ package web
 import (
 	"context"
 	"net/http"
+	"net/url"
 	"strings"
 
 	"github.com/samba-conductor/ad"
@@ -131,7 +132,7 @@ func (s *Server) handleGroupMemberAdd(rc *reqCtx) {
 			return nil, err
 		}
 		return &pendingOp{action: "group.add_member", op: op, title: rc.T("group.add.title", rc.form("member"), g.Name),
-			summary: op.Preview().Summary, done: rc.T("op.done")}, nil
+			summary: rc.T("confirm.summary.member_add", rc.form("member"), g.Name), done: rc.T("op.done")}, nil
 	})
 }
 
@@ -147,7 +148,7 @@ func (s *Server) handleGroupMemberRemove(rc *reqCtx) {
 		}
 		_, name, _ := escape.ParentDN(memberDN)
 		return &pendingOp{action: "group.remove_member", op: op, title: rc.T("group.remove.title", name, g.Name),
-			summary: op.Preview().Summary, done: rc.T("op.done")}, nil
+			summary: rc.T("confirm.summary.member_remove", name, g.Name), done: rc.T("op.done")}, nil
 	})
 }
 
@@ -162,7 +163,7 @@ func (s *Server) handleGroupDelete(rc *reqCtx) {
 		if err != nil {
 			return nil, err
 		}
-		return &pendingOp{action: "group.delete", op: op, title: rc.T("group.delete.title", g.Name), summary: op.Preview().Summary,
+		return &pendingOp{action: "group.delete", op: op, title: rc.T("group.delete.title", g.Name), summary: rc.T("confirm.summary.delete", g.Name),
 			warning: rc.T("confirm.warn.delete"), back: "/admin/groups", done: rc.T("op.deleted")}, nil
 	})
 }
@@ -205,7 +206,7 @@ func (s *Server) handleGroupNew(rc *reqCtx) {
 			return fail("form.invalid")
 		}
 		rc.propose(&pendingOp{perm: PermDirWrite, action: "group.create", target: op.Preview().Changes[0].DN, op: op,
-			title: rc.T("group.new.title"), summary: op.Preview().Summary, back: "/admin/groups?q=" + f["name"], done: rc.T("op.created")})
+			title: rc.T("group.new.title"), summary: rc.T("confirm.summary.create_group", f["name"], ouPath(f["parent"], conn.BaseDN())), back: "/admin/groups?q=" + url.QueryEscape(f["name"]), done: rc.T("op.created")})
 		return nil
 	})
 }

@@ -1,6 +1,6 @@
 {{define "title"}}{{t "nav.dashboard"}}{{end}}
 {{define "content"}}<h1>{{t "nav.dashboard"}}</h1>
-<p class="muted small" data-e2e="dashboard-text-domain">{{t "dashboard.domain" .D.Domain .D.Level .D.DC}}</p>
+<p class="muted small" data-e2e="dashboard-text-domain">{{t "dashboard.domain" .D.Domain (level .D.Level) .D.DC}}</p>
 <div class="stats">
   {{range .D.Stats}}<a class="stat" href="{{.Link}}" data-e2e="dashboard-card-{{e2e .Key}}"><b data-e2e="dashboard-text-{{e2e .Key}}">{{.Value}}</b><span>{{.Label}}</span></a>{{end}}
 </div>

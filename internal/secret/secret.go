@@ -10,6 +10,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 )
 
@@ -46,14 +47,19 @@ func NewRandom() (*Box, error) {
 }
 
 // LoadKeyFile reads a key file holding 32 raw bytes or 64 hex digits. The
-// file must not be readable by group or others (systemd credentials are
-// 0400 already).
+// file must not be readable by group or others, except a systemd
+// credential: those are 0440 inside $CREDENTIALS_DIRECTORY, a directory
+// only the service can open, so group read is accepted there.
 func LoadKeyFile(path string) ([]byte, error) {
 	st, err := os.Stat(path)
 	if err != nil {
 		return nil, fmt.Errorf("secret: %w", err)
 	}
-	if st.Mode().Perm()&0o077 != 0 {
+	forbidden := os.FileMode(0o077)
+	if dir := os.Getenv("CREDENTIALS_DIRECTORY"); dir != "" && filepath.Dir(filepath.Clean(path)) == filepath.Clean(dir) {
+		forbidden = 0o037
+	}
+	if st.Mode().Perm()&forbidden != 0 {
 		return nil, fmt.Errorf("secret: %s is accessible by group or others (mode %v); use 0600", path, st.Mode().Perm())
 	}
 	b, err := os.ReadFile(path)

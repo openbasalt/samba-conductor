@@ -117,6 +117,13 @@ func (s *Server) funcs(lang string) template.FuncMap {
 		},
 		"dnq":  func(dn string) template.URL { return template.URL(url.QueryEscape(dn)) },
 		"join": strings.Join,
+		"level": func(n int) string {
+			names := []string{"2000", "2003 interim", "2003", "2008", "2008 R2", "2012", "2012 R2", "2016"}
+			if n >= 0 && n < len(names) {
+				return names[n]
+			}
+			return fmt.Sprint(n)
+		},
 		"dict": func(kv ...any) map[string]any {
 			m := map[string]any{}
 			for i := 0; i+1 < len(kv); i += 2 {
