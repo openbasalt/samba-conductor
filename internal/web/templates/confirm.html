@@ -1,0 +1,28 @@
+{{define "title"}}{{.D.Title}}{{end}}
+{{define "content"}}<div class="card" data-e2e="confirm-card">
+  <h1 data-e2e="confirm-text-title">{{.D.Title}}</h1>
+  <p data-e2e="confirm-text-summary">{{.D.Summary}}</p>
+  {{if .D.Warning}}<div class="alert-warn" role="alert" data-e2e="confirm-text-warning">{{.D.Warning}}</div>{{end}}
+  {{template "error-alert" .D.Error}}
+  <h2>{{t "confirm.preview"}}</h2>
+  <p class="hint">{{t "confirm.preview_hint"}}</p>
+  <pre data-e2e="confirm-text-preview">{{.D.Preview}}</pre>
+  <form method="post" action="/confirm/{{.D.ID}}" autocomplete="off">
+    {{template "csrf" .}}
+    {{if .D.Reauth}}
+    <div class="alert-info" data-e2e="confirm-text-reauth">{{t "confirm.reauth"}}</div>
+    <div class="field">
+      <label for="password">{{t "signin.password"}}</label>
+      <input id="password" name="password" type="password" autocomplete="current-password" required data-e2e="confirm-input-password">
+    </div>
+    <div class="field">
+      <label for="code">{{t "mfa.code"}}</label>
+      <input id="code" name="code" type="text" autocomplete="one-time-code" required maxlength="16" data-e2e="confirm-input-code">
+    </div>
+    {{end}}
+    <div class="actions">
+      <button class="btn btn-primary" type="submit" data-e2e="confirm-btn-apply">{{t "confirm.apply"}}</button>
+    </div>
+  </form>
+  <form method="post" action="/confirm/{{.D.ID}}/cancel" class="actions">{{template "csrf" .}}<button class="btn" type="submit" data-e2e="confirm-btn-cancel">{{t "form.cancel"}}</button></form>
+</div>{{end}}

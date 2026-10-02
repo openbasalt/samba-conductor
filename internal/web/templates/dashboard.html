@@ -1,0 +1,26 @@
+{{define "title"}}{{t "nav.dashboard"}}{{end}}
+{{define "content"}}<h1>{{t "nav.dashboard"}}</h1>
+<p class="muted small" data-e2e="dashboard-text-domain">{{t "dashboard.domain" .D.Domain .D.Level .D.DC}}</p>
+<div class="stats">
+  {{range .D.Stats}}<a class="stat" href="{{.Link}}" data-e2e="dashboard-card-{{e2e .Key}}"><b data-e2e="dashboard-text-{{e2e .Key}}">{{.Value}}</b><span>{{.Label}}</span></a>{{end}}
+</div>
+<div class="grid grid-2">
+<section class="card" aria-labelledby="dash-locked">
+  <h2 id="dash-locked">{{t "dashboard.locked"}}</h2>
+  {{if .D.Locked}}<ul data-e2e="dashboard-list-locked">{{range .D.Locked}}<li><a href="/admin/users/{{.GUID}}" data-e2e="dashboard-link-locked-{{e2e .SAMAccountName}}">{{.SAMAccountName}}</a> <span class="muted small">{{filetime .LockoutTime}}</span></li>{{end}}</ul>
+  {{else}}<p class="muted">{{t "dashboard.none"}}</p>{{end}}
+</section>
+<section class="card" aria-labelledby="dash-expiring">
+  <h2 id="dash-expiring">{{t "dashboard.expiring"}}</h2>
+  {{if .D.Expiring}}<ul data-e2e="dashboard-list-expiring">{{range .D.Expiring}}<li><a href="/admin/users/{{.GUID}}">{{.SAMAccountName}}</a> <span class="muted small">{{filetime .AccountExpires}}</span></li>{{end}}</ul>
+  {{else}}<p class="muted">{{t "dashboard.none"}}</p>{{end}}
+</section>
+</div>
+{{if .D.Recent}}<section class="card" aria-labelledby="dash-audit">
+  <h2 id="dash-audit">{{t "dashboard.recent"}}</h2>
+  <table class="table" data-e2e="dashboard-table-audit">
+    <thead><tr><th>{{t "audit.time"}}</th><th>{{t "audit.actor"}}</th><th>{{t "audit.action"}}</th><th>{{t "audit.result"}}</th></tr></thead>
+    <tbody>{{range .D.Recent}}<tr><td data-label="{{t "audit.time"}}">{{time .Time}}</td><td data-label="{{t "audit.actor"}}">{{.ActorName}}</td><td data-label="{{t "audit.action"}}"><code>{{.Action}}</code></td><td data-label="{{t "audit.result"}}">{{.Result}}</td></tr>{{end}}</tbody>
+  </table>
+  <div class="actions"><a class="btn btn-small" href="/admin/audit" data-e2e="dashboard-link-audit">{{t "dashboard.all_audit"}}</a></div>
+</section>{{end}}{{end}}

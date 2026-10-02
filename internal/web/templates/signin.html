@@ -1,0 +1,21 @@
+{{define "title"}}{{t "signin.title"}}{{end}}
+{{define "content"}}<div class="card narrow">
+  <h1>{{t "signin.title"}}</h1>
+  {{if .D.Notice}}<div class="alert-info" role="status" data-e2e="signin-text-notice">{{.D.Notice}}</div>{{end}}
+  {{template "error-alert" .D.Error}}
+  {{if .D.Enroll}}<div class="alert-info" data-e2e="signin-text-enroll">{{t "signin.enroll_link"}}</div>{{end}}
+  <form method="post" action="/signin" autocomplete="on">
+    {{template "csrf" .}}
+    {{if .D.Enroll}}<input type="hidden" name="enroll" value="{{.D.Enroll}}">{{end}}
+    <div class="field">
+      <label for="username">{{t "signin.username"}}</label>
+      <input id="username" name="username" type="text" autocomplete="username" autocapitalize="none" spellcheck="false" required value="{{.D.Username}}" data-e2e="signin-input-username">
+      <span class="hint">{{t "signin.username_hint"}}</span>
+    </div>
+    <div class="field">
+      <label for="password">{{t "signin.password"}}</label>
+      <input id="password" name="password" type="password" autocomplete="current-password" required data-e2e="signin-input-password">
+    </div>
+    <button class="btn btn-primary btn-block" type="submit" data-e2e="signin-btn-submit">{{t "signin.submit"}}</button>
+  </form>
+</div>{{end}}

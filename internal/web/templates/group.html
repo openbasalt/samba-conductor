@@ -1,0 +1,43 @@
+{{define "title"}}{{.D.G.Name}}{{end}}
+{{define "content"}}{{$g := print .D.G.GUID}}
+<h1 data-e2e="group-text-name">{{.D.G.Name}}</h1>
+<p>{{if .D.Protected}}<span class="badge badge-warn" data-e2e="group-badge-protected">{{t "group.protected"}}</span>{{end}}
+<span class="badge">{{t (print "groups.scope." .D.G.Type.Scope)}}</span> <span class="badge">{{if .D.G.Type.Security}}{{t "groups.type.security"}}{{else}}{{t "groups.type.distribution"}}{{end}}</span></p>
+<div class="grid grid-2">
+<section class="card" aria-labelledby="g-props">
+  <h2 id="g-props">{{t "user.properties"}}</h2>
+  <dl class="props">
+    <dt>DN</dt><dd><code data-e2e="group-text-dn">{{.D.G.DN}}</code></dd>
+    <dt>SID</dt><dd><code>{{.D.G.SID}}</code></dd>
+    <dt>{{t "attr.sAMAccountName"}}</dt><dd>{{.D.G.SAMAccountName}}</dd>
+    <dt>{{t "attr.description"}}</dt><dd>{{.D.G.Description}}</dd>
+    <dt>{{t "group.effective"}}</dt><dd data-e2e="group-text-effective">{{.D.Effective}}</dd>
+  </dl>
+  {{if has .Nav "dir.write"}}<div class="actions"><form method="post" action="/admin/groups/{{$g}}/delete">{{template "csrf" .}}<button class="btn btn-danger" type="submit" data-e2e="group-btn-delete">{{t "group.delete"}}</button></form></div>{{end}}
+</section>
+<section class="card" aria-labelledby="g-nesting">
+  <h2 id="g-nesting">{{t "group.nesting"}}</h2>
+  <h3>{{t "group.member_of"}}</h3>
+  {{if .D.Parents}}<ul data-e2e="group-list-parents">{{range .D.Parents}}<li><a href="/admin/groups/{{.GUID}}" data-e2e="group-link-parent-{{e2e .Name}}">{{.Name}}</a></li>{{end}}</ul>{{else}}<p class="muted">{{t "dashboard.none"}}</p>{{end}}
+  <h3>{{t "group.nested"}}</h3>
+  {{if .D.Nested}}<ul data-e2e="group-list-nested">{{range .D.Nested}}<li><a href="/admin/groups/{{.GUID}}" data-e2e="group-link-nested-{{e2e .Name}}">{{.Name}}</a></li>{{end}}</ul>{{else}}<p class="muted">{{t "dashboard.none"}}</p>{{end}}
+</section>
+</div>
+<section class="card" aria-labelledby="g-members">
+  <h2 id="g-members">{{t "group.members" .D.Total}}</h2>
+  {{if has .Nav "dir.write"}}<form method="post" action="/admin/groups/{{$g}}/members/add" class="row">
+    {{template "csrf" .}}
+    <label class="sr" for="member">{{t "group.add_member_label"}}</label>
+    <input class="grow" id="member" name="member" type="text" required placeholder="{{t "group.add_member_label"}}" data-e2e="group-input-add-member">
+    <button class="btn" type="submit" data-e2e="group-btn-add-member">{{t "group.add_member"}}</button>
+  </form>{{end}}
+  {{if .D.Members}}<table class="table" data-e2e="group-table-members">
+    <thead><tr><th>{{t "groups.name"}}</th><th>{{t "group.kind"}}</th><th></th></tr></thead>
+    <tbody>{{range .D.Members}}<tr data-e2e="group-row-member-{{e2e .Name}}">
+      <td data-label="{{t "groups.name"}}">{{if .GUID}}<a href="/admin/object?dn={{dnq .DN}}">{{.Name}}</a>{{else}}{{.Name}}{{end}}</td>
+      <td data-label="{{t "group.kind"}}">{{t (print "kind." .Kind)}}</td>
+      <td>{{if has $.Nav "dir.write"}}<form method="post" action="/admin/groups/{{$g}}/members/remove">{{template "csrf" $}}<input type="hidden" name="member_dn" value="{{.DN}}"><button class="btn btn-small" type="submit" data-e2e="group-btn-remove-{{e2e .Name}}">{{t "user.groups.remove"}}</button></form>{{end}}</td>
+    </tr>{{end}}</tbody>
+  </table>
+  {{template "pager" .}}{{else}}<p class="muted">{{t "group.no_members"}}</p>{{end}}
+</section>{{end}}

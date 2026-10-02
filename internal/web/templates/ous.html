@@ -1,0 +1,18 @@
+{{define "title"}}{{t "nav.ous"}}{{end}}
+{{define "content"}}<h1>{{t "nav.ous"}}</h1>
+<section class="card" aria-labelledby="ou-tree">
+  <h2 id="ou-tree" class="sr">{{t "ous.tree"}}</h2>
+  {{if .D.Nodes}}<ul class="tree" data-e2e="ous-tree">{{range .D.Nodes}}<li class="d{{.Depth}}" data-e2e="ous-node-{{e2e .OU.Name}}"><a href="/admin/ous/{{.OU.GUID}}" data-e2e="ous-link-{{e2e .OU.Name}}">{{.OU.Name}}</a>{{if .OU.Description}} <span class="muted small">{{.OU.Description}}</span>{{end}}</li>{{end}}</ul>
+  {{else}}<p class="muted">{{t "list.empty"}}</p>{{end}}
+</section>
+{{if has .Nav "dir.write"}}<section class="card" aria-labelledby="ou-new">
+  <h2 id="ou-new">{{t "ou.new.title"}}</h2>
+  <form method="post" action="/admin/ous/new">
+    {{template "csrf" .}}
+    <input type="hidden" name="parent" value="{{.D.Base}}">
+    <div class="field"><label for="ou-name">{{t "groups.name"}}</label><input id="ou-name" name="name" type="text" required data-e2e="ous-input-new-name"></div>
+    <div class="field"><label for="ou-desc">{{t "attr.description"}}</label><input id="ou-desc" name="description" type="text" data-e2e="ous-input-new-description"></div>
+    <p class="hint">{{t "ous.new_root_hint"}}</p>
+    <button class="btn btn-primary" type="submit" data-e2e="ous-btn-new">{{t "form.preview"}}</button>
+  </form>
+</section>{{end}}{{end}}

@@ -1,0 +1,18 @@
+{{define "title"}}{{t "nav.computers"}}{{end}}
+{{define "content"}}<h1>{{t "nav.computers"}}</h1>
+<form method="get" action="/admin/computers" class="card row" role="search">
+  <label class="sr" for="q">{{t "form.search"}}</label>
+  <input class="grow" id="q" name="q" type="search" value="{{.D.Q}}" placeholder="{{t "computers.search_hint"}}" data-e2e="computers-input-search">
+  <button class="btn" type="submit" data-e2e="computers-btn-search">{{t "form.search"}}</button>
+</form>
+{{if .D.Computers}}<table class="table" data-e2e="computers-table">
+  <thead><tr><th>{{t "groups.name"}}</th><th>{{t "computers.dns"}}</th><th>{{t "computers.os"}}</th><th>{{t "users.status"}}</th></tr></thead>
+  <tbody>{{range .D.Computers}}<tr data-e2e="computers-row-{{e2e .SAMAccountName}}">
+    <td data-label="{{t "groups.name"}}"><a href="/admin/computers/{{.GUID}}" data-e2e="computers-link-{{e2e .SAMAccountName}}">{{.SAMAccountName}}</a></td>
+    <td data-label="{{t "computers.dns"}}">{{.DNSHostName}}</td>
+    <td data-label="{{t "computers.os"}}">{{.OperatingSystem}}</td>
+    <td data-label="{{t "users.status"}}">{{if .IsDomainController}}<span class="badge badge-warn">{{t "computers.dc"}}</span> {{end}}{{if .Enabled}}<span class="badge badge-ok">{{t "status.enabled"}}</span>{{else}}<span class="badge badge-danger">{{t "status.disabled"}}</span>{{end}}</td>
+  </tr>{{end}}</tbody>
+</table>
+{{template "pager" .}}
+{{else}}<p class="muted">{{t "list.empty"}}</p>{{end}}{{end}}

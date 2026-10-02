@@ -1,0 +1,25 @@
+{{define "title"}}{{t "nav.users"}}{{end}}
+{{define "content"}}<div class="row"><h1 class="grow">{{t "nav.users"}}</h1>{{if has .Nav "users.write"}}<a class="btn btn-primary" href="/admin/users/new" data-e2e="users-link-new">{{t "users.new"}}</a>{{end}}</div>
+<form method="get" action="/admin/users" class="card row" role="search">
+  <label class="sr" for="q">{{t "form.search"}}</label>
+  <input class="grow" id="q" name="q" type="search" value="{{.D.Q}}" placeholder="{{t "users.search_hint"}}" data-e2e="users-input-search">
+  <label class="sr" for="status">{{t "users.status"}}</label>
+  <select id="status" name="status" data-e2e="users-select-status">
+    <option value="">{{t "users.status.all"}}</option>
+    <option value="enabled"{{if eq .D.Status "enabled"}} selected{{end}}>{{t "status.enabled"}}</option>
+    <option value="disabled"{{if eq .D.Status "disabled"}} selected{{end}}>{{t "status.disabled"}}</option>
+    <option value="locked"{{if eq .D.Status "locked"}} selected{{end}}>{{t "status.locked"}}</option>
+  </select>
+  <button class="btn" type="submit" data-e2e="users-btn-search">{{t "form.search"}}</button>
+</form>
+{{if .D.Users}}<table class="table" data-e2e="users-table">
+  <thead><tr><th>{{t "attr.sAMAccountName"}}</th><th>{{t "attr.displayName"}}</th><th>{{t "attr.mail"}}</th><th>{{t "users.status"}}</th></tr></thead>
+  <tbody>{{range .D.Users}}<tr data-e2e="users-row-{{e2e .SAMAccountName}}">
+    <td data-label="{{t "attr.sAMAccountName"}}"><a href="/admin/users/{{.GUID}}" data-e2e="users-link-{{e2e .SAMAccountName}}">{{.SAMAccountName}}</a></td>
+    <td data-label="{{t "attr.displayName"}}">{{.DisplayName}}</td>
+    <td data-label="{{t "attr.mail"}}">{{.Mail}}</td>
+    <td data-label="{{t "users.status"}}">{{template "user-status" .}}</td>
+  </tr>{{end}}</tbody>
+</table>
+{{template "pager" .}}
+{{else}}<p class="muted" data-e2e="users-text-empty">{{t "list.empty"}}</p>{{end}}{{end}}

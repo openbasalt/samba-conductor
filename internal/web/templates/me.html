@@ -1,0 +1,27 @@
+{{define "title"}}{{t "me.title"}}{{end}}
+{{define "content"}}<h1>{{t "me.title"}}</h1>
+<div class="grid grid-2">
+<section class="card" aria-labelledby="me-account">
+  <h2 id="me-account">{{t "me.account"}}</h2>
+  <dl class="props" data-e2e="me-list-account">
+    <dt>{{t "attr.displayName"}}</dt><dd data-e2e="me-text-displayname">{{.D.U.DisplayName}}</dd>
+    <dt>{{t "attr.sAMAccountName"}}</dt><dd data-e2e="me-text-sam">{{.D.U.SAMAccountName}}</dd>
+    <dt>{{t "attr.userPrincipalName"}}</dt><dd>{{.D.U.UserPrincipalName}}</dd>
+    <dt>{{t "attr.mail"}}</dt><dd>{{.D.U.Mail}}</dd>
+    <dt>{{t "attr.title"}}</dt><dd>{{.D.U.Title}}</dd>
+    <dt>{{t "attr.department"}}</dt><dd>{{.D.U.Department}}</dd>
+    <dt>{{t "attr.pwdLastSet"}}</dt><dd>{{filetime .D.U.PwdLastSet}}</dd>
+  </dl>
+  <div class="actions">
+    <a class="btn" href="/me/password" data-e2e="me-link-password">{{t "me.change_password"}}</a>
+    <a class="btn" href="/me/security" data-e2e="me-link-security">{{t "me.security"}}</a>
+  </div>
+</section>
+<section class="card" aria-labelledby="me-contact">
+  <h2 id="me-contact">{{t "me.contact"}}</h2>
+  <dl class="props" data-e2e="me-list-contact">
+    {{range .D.Fields}}<dt>{{t .Label}}</dt><dd data-e2e="me-text-{{e2e .Attr}}">{{.Value}}</dd>{{end}}
+  </dl>
+  <div class="actions"><a class="btn btn-primary" href="/me/edit" data-e2e="me-link-edit">{{t "me.edit"}}</a></div>
+</section>
+</div>{{end}}

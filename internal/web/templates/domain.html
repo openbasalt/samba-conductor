@@ -1,0 +1,23 @@
+{{define "title"}}{{t "nav.domain"}}{{end}}
+{{define "content"}}<h1>{{t "nav.domain"}}</h1>
+<p class="hint">{{t "domain.intro"}}</p>
+{{template "error-alert" .D.Error}}
+{{if .D.Ping}}<p class="small muted" data-e2e="domain-text-helper">{{t "domain.helper_ok" .D.Ping.Version}}</p>{{end}}
+<div class="grid grid-2">
+{{if .D.Level}}<section class="card" aria-labelledby="d-level">
+  <h2 id="d-level">{{t "domain.levels"}}</h2>
+  <dl class="props" data-e2e="domain-list-levels">
+    <dt>{{t "domain.forest"}}</dt><dd data-e2e="domain-text-forest">{{.D.Level.Forest}}</dd>
+    <dt>{{t "domain.domain"}}</dt><dd data-e2e="domain-text-domain">{{.D.Level.Domain}}</dd>
+    <dt>{{t "domain.lowest"}}</dt><dd>{{.D.Level.LowestDC}}</dd>
+  </dl>
+</section>{{end}}
+{{if .D.DCs}}<section class="card" aria-labelledby="d-dcs">
+  <h2 id="d-dcs">{{t "domain.dcs"}}</h2>
+  <ul data-e2e="domain-list-dcs">{{range .D.DCs}}<li><a href="/admin/object?dn={{dnq .}}">{{rdn .}}</a></li>{{end}}</ul>
+</section>{{end}}
+</div>
+{{if .D.FSMO}}<section class="card" aria-labelledby="d-fsmo">
+  <h2 id="d-fsmo">{{t "domain.fsmo"}}</h2>
+  <table class="table" data-e2e="domain-table-fsmo"><tbody>{{range .D.FSMO}}<tr><td data-label="{{t "domain.role"}}"><code>{{.Role}}</code></td><td data-label="{{t "domain.owner"}}">{{.Owner}}</td></tr>{{end}}</tbody></table>
+</section>{{end}}{{end}}

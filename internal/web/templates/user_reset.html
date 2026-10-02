@@ -1,0 +1,16 @@
+{{define "title"}}{{t "user.reset.title" .D.U.SAMAccountName}}{{end}}
+{{define "content"}}<div class="card narrow">
+  <h1>{{t "user.reset.title" .D.U.SAMAccountName}}</h1>
+  <p class="hint">{{t "user.reset.intro"}}</p>
+  {{template "error-alert" .D.Error}}
+  <form method="post" action="/admin/users/{{.D.U.GUID}}/reset-password" autocomplete="off">
+    {{template "csrf" .}}
+    <div class="field"><label for="new">{{t "password.new"}}</label><input id="new" name="new" type="password" autocomplete="new-password" required data-e2e="reset-input-new"></div>
+    <div class="field"><label for="confirm">{{t "password.confirm"}}</label><input id="confirm" name="confirm" type="password" autocomplete="new-password" required data-e2e="reset-input-confirm"></div>
+    <div class="check"><input id="must_change" name="must_change" type="checkbox" value="1" checked data-e2e="reset-check-must-change"><label for="must_change">{{t "user.reset.must_change"}}</label></div>
+    <div class="actions">
+      <button class="btn btn-primary" type="submit" data-e2e="reset-btn-preview">{{t "form.preview"}}</button>
+      <a class="btn" href="/admin/users/{{.D.U.GUID}}" data-e2e="reset-link-cancel">{{t "form.cancel"}}</a>
+    </div>
+  </form>
+</div>{{end}}

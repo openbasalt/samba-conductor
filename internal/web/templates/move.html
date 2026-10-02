@@ -1,0 +1,13 @@
+{{define "title"}}{{t "move.title" .D.Name}}{{end}}
+{{define "content"}}<div class="card narrow">
+  <h1>{{t "move.title" .D.Name}}</h1>
+  <p class="small muted"><code>{{.D.DN}}</code></p>
+  <form method="post" action="{{.D.Action}}">
+    {{template "csrf" .}}
+    <div class="field"><label for="parent">{{t "move.target"}}</label>{{template "ou-select" (dict "OUs" .D.OUs "Selected" (parent .D.DN))}}</div>
+    <div class="actions">
+      <button class="btn btn-primary" type="submit" data-e2e="move-btn-preview">{{t "form.preview"}}</button>
+      <a class="btn" href="{{.D.Back}}" data-e2e="move-link-cancel">{{t "form.cancel"}}</a>
+    </div>
+  </form>
+</div>{{end}}

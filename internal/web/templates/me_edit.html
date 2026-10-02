@@ -1,0 +1,17 @@
+{{define "title"}}{{t "me.edit.title"}}{{end}}
+{{define "content"}}<div class="card narrow">
+  <h1>{{t "me.edit.title"}}</h1>
+  <p class="hint">{{t "me.edit.intro"}}</p>
+  {{template "error-alert" .D.Error}}
+  <form method="post" action="/me/edit">
+    {{template "csrf" .}}
+    {{range .D.Fields}}<div class="field">
+      <label for="f-{{.Attr}}">{{t .Label}}</label>
+      <input id="f-{{.Attr}}" name="{{.Attr}}" type="text" maxlength="256" value="{{.Value}}" data-e2e="me-edit-input-{{e2e .Attr}}">
+    </div>{{end}}
+    <div class="actions">
+      <button class="btn btn-primary" type="submit" data-e2e="me-edit-btn-preview">{{t "form.preview"}}</button>
+      <a class="btn" href="/me" data-e2e="me-edit-link-cancel">{{t "form.cancel"}}</a>
+    </div>
+  </form>
+</div>{{end}}

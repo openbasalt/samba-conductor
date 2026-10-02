@@ -1,0 +1,40 @@
+{{define "title"}}{{t "me.security"}}{{end}}
+{{define "content"}}<h1>{{t "me.security"}}</h1>
+<section class="card" aria-labelledby="sec-2fa">
+  <h2 id="sec-2fa">{{t "mfa.section"}}</h2>
+  {{if .D.Enrolled}}
+    <p data-e2e="security-text-mfa-on"><span class="badge badge-ok">{{t "mfa.on"}}</span> {{t "mfa.since" (time .D.Since)}}</p>
+    <p class="small" data-e2e="security-text-codes-left">{{t "mfa.codes_left" .D.CodesLeft}}</p>
+    <form method="post" action="/me/2fa/recovery-codes" class="row">
+      {{template "csrf" .}}
+      <label class="sr" for="rc-code">{{t "mfa.code"}}</label>
+      <input class="grow" id="rc-code" name="code" type="text" autocomplete="one-time-code" placeholder="{{t "mfa.code"}}" required maxlength="16" data-e2e="security-input-recovery-code">
+      <button class="btn" type="submit" data-e2e="security-btn-new-codes">{{t "mfa.new_codes"}}</button>
+    </form>
+    {{if .D.CanDisable}}
+    <h3>{{t "mfa.disable"}}</h3>
+    <form method="post" action="/me/2fa/disable" autocomplete="off">
+      {{template "csrf" .}}
+      <div class="field"><label for="d-pw">{{t "signin.password"}}</label><input id="d-pw" name="password" type="password" autocomplete="current-password" required data-e2e="security-input-disable-password"></div>
+      <div class="field"><label for="d-code">{{t "mfa.code"}}</label><input id="d-code" name="code" type="text" autocomplete="one-time-code" required maxlength="16" data-e2e="security-input-disable-code"></div>
+      <button class="btn btn-danger" type="submit" data-e2e="security-btn-disable">{{t "mfa.disable"}}</button>
+    </form>
+    {{else}}<p class="hint" data-e2e="security-text-mfa-required">{{t "mfa.required_note"}}</p>{{end}}
+  {{else}}
+    <p data-e2e="security-text-mfa-off"><span class="badge">{{t "mfa.off"}}</span> {{if .D.Required}}{{t "mfa.required_note"}}{{else}}{{t (print "mfa.policy." .D.Policy)}}{{end}}</p>
+    {{if .D.CanEnroll}}<div class="actions"><a class="btn btn-primary" href="/me/2fa/enroll" data-e2e="security-link-enroll">{{t "mfa.enroll"}}</a></div>{{end}}
+  {{end}}
+</section>
+<section class="card" aria-labelledby="sec-sessions">
+  <h2 id="sec-sessions">{{t "sessions.title"}}</h2>
+  <table class="table" data-e2e="security-table-sessions">
+    <thead><tr><th>{{t "sessions.started"}}</th><th>{{t "sessions.last"}}</th><th>{{t "sessions.ip"}}</th><th>{{t "sessions.agent"}}</th></tr></thead>
+    <tbody>{{range .D.Sessions}}<tr>
+      <td data-label="{{t "sessions.started"}}">{{time .CreatedAt}}{{if eq .IDHash $.D.Current}} <span class="badge badge-ok">{{t "sessions.this"}}</span>{{end}}</td>
+      <td data-label="{{t "sessions.last"}}">{{time .LastSeenAt}}</td>
+      <td data-label="{{t "sessions.ip"}}">{{.IP}}</td>
+      <td data-label="{{t "sessions.agent"}}" class="small">{{.UserAgent}}</td>
+    </tr>{{end}}</tbody>
+  </table>
+  <form method="post" action="/me/sessions/signout-all" class="actions">{{template "csrf" .}}<button class="btn btn-danger" type="submit" data-e2e="security-btn-signout-all">{{t "sessions.signout_all"}}</button></form>
+</section>{{end}}

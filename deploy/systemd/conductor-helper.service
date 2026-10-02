@@ -1,0 +1,48 @@
+# Samba Conductor privileged helper: the only root part of Samba Conductor.
+# It serves a small allowlist of typed samba-tool operations over a Unix
+# socket that only the "conductor" user may use (SO_PEERCRED check).
+[Unit]
+Description=Samba Conductor privileged helper
+Documentation=https://github.com/samba-conductor/conductor/blob/main/docs/install.md
+After=samba-ad-dc.service
+Before=conductor.service
+
+[Service]
+Type=simple
+ExecStart=/usr/local/bin/conductor-helper --socket /run/conductor-helper/helper.sock --allow-user conductor --samba-tool /usr/bin/samba-tool
+Restart=on-failure
+RestartSec=5s
+
+RuntimeDirectory=conductor-helper
+RuntimeDirectoryMode=0750
+UMask=0077
+
+# Root, but narrow: read the local Samba database, nothing else to write.
+NoNewPrivileges=yes
+CapabilityBoundingSet=CAP_CHOWN CAP_FOWNER CAP_DAC_OVERRIDE CAP_DAC_READ_SEARCH
+ProtectSystem=strict
+ReadWritePaths=/var/lib/samba /var/cache/samba /run/samba
+ProtectHome=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectHostname=yes
+ProtectClock=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectKernelLogs=yes
+ProtectControlGroups=yes
+ProtectProc=invisible
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6 AF_NETLINK
+IPAddressDeny=any
+IPAddressAllow=localhost
+RestrictNamespaces=yes
+RestrictRealtime=yes
+RestrictSUIDSGID=yes
+LockPersonality=yes
+RemoveIPC=yes
+SystemCallArchitectures=native
+SystemCallFilter=@system-service
+SystemCallErrorNumber=EPERM
+
+[Install]
+WantedBy=multi-user.target

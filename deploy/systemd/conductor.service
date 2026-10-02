@@ -1,0 +1,59 @@
+# Samba Conductor web administrator and self-service portal.
+# Runs as the unprivileged "conductor" user with no capabilities; all AD
+# reads and writes use the signed-in user's own Kerberos ticket.
+[Unit]
+Description=Samba Conductor (web admin and self-service)
+Documentation=https://github.com/samba-conductor/conductor/blob/main/docs/install.md
+After=network-online.target samba-ad-dc.service conductor-helper.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=conductor
+Group=conductor
+ExecStart=/usr/local/bin/conductor serve --config /etc/conductor/conductor.toml
+Restart=on-failure
+RestartSec=5s
+
+# The key that encrypts TOTP secrets reaches the service as a systemd
+# credential ($CREDENTIALS_DIRECTORY/totp-key), readable only by it.
+LoadCredential=totp-key:/etc/conductor/credentials/totp-key
+
+StateDirectory=conductor
+StateDirectoryMode=0700
+UMask=0077
+
+# Sandbox.
+NoNewPrivileges=yes
+CapabilityBoundingSet=
+AmbientCapabilities=
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+PrivateDevices=yes
+PrivateUsers=yes
+ProtectHostname=yes
+ProtectClock=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectKernelLogs=yes
+ProtectControlGroups=yes
+ProtectProc=invisible
+ProcSubset=pid
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+RestrictNamespaces=yes
+RestrictRealtime=yes
+RestrictSUIDSGID=yes
+LockPersonality=yes
+MemoryDenyWriteExecute=yes
+RemoveIPC=yes
+SystemCallArchitectures=native
+SystemCallFilter=@system-service
+SystemCallFilter=~@privileged @resources
+SystemCallErrorNumber=EPERM
+ReadOnlyPaths=/etc/conductor
+InaccessiblePaths=-/etc/conductor/credentials
+DevicePolicy=closed
+
+[Install]
+WantedBy=multi-user.target

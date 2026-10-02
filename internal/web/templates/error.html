@@ -1,0 +1,6 @@
+{{define "title"}}{{t "error.title"}}{{end}}
+{{define "content"}}<div class="card narrow" data-e2e="error-card">
+  <h1>{{t "error.title"}} <span class="muted">({{.D.Status}})</span></h1>
+  <p data-e2e="error-text-message">{{.D.Message}}</p>
+  <div class="actions"><a class="btn" href="/" data-e2e="error-link-home">{{t "error.home"}}</a></div>
+</div>{{end}}

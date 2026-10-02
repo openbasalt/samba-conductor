@@ -1,0 +1,57 @@
+{{define "title"}}{{.D.U.SAMAccountName}}{{end}}
+{{define "content"}}{{$u := .D.U}}{{$g := print .D.U.GUID}}
+<div class="row"><h1 class="grow" data-e2e="user-text-name">{{$u.DisplayName}} <span class="muted">({{$u.SAMAccountName}})</span></h1></div>
+<p>{{template "user-status" $u}}{{if .D.Protected}} <span class="badge badge-warn" data-e2e="user-badge-protected">{{t "user.protected"}}</span>{{end}}
+{{if .D.MFA}} <span class="badge badge-ok" data-e2e="user-badge-mfa">{{t "mfa.on"}}</span>{{end}}</p>
+{{if .D.Link}}<div class="alert-info" role="status"><p>{{t "user.enroll_link.show"}}</p><p><code data-e2e="user-text-enroll-link">{{.D.Link}}</code></p></div>{{end}}
+<div class="grid grid-2">
+<section class="card" aria-labelledby="u-props">
+  <h2 id="u-props">{{t "user.properties"}}</h2>
+  <dl class="props" data-e2e="user-list-props">
+    <dt>DN</dt><dd><code data-e2e="user-text-dn">{{$u.DN}}</code></dd>
+    <dt>SID</dt><dd><code>{{$u.SID}}</code></dd>
+    <dt>{{t "attr.userPrincipalName"}}</dt><dd>{{$u.UserPrincipalName}}</dd>
+    {{range .D.Fields}}{{if .Value}}<dt>{{t .Label}}</dt><dd data-e2e="user-text-{{e2e .Attr}}">{{.Value}}</dd>{{end}}{{end}}
+    <dt>{{t "attr.pwdLastSet"}}</dt><dd>{{filetime $u.PwdLastSet}}</dd>
+    <dt>{{t "attr.lastLogon"}}</dt><dd>{{filetime $u.LastLogon}}</dd>
+    <dt>{{t "attr.accountExpires"}}</dt><dd>{{filetime $u.AccountExpires}}</dd>
+    <dt>{{t "attr.uac"}}</dt><dd><code>{{$u.UAC}}</code></dd>
+  </dl>
+</section>
+<section class="card" aria-labelledby="u-actions">
+  <h2 id="u-actions">{{t "user.actions"}}</h2>
+  <div class="actions">
+    {{if has .Nav "users.write"}}<a class="btn" href="/admin/users/{{$g}}/edit" data-e2e="user-link-edit">{{t "user.edit"}}</a>{{end}}
+    {{if has .Nav "users.helpdesk"}}
+      <a class="btn" href="/admin/users/{{$g}}/reset-password" data-e2e="user-link-reset">{{t "user.reset"}}</a>
+      {{if $u.Locked}}<form method="post" action="/admin/users/{{$g}}/unlock">{{template "csrf" $}}<button class="btn" type="submit" data-e2e="user-btn-unlock">{{t "user.unlock"}}</button></form>{{end}}
+      {{if $u.Enabled}}{{if not .D.Self}}<form method="post" action="/admin/users/{{$g}}/disable">{{template "csrf" $}}<button class="btn" type="submit" data-e2e="user-btn-disable">{{t "user.disable"}}</button></form>{{end}}
+      {{else}}<form method="post" action="/admin/users/{{$g}}/enable">{{template "csrf" $}}<button class="btn" type="submit" data-e2e="user-btn-enable">{{t "user.enable"}}</button></form>{{end}}
+    {{end}}
+    {{if has .Nav "users.write"}}
+      <a class="btn" href="/admin/users/{{$g}}/move" data-e2e="user-link-move">{{t "user.move"}}</a>
+      {{if not .D.Self}}<form method="post" action="/admin/users/{{$g}}/delete">{{template "csrf" $}}<button class="btn btn-danger" type="submit" data-e2e="user-btn-delete">{{t "user.delete"}}</button></form>{{end}}
+    {{end}}
+  </div>
+  {{if has .Nav "mfa.manage"}}
+  <h3>{{t "mfa.section"}}</h3>
+  <div class="actions">
+    {{if .D.MFA}}<form method="post" action="/admin/users/{{$g}}/mfa/reset">{{template "csrf" $}}<button class="btn" type="submit" data-e2e="user-btn-mfa-reset">{{t "user.mfa_reset"}}</button></form>{{end}}
+    <form method="post" action="/admin/users/{{$g}}/mfa/link">{{template "csrf" $}}<button class="btn" type="submit" data-e2e="user-btn-enroll-link">{{t "user.enroll_link"}}</button></form>
+  </div>
+  {{end}}
+</section>
+</div>
+<section class="card" aria-labelledby="u-groups">
+  <h2 id="u-groups">{{t "user.groups"}}</h2>
+  {{if .D.Groups}}<table class="table" data-e2e="user-table-groups"><tbody>{{range .D.Groups}}<tr data-e2e="user-row-group-{{e2e .Name}}">
+    <td><a href="/admin/groups/{{.GUID}}">{{.Name}}</a></td>
+    <td>{{if has $.Nav "users.write"}}<form method="post" action="/admin/users/{{$g}}/groups/remove">{{template "csrf" $}}<input type="hidden" name="group" value="{{.GUID}}"><button class="btn btn-small" type="submit" data-e2e="user-btn-remove-group-{{e2e .Name}}">{{t "user.groups.remove"}}</button></form>{{end}}</td>
+  </tr>{{end}}</tbody></table>{{else}}<p class="muted">{{t "user.groups.none"}}</p>{{end}}
+  {{if has .Nav "users.write"}}<form method="post" action="/admin/users/{{$g}}/groups/add" class="row">
+    {{template "csrf" .}}
+    <label class="sr" for="add-group">{{t "user.groups.add_label"}}</label>
+    <input class="grow" id="add-group" name="group" type="text" placeholder="{{t "user.groups.add_label"}}" required data-e2e="user-input-add-group">
+    <button class="btn" type="submit" data-e2e="user-btn-add-group">{{t "user.groups.add"}}</button>
+  </form>{{end}}
+</section>{{end}}

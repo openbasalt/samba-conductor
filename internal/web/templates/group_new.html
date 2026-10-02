@@ -1,0 +1,25 @@
+{{define "title"}}{{t "group.new.title"}}{{end}}
+{{define "content"}}<div class="card narrow">
+  <h1>{{t "group.new.title"}}</h1>
+  {{template "error-alert" .D.Error}}
+  <form method="post" action="/admin/groups/new">
+    {{template "csrf" .}}
+    <div class="field"><label for="parent">{{t "form.parent"}}</label>{{template "ou-select" (dict "OUs" .D.OUs "Selected" .D.F.parent)}}</div>
+    <div class="field"><label for="name">{{t "groups.name"}}</label><input id="name" name="name" type="text" required value="{{.D.F.name}}" data-e2e="group-new-input-name"></div>
+    <div class="field"><label for="sam">{{t "attr.sAMAccountName"}}</label><input id="sam" name="sam" type="text" value="{{.D.F.sam}}" data-e2e="group-new-input-sam"><span class="hint">{{t "group.new.sam_hint"}}</span></div>
+    <div class="field"><label for="description">{{t "attr.description"}}</label><input id="description" name="description" type="text" value="{{.D.F.description}}" data-e2e="group-new-input-description"></div>
+    <div class="field"><label for="scope">{{t "groups.scope"}}</label><select id="scope" name="scope" data-e2e="group-new-select-scope">
+      <option value="global"{{if eq .D.F.scope "global"}} selected{{end}}>{{t "groups.scope.global"}}</option>
+      <option value="domainlocal"{{if eq .D.F.scope "domainlocal"}} selected{{end}}>{{t "groups.scope.domainlocal"}}</option>
+      <option value="universal"{{if eq .D.F.scope "universal"}} selected{{end}}>{{t "groups.scope.universal"}}</option>
+    </select></div>
+    <div class="field"><label for="type">{{t "groups.type"}}</label><select id="type" name="type" data-e2e="group-new-select-type">
+      <option value="security"{{if eq .D.F.type "security"}} selected{{end}}>{{t "groups.type.security"}}</option>
+      <option value="distribution"{{if eq .D.F.type "distribution"}} selected{{end}}>{{t "groups.type.distribution"}}</option>
+    </select></div>
+    <div class="actions">
+      <button class="btn btn-primary" type="submit" data-e2e="group-new-btn-preview">{{t "form.preview"}}</button>
+      <a class="btn" href="/admin/groups" data-e2e="group-new-link-cancel">{{t "form.cancel"}}</a>
+    </div>
+  </form>
+</div>{{end}}

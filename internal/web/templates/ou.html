@@ -1,0 +1,42 @@
+{{define "title"}}{{.D.O.Name}}{{end}}
+{{define "content"}}{{$g := print .D.O.GUID}}
+<h1 data-e2e="ou-text-name">{{.D.O.Name}}</h1>
+<p class="muted small">{{.D.Path}}</p>
+<div class="grid grid-2">
+<section class="card" aria-labelledby="ou-props">
+  <h2 id="ou-props">{{t "user.properties"}}</h2>
+  <dl class="props">
+    <dt>DN</dt><dd><code data-e2e="ou-text-dn">{{.D.O.DN}}</code></dd>
+    <dt>{{t "attr.description"}}</dt><dd>{{.D.O.Description}}</dd>
+    <dt>{{t "nav.users"}}</dt><dd data-e2e="ou-text-users">{{index .D.Counts "users"}}</dd>
+    <dt>{{t "nav.groups"}}</dt><dd>{{index .D.Counts "groups"}}</dd>
+    <dt>{{t "nav.computers"}}</dt><dd>{{index .D.Counts "computers"}}</dd>
+    <dt>{{t "nav.ous"}}</dt><dd>{{index .D.Counts "ous"}}</dd>
+  </dl>
+</section>
+{{if and (has .Nav "dir.write") (not .D.Protected)}}<section class="card" aria-labelledby="ou-actions">
+  <h2 id="ou-actions">{{t "user.actions"}}</h2>
+  <form method="post" action="/admin/ous/new">
+    {{template "csrf" .}}
+    <input type="hidden" name="parent" value="{{.D.O.DN}}">
+    <div class="field"><label for="child">{{t "ou.child"}}</label><input id="child" name="name" type="text" required data-e2e="ou-input-child"></div>
+    <button class="btn" type="submit" data-e2e="ou-btn-child">{{t "ou.create_child"}}</button>
+  </form>
+  <h3>{{t "ou.rename"}}</h3>
+  <form method="post" action="/admin/ous/{{$g}}/rename" class="row">
+    {{template "csrf" .}}
+    <label class="sr" for="rename">{{t "ou.rename"}}</label>
+    <input class="grow" id="rename" name="name" type="text" required value="{{.D.O.Name}}" data-e2e="ou-input-rename">
+    <button class="btn" type="submit" data-e2e="ou-btn-rename">{{t "ou.rename"}}</button>
+  </form>
+  <h3>{{t "ou.move"}}</h3>
+  <form method="post" action="/admin/ous/{{$g}}/move" class="row">
+    {{template "csrf" .}}
+    <div class="grow">{{template "ou-select" (dict "OUs" .D.OUs "Selected" .D.Parent)}}</div>
+    <button class="btn" type="submit" data-e2e="ou-btn-move">{{t "ou.move"}}</button>
+  </form>
+  <h3>{{t "ou.delete"}}</h3>
+  {{if .D.Empty}}<form method="post" action="/admin/ous/{{$g}}/delete">{{template "csrf" .}}<button class="btn btn-danger" type="submit" data-e2e="ou-btn-delete">{{t "ou.delete"}}</button></form>
+  {{else}}<p class="hint" data-e2e="ou-text-not-empty">{{t "ou.not_empty"}}</p>{{end}}
+</section>{{end}}
+</div>{{end}}

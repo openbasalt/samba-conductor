@@ -1,0 +1,32 @@
+{{define "title"}}{{.D.C.SAMAccountName}}{{end}}
+{{define "content"}}{{$g := print .D.C.GUID}}
+<h1 data-e2e="computer-text-name">{{.D.C.SAMAccountName}}</h1>
+<p>{{if .D.C.IsDomainController}}<span class="badge badge-warn" data-e2e="computer-badge-dc">{{t "computers.dc"}}</span> {{end}}{{if .D.C.Enabled}}<span class="badge badge-ok" data-e2e="computer-badge-enabled">{{t "status.enabled"}}</span>{{else}}<span class="badge badge-danger" data-e2e="computer-badge-disabled">{{t "status.disabled"}}</span>{{end}}</p>
+<div class="grid grid-2">
+<section class="card" aria-labelledby="c-props">
+  <h2 id="c-props">{{t "user.properties"}}</h2>
+  <dl class="props">
+    <dt>DN</dt><dd><code data-e2e="computer-text-dn">{{.D.C.DN}}</code></dd>
+    <dt>SID</dt><dd><code>{{.D.C.SID}}</code></dd>
+    <dt>{{t "computers.dns"}}</dt><dd>{{.D.C.DNSHostName}}</dd>
+    <dt>{{t "computers.os"}}</dt><dd>{{.D.C.OperatingSystem}} {{.D.C.OperatingSystemVersion}}</dd>
+    <dt>{{t "attr.description"}}</dt><dd>{{.D.C.Description}}</dd>
+    <dt>{{t "attr.lastLogon"}}</dt><dd>{{filetime .D.C.LastLogon}}</dd>
+    <dt>{{t "attr.uac"}}</dt><dd><code>{{.D.C.UAC}}</code></dd>
+  </dl>
+</section>
+{{if and (has .Nav "dir.write") (not .D.C.IsDomainController)}}<section class="card" aria-labelledby="c-actions">
+  <h2 id="c-actions">{{t "user.actions"}}</h2>
+  <div class="actions">
+    {{if .D.C.Enabled}}<form method="post" action="/admin/computers/{{$g}}/disable">{{template "csrf" .}}<button class="btn" type="submit" data-e2e="computer-btn-disable">{{t "user.disable"}}</button></form>
+    {{else}}<form method="post" action="/admin/computers/{{$g}}/enable">{{template "csrf" .}}<button class="btn" type="submit" data-e2e="computer-btn-enable">{{t "user.enable"}}</button></form>{{end}}
+    <form method="post" action="/admin/computers/{{$g}}/delete">{{template "csrf" .}}<button class="btn btn-danger" type="submit" data-e2e="computer-btn-delete">{{t "user.delete"}}</button></form>
+  </div>
+  <h3>{{t "ou.move"}}</h3>
+  <form method="post" action="/admin/computers/{{$g}}/move" class="row">
+    {{template "csrf" .}}
+    <div class="grow">{{template "ou-select" (dict "OUs" .D.OUs "Selected" .D.Parent)}}</div>
+    <button class="btn" type="submit" data-e2e="computer-btn-move">{{t "ou.move"}}</button>
+  </form>
+</section>{{else if .D.C.IsDomainController}}<section class="card"><p class="hint" data-e2e="computer-text-dc-protected">{{t "computers.dc_protected"}}</p></section>{{end}}
+</div>{{end}}

@@ -1,0 +1,17 @@
+{{define "title"}}{{t "nav.groups"}}{{end}}
+{{define "content"}}<div class="row"><h1 class="grow">{{t "nav.groups"}}</h1>{{if has .Nav "dir.write"}}<a class="btn btn-primary" href="/admin/groups/new" data-e2e="groups-link-new">{{t "groups.new"}}</a>{{end}}</div>
+<form method="get" action="/admin/groups" class="card row" role="search">
+  <label class="sr" for="q">{{t "form.search"}}</label>
+  <input class="grow" id="q" name="q" type="search" value="{{.D.Q}}" placeholder="{{t "groups.search_hint"}}" data-e2e="groups-input-search">
+  <button class="btn" type="submit" data-e2e="groups-btn-search">{{t "form.search"}}</button>
+</form>
+{{if .D.Groups}}<table class="table" data-e2e="groups-table">
+  <thead><tr><th>{{t "groups.name"}}</th><th>{{t "attr.description"}}</th><th>{{t "groups.scope"}}</th></tr></thead>
+  <tbody>{{range .D.Groups}}<tr data-e2e="groups-row-{{e2e .Name}}">
+    <td data-label="{{t "groups.name"}}"><a href="/admin/groups/{{.GUID}}" data-e2e="groups-link-{{e2e .Name}}">{{.Name}}</a></td>
+    <td data-label="{{t "attr.description"}}">{{.Description}}</td>
+    <td data-label="{{t "groups.scope"}}">{{t (print "groups.scope." .Type.Scope)}} · {{if .Type.Security}}{{t "groups.type.security"}}{{else}}{{t "groups.type.distribution"}}{{end}}</td>
+  </tr>{{end}}</tbody>
+</table>
+{{template "pager" .}}
+{{else}}<p class="muted" data-e2e="groups-text-empty">{{t "list.empty"}}</p>{{end}}{{end}}

@@ -1,0 +1,17 @@
+{{define "csrf"}}<input type="hidden" name="csrf" value="{{.CSRF}}">{{end}}
+
+{{define "error-alert"}}{{if .}}<div class="alert-error" role="alert" data-e2e="form-text-error">{{.}}</div>{{end}}{{end}}
+
+{{define "user-status"}}{{if not .Enabled}}<span class="badge badge-danger" data-e2e="status-badge-disabled">{{t "status.disabled"}}</span>{{else}}<span class="badge badge-ok" data-e2e="status-badge-enabled">{{t "status.enabled"}}</span>{{end}}
+{{if .Locked}}<span class="badge badge-warn" data-e2e="status-badge-locked">{{t "status.locked"}}</span>{{end}}
+{{if .MustChangePassword}}<span class="badge" data-e2e="status-badge-must-change">{{t "status.must_change"}}</span>{{end}}{{end}}
+
+{{define "pager"}}<nav class="pager" aria-label="{{t "pager.label"}}">
+  {{if gt .D.Page 1}}<a class="btn btn-small" href="{{pageLink .Query (add .D.Page -1)}}" data-e2e="pager-link-prev">{{t "pager.prev"}}</a>{{else}}<span></span>{{end}}
+  <span class="muted small" data-e2e="pager-text-page">{{t "pager.page" .D.Page}}</span>
+  {{if .D.More}}<a class="btn btn-small" href="{{pageLink .Query (add .D.Page 1)}}" data-e2e="pager-link-next">{{t "pager.next"}}</a>{{else}}<span></span>{{end}}
+</nav>{{end}}
+
+{{define "ou-select"}}<select id="parent" name="parent" required data-e2e="form-select-parent">
+  {{range .OUs}}<option value="{{.DN}}"{{if eq .DN $.Selected}} selected{{end}}>{{.Label}}</option>{{end}}
+</select>{{end}}

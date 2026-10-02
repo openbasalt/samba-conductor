@@ -1,0 +1,18 @@
+{{define "title"}}{{t "enroll.title"}}{{end}}
+{{define "content"}}<div class="card narrow">
+  <h1>{{t "enroll.title"}}</h1>
+  <p>{{t "enroll.intro"}}</p>
+  {{template "error-alert" .D.Error}}
+  {{if .D.QR}}<img class="qr" src="{{.D.QR}}" alt="{{t "enroll.qr_alt"}}" width="220" height="220" data-e2e="enroll-img-qr">{{end}}
+  <p class="small">{{t "enroll.manual"}}</p>
+  <p class="secret" data-e2e="enroll-text-secret">{{.D.Secret}}</p>
+  <p class="small muted">{{t "enroll.account"}}: <span data-e2e="enroll-text-account">{{.D.Account}}</span> · {{.D.Issuer}}</p>
+  <form method="post" action="{{.D.Action}}" autocomplete="off">
+    {{template "csrf" .}}
+    <div class="field">
+      <label for="code">{{t "enroll.code"}}</label>
+      <input id="code" name="code" type="text" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9 ]{6,7}" required maxlength="7" data-e2e="enroll-input-code">
+    </div>
+    <button class="btn btn-primary btn-block" type="submit" data-e2e="enroll-btn-submit">{{t "enroll.submit"}}</button>
+  </form>
+</div>{{end}}

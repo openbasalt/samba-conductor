@@ -1,0 +1,16 @@
+{{define "title"}}{{t "user.edit.title" .D.U.SAMAccountName}}{{end}}
+{{define "content"}}<div class="card narrow">
+  <h1>{{t "user.edit.title" .D.U.SAMAccountName}}</h1>
+  {{template "error-alert" .D.Error}}
+  <form method="post" action="/admin/users/{{.D.U.GUID}}/edit">
+    {{template "csrf" .}}
+    {{range .D.Fields}}<div class="field">
+      <label for="f-{{.Attr}}">{{t .Label}}</label>
+      <input id="f-{{.Attr}}" name="{{.Attr}}" type="text" maxlength="1024" value="{{.Value}}" data-e2e="user-edit-input-{{e2e .Attr}}">
+    </div>{{end}}
+    <div class="actions">
+      <button class="btn btn-primary" type="submit" data-e2e="user-edit-btn-preview">{{t "form.preview"}}</button>
+      <a class="btn" href="/admin/users/{{.D.U.GUID}}" data-e2e="user-edit-link-cancel">{{t "form.cancel"}}</a>
+    </div>
+  </form>
+</div>{{end}}

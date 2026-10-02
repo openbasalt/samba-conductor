@@ -1,0 +1,67 @@
+# Samba Conductor configuration (/etc/conductor/conductor.toml).
+# `conductor setup` writes this file for you; reference: docs/config.md.
+# Unknown keys are rejected, so a typo never silently falls back to a default.
+
+[server]
+# Built-in TLS (the certificate must be readable by the conductor user).
+listen = ":8443"
+tls_cert = "/etc/conductor/tls/cert.pem"
+tls_key = "/etc/conductor/tls/key.pem"
+# Or behind a TLS reverse proxy on the same host (loopback only):
+# listen = "127.0.0.1:8080"
+# behind_proxy = true
+# trusted_proxies = ["127.0.0.1/32", "::1/128"]
+
+[domain]
+realm = "EXAMPLE.COM"
+# The CA that signs the DCs' LDAPS certificates; nothing else is trusted.
+ca_file = "/etc/conductor/domain-ca.pem"
+# Try the local DC first; empty dcs = discover DCs through DNS SRV records.
+preferred = ["dc1.example.com"]
+dcs = []
+# DNS servers for SRV discovery when the host resolver is not the domain DNS.
+dns_servers = []
+# LDAP simple bind when Kerberos is unreachable (password kept encrypted in
+# memory for the session). Leave off unless you need it.
+simple_bind_fallback = false
+
+[roles]
+# AD group SIDs. Empty admin_groups = the domain's Domain Admins (RID 512).
+admin_groups = []
+helpdesk_groups = ["S-1-5-21-0000000000-0000000000-0000000000-1105"]
+auditor_groups = []
+# Roles are re-checked against AD at most this often (0-60 seconds).
+cache_seconds = 60
+
+[mfa]
+# Two-factor authentication for users without a privileged role:
+# off, optional or required. Administrators always need it.
+policy = "optional"
+# Helpdesk and auditors need 2FA too.
+delegated_roles_required = true
+# Administrators without 2FA enroll only through a one-time link
+# (`conductor enroll-link`, or issued by another administrator).
+admin_enrollment_requires_link = true
+issuer = "Samba Conductor"
+# Key that encrypts TOTP secrets. Empty: $CREDENTIALS_DIRECTORY/totp-key
+# (systemd LoadCredential, as in the shipped unit).
+key_file = ""
+
+[session]
+idle_minutes = 15
+absolute_hours = 8
+
+[ratelimit]
+per_ip_per_minute = 30
+account_failures = 5
+account_window_minutes = 15
+
+[state]
+database = "/var/lib/conductor/conductor.db"
+
+[helper]
+enabled = true
+socket = "/run/conductor-helper/helper.sock"
+
+[ui]
+default_language = "en"   # or "pt-BR"
