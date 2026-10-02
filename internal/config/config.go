@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"net"
 	"net/netip"
+	"net/url"
 	"os"
 	"path/filepath"
 	"slices"
@@ -40,6 +41,41 @@ type Config struct {
 	State     State     `toml:"state"`
 	Helper    Helper    `toml:"helper"`
 	UI        UI        `toml:"ui"`
+	WebAuthn  WebAuthn  `toml:"webauthn"`
+	Bulk      Bulk      `toml:"bulk"`
+	Tools     Tools     `toml:"tools"`
+}
+
+// WebAuthn configures security keys and platform authenticators as a
+// second factor. Off while rp_id is empty.
+type WebAuthn struct {
+	// RPID is the host name users open conductor with (the WebAuthn
+	// relying party ID), e.g. "conductor.example.com".
+	RPID string `toml:"rp_id"`
+	// Origins allowed in ceremonies ("https://host[:port]"); default
+	// https://<rp_id> plus the listen port when it is not 443.
+	Origins []string `toml:"origins"`
+	// DisplayName shown by the browser during registration.
+	DisplayName string `toml:"display_name"`
+	// AdminRequired makes a security key mandatory for administrators:
+	// TOTP codes are no longer accepted for them (recovery codes are).
+	AdminRequired bool `toml:"admin_required"`
+}
+
+// Enabled reports whether WebAuthn is configured.
+func (w WebAuthn) Enabled() bool { return w.RPID != "" }
+
+// Bulk bounds bulk operations (CSV import, actions on selected items).
+type Bulk struct {
+	// MaxRows per batch.
+	MaxRows int `toml:"max_rows"`
+}
+
+// Tools are external programs conductor runs with the user's own
+// Kerberos ticket (GPO creation and deletion need SYSVOL as well as LDAP).
+type Tools struct {
+	// SambaTool is the samba-tool binary (absolute path).
+	SambaTool string `toml:"samba_tool"`
 }
 
 // Server is the HTTP listener.
@@ -169,6 +205,9 @@ func Default() *Config {
 		State:     State{Database: "/var/lib/conductor/conductor.db"},
 		Helper:    Helper{Enabled: true, Socket: "/run/conductor-helper/helper.sock"},
 		UI:        UI{DefaultLanguage: "en"},
+		WebAuthn:  WebAuthn{DisplayName: "Samba Conductor"},
+		Bulk:      Bulk{MaxRows: 1000},
+		Tools:     Tools{SambaTool: "/usr/bin/samba-tool"},
 	}
 }
 
@@ -254,7 +293,53 @@ func (c *Config) Validate() error {
 	if c.UI.DefaultLanguage != "en" && c.UI.DefaultLanguage != "pt-BR" {
 		bad("ui.default_language must be en or pt-BR")
 	}
+	if w := c.WebAuthn; w.Enabled() {
+		if strings.ContainsAny(w.RPID, ":/ ") || !strings.Contains(w.RPID, ".") && w.RPID != "localhost" {
+			bad("webauthn.rp_id must be a host name (no scheme or port)")
+		}
+		for _, o := range c.WebAuthnOrigins() {
+			u, err := url.Parse(o)
+			if err != nil || u.Scheme != "https" || u.Host == "" || u.Path != "" || !hostWithin(u.Hostname(), w.RPID) {
+				bad("webauthn.origins %q must be https://host[:port] with host = rp_id or below it", o)
+			}
+		}
+		if w.DisplayName == "" || len(w.DisplayName) > 64 {
+			bad("webauthn.display_name must be 1-64 characters")
+		}
+	} else if c.WebAuthn.AdminRequired {
+		bad("webauthn.admin_required needs webauthn.rp_id")
+	} else if len(c.WebAuthn.Origins) > 0 {
+		bad("webauthn.origins needs webauthn.rp_id")
+	}
+	if c.Bulk.MaxRows < 1 || c.Bulk.MaxRows > 100000 {
+		bad("bulk.max_rows must be 1-100000")
+	}
+	if !filepath.IsAbs(c.Tools.SambaTool) {
+		bad("tools.samba_tool must be an absolute path")
+	}
 	return errors.Join(errs...)
+}
+
+// hostWithin reports whether host is rpID or a subdomain of it.
+func hostWithin(host, rpID string) bool {
+	h, r := strings.ToLower(host), strings.ToLower(rpID)
+	return h == r || strings.HasSuffix(h, "."+r)
+}
+
+// WebAuthnOrigins returns the configured origins, or the default derived
+// from rp_id and the listen port.
+func (c *Config) WebAuthnOrigins() []string {
+	if len(c.WebAuthn.Origins) > 0 {
+		return c.WebAuthn.Origins
+	}
+	if c.WebAuthn.RPID == "" {
+		return nil
+	}
+	o := "https://" + c.WebAuthn.RPID
+	if _, port, err := net.SplitHostPort(c.Server.Listen); err == nil && port != "443" && port != "" && !c.Server.BehindProxy {
+		o += ":" + port
+	}
+	return []string{o}
 }
 
 func isLoopback(host string) bool {

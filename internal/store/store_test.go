@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"os"
 	"path/filepath"
 	"strings"
@@ -194,5 +195,69 @@ func TestAuditChain(t *testing.T) {
 	res, _ = s.VerifyAudit(ctx)
 	if res.BrokenAt != 4 {
 		t.Fatalf("re-hashed row not detected: %+v", res)
+	}
+}
+
+func TestWebAuthnCredentials(t *testing.T) {
+	ctx := context.Background()
+	st := openTest(t)
+	c := WebAuthnCredential{ID: "abc", UserSID: "S-1-5-21-1-2-3-1001", Username: "jdoe", Name: "Key 1", Data: []byte(`{"x":1}`)}
+	if err := st.AddWebAuthnCredential(ctx, c); err != nil {
+		t.Fatal(err)
+	}
+	if err := st.AddWebAuthnCredential(ctx, c); err == nil {
+		t.Fatal("duplicate credential ID accepted")
+	}
+	list, err := st.WebAuthnCredentials(ctx, c.UserSID)
+	if err != nil || len(list) != 1 || list[0].Name != "Key 1" || !list[0].LastUsedAt.IsZero() {
+		t.Fatalf("%+v %v", list, err)
+	}
+	if err := st.UseWebAuthnCredential(ctx, "S-1-5-21-1-2-3-9999", "abc", nil); !errors.Is(err, ErrNotFound) {
+		t.Fatal("another user's credential updated")
+	}
+	if err := st.UseWebAuthnCredential(ctx, c.UserSID, "abc", []byte(`{"x":2}`)); err != nil {
+		t.Fatal(err)
+	}
+	if err := st.DeleteWebAuthnCredential(ctx, "S-1-5-21-1-2-3-9999", "abc"); !errors.Is(err, ErrNotFound) {
+		t.Fatal("another user's credential deleted")
+	}
+	if err := st.DeleteWebAuthnCredentials(ctx, c.UserSID); err != nil {
+		t.Fatal(err)
+	}
+	if list, _ := st.WebAuthnCredentials(ctx, c.UserSID); len(list) != 0 {
+		t.Fatal("not deleted")
+	}
+}
+
+func TestBulkJobs(t *testing.T) {
+	ctx := context.Background()
+	st := openTest(t)
+	j := BulkJob{ID: "job1", Kind: "import-create", OwnerSID: "S-1-5-21-1-2-3-500", OwnerName: "admin"}
+	rows := []BulkRow{{No: 1, Label: "a", Target: "CN=a", Input: "{}", Preview: "dn: CN=a"}, {No: 2, Label: "b", Target: "CN=b", Input: "{}", Preview: "dn: CN=b"}}
+	if err := st.CreateBulkJob(ctx, j, rows); err != nil {
+		t.Fatal(err)
+	}
+	if err := st.SetBulkJobStatus(ctx, "job1", JobRunning); err != nil {
+		t.Fatal(err)
+	}
+	_ = st.SetBulkRowResult(ctx, "job1", 1, RowOK, "")
+	// A restart marks the running job interrupted; row 2 stays pending.
+	if n, err := st.InterruptBulkJobs(ctx); err != nil || n != 1 {
+		t.Fatalf("interrupt %d %v", n, err)
+	}
+	got, err := st.GetBulkJob(ctx, "job1")
+	if err != nil || got.Status != JobInterrupted || got.Total != 2 || got.StartedAt.IsZero() || got.FinishedAt.IsZero() {
+		t.Fatalf("%+v %v", got, err)
+	}
+	counts, _ := st.RowCounts(ctx, "job1")
+	if counts[RowOK] != 1 || counts[RowPending] != 1 {
+		t.Fatalf("counts %v", counts)
+	}
+	list, _ := st.ListBulkJobs(ctx, "S-1-5-21-1-2-3-500", 10)
+	if len(list) != 1 {
+		t.Fatal("list")
+	}
+	if _, err := st.GetBulkJob(ctx, "nope"); !errors.Is(err, ErrNotFound) {
+		t.Fatal("missing job")
 	}
 }

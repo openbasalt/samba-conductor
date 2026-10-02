@@ -155,6 +155,36 @@ func (d *Directory) Connect(ctx context.Context, c *Credential) (*ad.Conn, error
 	return ad.Connect(ctx, d.cfg, ad.SimpleAuth(username, string(pw)))
 }
 
+// ConnectTo opens a connection bound as the credential's user to one given
+// DC (per-DC attributes such as badPwdCount are not replicated).
+func (d *Directory) ConnectTo(ctx context.Context, c *Credential, host string) (*ad.Conn, error) {
+	one := d.cfg
+	one.DCs = []string{host}
+	one.Preferred = nil
+	dd := &Directory{cfg: one, fallback: d.fallback, box: d.box}
+	return dd.Connect(ctx, c)
+}
+
+// ErrNoTicket is returned when a tool needs a Kerberos ticket but the user
+// signed in with the simple-bind fallback.
+var ErrNoTicket = errors.New("directory: this action needs a Kerberos sign-in")
+
+// WriteCCache writes the user's TGT to path (new file, 0600) for a tool
+// that authenticates with a credential cache (samba-tool). The caller
+// removes the file right after use.
+func (c *Credential) WriteCCache(path string) error {
+	c.mu.Lock()
+	krb, closed := c.krb, c.closed
+	c.mu.Unlock()
+	if closed {
+		return ErrCredentialClosed
+	}
+	if krb == nil {
+		return ErrNoTicket
+	}
+	return krb.WriteCCache(path)
+}
+
 // ChangeExpiredPassword changes a password with the old one through
 // kpasswd: it works for accounts that must change or whose password expired
 // (they cannot bind to LDAP).

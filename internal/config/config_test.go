@@ -75,3 +75,32 @@ func TestMFAKeyPath(t *testing.T) {
 		t.Fatal("no key source accepted")
 	}
 }
+
+func TestWebAuthnAndBulk(t *testing.T) {
+	c, err := load(t, base)
+	if err != nil || c.WebAuthn.Enabled() || c.Bulk.MaxRows != 1000 || c.Tools.SambaTool != "/usr/bin/samba-tool" {
+		t.Fatalf("defaults %+v %v", c, err)
+	}
+	c, err = load(t, base+"[webauthn]\nrp_id = \"dc1.lab.conductor.test\"\nadmin_required = true\n")
+	if err != nil || !c.WebAuthn.Enabled() {
+		t.Fatal(err)
+	}
+	if o := c.WebAuthnOrigins(); len(o) != 1 || o[0] != "https://dc1.lab.conductor.test:8443" {
+		t.Fatalf("default origins %v", o)
+	}
+	for name, body := range map[string]string{
+		"rp id with scheme":       "[webauthn]\nrp_id = \"https://x.example\"\n",
+		"http origin":             "[webauthn]\nrp_id = \"x.example\"\norigins = [\"http://x.example\"]\n",
+		"origin of another site":  "[webauthn]\nrp_id = \"x.example\"\norigins = [\"https://evil.example\"]\n",
+		"admin required, no rpid": "[webauthn]\nadmin_required = true\n",
+		"bulk rows":               "[bulk]\nmax_rows = 0\n",
+		"relative samba-tool":     "[tools]\nsamba_tool = \"samba-tool\"\n",
+	} {
+		if _, err := load(t, base+body); err == nil {
+			t.Errorf("%s: accepted", name)
+		}
+	}
+	if _, err := load(t, base+"[webauthn]\nrp_id = \"lab.conductor.test\"\norigins = [\"https://dc1.lab.conductor.test:8443\"]\n"); err != nil {
+		t.Errorf("subdomain origin refused: %v", err)
+	}
+}
