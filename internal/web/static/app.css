@@ -194,3 +194,15 @@ input[type=file] { font: inherit; max-width: 100%; }
 input[type=checkbox] { width: 1.15rem; height: 1.15rem; accent-color: var(--accent); }
 details pre { margin-top: .5rem; max-height: 24rem; }
 .table td .actions { margin-top: 0; }
+
+/* File servers: ACL diffs in previews. */
+ul.diff { list-style: none; margin: 0; padding: 0; border: 1px solid var(--border); border-radius: var(--radius); }
+ul.diff li { display: flex; gap: .5rem; align-items: baseline; padding: .35rem .6rem; border-bottom: 1px solid var(--border); overflow-wrap: anywhere; }
+ul.diff li:last-child { border-bottom: 0; }
+ul.diff .diff-mark { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-weight: 700; width: 1ch; }
+ul.diff .diff-add { background: var(--ok-soft); }
+ul.diff .diff-add .diff-mark { color: var(--ok); }
+ul.diff .diff-del { background: var(--danger-soft); text-decoration: line-through; }
+ul.diff .diff-del .diff-mark { color: var(--danger); }
+ul.folders li { align-items: center; }
+ul.diff .grow { flex: 1 1 auto; }

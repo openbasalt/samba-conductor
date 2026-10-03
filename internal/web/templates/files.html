@@ -1,0 +1,25 @@
+{{define "title"}}{{t "nav.files"}}{{end}}
+{{define "content"}}<h1>{{t "nav.files"}}</h1>
+<p class="hint">{{t "files.intro"}}</p>
+{{if .D.Disabled}}<section class="card" data-e2e="files-card-disabled"><h2>{{t "files.disabled.title"}}</h2><p>{{t "files.disabled.text"}}</p></section>
+{{else}}{{template "error-alert" .D.Error}}
+<div class="row">
+  {{if .D.CanWrite}}<a class="btn btn-primary" href="/admin/files/new" data-e2e="files-link-new">{{t "files.new.button"}}</a>{{end}}
+  <a class="btn" href="/admin/files?refresh=1" data-e2e="files-link-refresh">{{t "files.refresh"}}</a>
+</div>
+{{if .D.Rows}}<table class="table" data-e2e="files-table-servers">
+  <thead><tr><th>{{t "files.server"}}</th><th>{{t "files.status"}}</th><th>{{t "files.versions"}}</th><th>{{t "files.roots"}}</th></tr></thead>
+  <tbody>{{range .D.Rows}}<tr data-e2e="files-row-{{e2e .S.Name}}">
+    <td><a href="/admin/files/{{.S.ID}}" data-e2e="files-link-server-{{e2e .S.Name}}">{{.S.Name}}</a><br><span class="muted small mono">{{.S.Address}}</span></td>
+    <td data-label="{{t "files.status"}}">{{template "files-state" .}}</td>
+    <td data-label="{{t "files.versions"}}">{{with .St}}Samba {{.SambaVersion}}<br><span class="muted small">conductor-files {{.Version}}</span>{{else}}—{{end}}</td>
+    <td data-label="{{t "files.roots"}}" class="mono small">{{with .St}}{{join .Roots ", "}}{{else}}—{{end}}</td>
+  </tr>{{end}}</tbody>
+</table>
+{{else}}<section class="card" data-e2e="files-card-empty"><h2>{{t "files.empty.title"}}</h2><p>{{t "files.empty.text"}}</p></section>{{end}}
+<section class="card" aria-labelledby="files-key">
+  <h2 id="files-key">{{t "files.key.heading"}}</h2>
+  <p class="hint">{{t "files.key.hint"}}</p>
+  <dl class="props"><dt>{{t "files.key.name"}}</dt><dd class="mono small">{{.D.Name}}</dd><dt>{{t "files.key.pin"}}</dt><dd class="mono small" data-e2e="files-text-pin">{{.D.Pin}}</dd></dl>
+</section>
+{{end}}{{end}}

@@ -395,6 +395,9 @@ func (s *Server) errMessage(t func(string, ...any) string, err error) string {
 	if errors.As(err, &se) || errors.Is(err, errSyncDisabled) {
 		return s.syncErrT(t, err)
 	}
+	if s.isFilesErr(err) {
+		return s.filesErrT(t, err)
+	}
 	return t(s.adErrorKey(err))
 }
 

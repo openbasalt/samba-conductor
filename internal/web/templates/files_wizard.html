@@ -1,0 +1,102 @@
+{{define "title"}}{{if .D.Dr.Create}}{{t "files.wizard.new_title"}}{{else}}{{t "files.wizard.edit_title" .D.Dr.Spec.Name}}{{end}}{{end}}
+{{define "content"}}{{$d := .D.Dr}}{{$sp := $d.Spec}}{{$step := .D.Step}}{{$sid := .D.S.ID}}
+<p class="small"><a href="/admin/files/{{$sid}}" data-e2e="files-link-back-server">← {{.D.S.Name}}</a></p>
+<h1 data-e2e="files-wizard-title">{{if $d.Create}}{{t "files.wizard.new_title"}}{{else}}{{t "files.wizard.edit_title" $sp.Name}}{{end}}</h1>
+<nav class="tabs" aria-label="{{t "files.wizard.steps"}}" data-e2e="files-wizard-steps">
+  {{range $i, $st := .D.Steps}}<a href="/admin/files/{{$sid}}/wizard?step={{$st}}" data-e2e="files-wizard-step-{{$st}}"{{if eq $st $step}} aria-current="step"{{end}}>{{add $i 1}}. {{t (print "files.wizard.step." $st)}}</a>{{end}}
+</nav>
+{{template "error-alert" .D.Error}}
+<section class="card" aria-labelledby="fw-summary">
+  <h2 id="fw-summary" class="sr">{{t "files.wizard.summary"}}</h2>
+  <dl class="props" data-e2e="files-wizard-summary">
+    <dt>{{t "files.share.name"}}</dt><dd data-e2e="files-wizard-name">{{if $sp.Name}}{{$sp.Name}}{{else}}—{{end}}</dd>
+    <dt>{{t "files.share.path"}}</dt><dd class="mono small" data-e2e="files-wizard-path">{{if $sp.Path}}{{$sp.Path}}{{if $sp.CreateDir}} <span class="badge">{{t "files.wizard.new_folder_badge"}}</span>{{end}}{{else}}—{{end}}</dd>
+    <dt>{{t "files.share.access"}}</dt><dd data-e2e="files-wizard-access-summary">{{range $i, $g := $sp.Access}}{{if $i}}, {{end}}{{if $g.Name}}{{$g.Name}}{{else}}{{$g.SID}}{{end}} ({{t (print "files.level." $g.Level)}}){{else}}—{{end}}</dd>
+  </dl>
+</section>
+
+{{if eq $step "folder"}}{{$dl := .D.DL}}
+<form method="post" action="/admin/files/{{$sid}}/wizard" autocomplete="off" data-e2e="files-wizard-form-folder">
+  {{template "csrf" .}}<input type="hidden" name="action" value="folder">
+  <section class="card" aria-labelledby="fw-name">
+    <h2 id="fw-name">{{t "files.wizard.name_heading"}}</h2>
+    <div class="grid grid-2">
+      <div class="field"><label for="name">{{t "files.share.name"}}</label>
+        {{if $d.Create}}<input id="name" name="name" type="text" value="{{$sp.Name}}" required maxlength="64" spellcheck="false" autocapitalize="off" data-e2e="files-wizard-input-name"><span class="hint">{{t "files.wizard.name_hint"}}</span>
+        {{else}}<input id="name" type="text" value="{{$sp.Name}}" disabled data-e2e="files-wizard-input-name"><span class="hint">{{t "files.wizard.name_fixed"}}</span>{{end}}</div>
+      <div class="field"><label for="comment">{{t "files.share.comment"}}</label><input id="comment" name="comment" type="text" value="{{$sp.Comment}}" maxlength="256" data-e2e="files-wizard-input-comment"></div>
+    </div>
+  </section>
+  <section class="card" aria-labelledby="fw-folder">
+    <h2 id="fw-folder">{{t "files.wizard.folder_heading"}}</h2>
+    <p class="hint">{{t "files.wizard.folder_hint"}}</p>
+    {{if $dl.Path}}<p data-e2e="files-wizard-browse-path"><span class="muted small">{{t "files.wizard.browsing"}}</span> <span class="mono">{{$dl.Path}}</span>
+      {{if $dl.Parent}}· <a href="{{browse $sid $dl.Parent}}" data-e2e="files-wizard-link-up">{{t "files.wizard.up"}}</a>{{end}}
+      {{if gt (len $dl.Roots) 1}}· <a href="/admin/files/{{$sid}}/wizard?step=folder&amp;browse=" data-e2e="files-wizard-link-roots">{{t "files.wizard.roots"}}</a>{{end}}</p>
+    <ul class="tree folders" data-e2e="files-wizard-folders">{{range $dl.Entries}}<li class="row" data-e2e="files-wizard-folder-{{e2e .Name}}">
+      {{if and .Usable (not .Share)}}<input type="radio" id="p-{{e2e .Name}}" name="path" value="{{.Path}}"{{if eq .Path $sp.Path}} checked{{end}} data-e2e="files-wizard-radio-{{e2e .Name}}"><label for="p-{{e2e .Name}}" class="grow">{{.Name}}</label>
+      {{else}}<span class="grow muted">{{.Name}}{{if .Share}} · {{t "files.wizard.shared_as" .Share}}{{else if eq .Reason "parent"}} · {{t "files.wizard.not_usable"}}{{end}}</span>{{end}}
+      <a class="btn btn-small" href="{{browse $sid .Path}}" data-e2e="files-wizard-open-{{e2e .Name}}">{{t "files.wizard.open"}}</a>
+    </li>{{else}}<li class="muted" data-e2e="files-wizard-no-folders">{{t "files.wizard.no_folders"}}</li>{{end}}</ul>
+    {{if $dl.Truncated}}<p class="hint">{{t "files.wizard.truncated"}}</p>{{end}}
+    {{if and $d.Create $dl.CanCreate}}<div class="field"><label for="newdir">{{t "files.wizard.newdir" $dl.Path}}</label><input id="newdir" name="newdir" type="text" maxlength="255" spellcheck="false" data-e2e="files-wizard-input-newdir"><span class="hint">{{t "files.wizard.newdir_hint"}}</span></div>{{end}}
+    {{else}}<ul class="tree" data-e2e="files-wizard-roots">{{range $dl.Roots}}<li><a href="{{browse $sid .}}" class="mono">{{.}}</a></li>{{end}}</ul>{{end}}
+  </section>
+  <div class="actions"><button class="btn btn-primary" type="submit" data-e2e="files-wizard-btn-folder">{{t "files.wizard.next"}}</button></div>
+</form>
+{{end}}
+
+{{if eq $step "access"}}
+<section class="card" aria-labelledby="fw-access">
+  <h2 id="fw-access">{{t "files.wizard.access_heading"}}</h2>
+  <p class="hint">{{t "files.wizard.access_hint"}}</p>
+  {{if $sp.Access}}<table class="table" data-e2e="files-wizard-table-access">
+    <thead><tr><th>{{t "files.acl.who"}}</th><th>{{t "files.wizard.level"}}</th><th></th></tr></thead>
+    <tbody>{{range $sp.Access}}<tr data-e2e="files-wizard-grant-{{e2e .Name}}">
+      <td>{{if .Name}}{{.Name}}{{else}}<span class="mono small">{{.SID}}</span>{{end}}<br><span class="muted small mono">{{.SID}}</span></td>
+      <td data-label="{{t "files.wizard.level"}}"><form method="post" action="/admin/files/{{$sid}}/wizard" class="row">{{template "csrf" $}}<input type="hidden" name="action" value="level"><input type="hidden" name="sid" value="{{.SID}}">
+        <label class="sr" for="lv-{{e2e .SID}}">{{t "files.wizard.level"}}</label>
+        <select id="lv-{{e2e .SID}}" name="level" data-e2e="files-wizard-select-level-{{e2e .Name}}">{{$cur := .Level}}{{range $.D.Levels}}<option value="{{.}}"{{if eq . $cur}} selected{{end}}>{{t (print "files.level." .)}}</option>{{end}}</select>
+        <button class="btn btn-small" type="submit" data-e2e="files-wizard-btn-level-{{e2e .Name}}">{{t "form.save"}}</button></form></td>
+      <td><form method="post" action="/admin/files/{{$sid}}/wizard">{{template "csrf" $}}<input type="hidden" name="action" value="remove"><input type="hidden" name="sid" value="{{.SID}}"><button class="btn btn-small" type="submit" data-e2e="files-wizard-btn-remove-{{e2e .Name}}">{{t "form.remove"}}</button></form></td>
+    </tr>{{end}}</tbody>
+  </table>{{else}}<p class="muted" data-e2e="files-wizard-no-access">{{t "files.wizard.no_access"}}</p>{{end}}
+  <p class="hint">{{t "files.wizard.fixed_admins"}}</p>
+</section>
+<section class="card" aria-labelledby="fw-search">
+  <h2 id="fw-search">{{t "files.wizard.add_group"}}</h2>
+  <form method="get" action="/admin/files/{{$sid}}/wizard" class="row" role="search">
+    <input type="hidden" name="step" value="access">
+    <label class="sr" for="gq">{{t "files.wizard.search"}}</label><input id="gq" name="q" type="search" value="{{.D.Q}}" placeholder="{{t "files.wizard.search"}}" class="grow" data-e2e="files-wizard-input-group-q">
+    <button class="btn btn-small" type="submit" data-e2e="files-wizard-btn-group-search">{{t "sync.search.button"}}</button>
+  </form>
+  {{if .D.Hits}}<table class="table" data-e2e="files-wizard-table-hits"><tbody>{{range .D.Hits}}<tr data-e2e="files-wizard-hit-{{e2e .Name}}">
+    <td>{{.Name}}{{with .Description}}<br><span class="muted small">{{.}}</span>{{end}}</td>
+    <td><form method="post" action="/admin/files/{{$sid}}/wizard" class="row">{{template "csrf" $}}<input type="hidden" name="action" value="add"><input type="hidden" name="sid" value="{{.SID}}"><input type="hidden" name="name" value="{{.Name}}">
+      <label class="sr" for="al-{{e2e .Name}}">{{t "files.wizard.level"}}</label>
+      <select id="al-{{e2e .Name}}" name="level" data-e2e="files-wizard-select-add-{{e2e .Name}}">{{range $.D.Levels}}<option value="{{.}}"{{if eq . "modify"}} selected{{end}}>{{t (print "files.level." .)}}</option>{{end}}</select>
+      <button class="btn btn-small" type="submit" data-e2e="files-wizard-btn-add-{{e2e .Name}}">{{t "form.add"}}</button></form></td>
+  </tr>{{end}}</tbody></table>{{else if .D.Q}}<p class="muted" data-e2e="files-wizard-no-hits">{{t "sync.search.none"}}</p>{{end}}
+</section>
+<div class="actions"><a class="btn btn-primary" href="/admin/files/{{$sid}}/wizard?step=options" data-e2e="files-wizard-btn-access-next">{{t "files.wizard.next"}}</a></div>
+{{end}}
+
+{{if eq $step "options"}}
+<form method="post" action="/admin/files/{{$sid}}/wizard" data-e2e="files-wizard-form-options">
+  {{template "csrf" .}}<input type="hidden" name="action" value="options">
+  <section class="card" aria-labelledby="fw-opts">
+    <h2 id="fw-opts">{{t "files.wizard.options_heading"}}</h2>
+    <div class="check"><input id="o-br" name="browseable" type="checkbox" value="1"{{if $sp.Browseable}} checked{{end}} data-e2e="files-wizard-check-browseable"><label for="o-br">{{t "files.opt.browseable"}} <span class="hint">{{t "files.opt.browseable_hint"}}</span></label></div>
+    <div class="check"><input id="o-abe" name="abe" type="checkbox" value="1"{{if $sp.AccessBasedEnum}} checked{{end}} data-e2e="files-wizard-check-abe"><label for="o-abe">{{t "files.opt.abe"}} <span class="hint">{{t "files.opt.abe_hint"}}</span></label></div>
+    <div class="check"><input id="o-rec" name="recycle" type="checkbox" value="1"{{if $sp.RecycleBin}} checked{{end}} data-e2e="files-wizard-check-recycle"><label for="o-rec">{{t "files.opt.recycle"}} <span class="hint">{{t "files.opt.recycle_hint"}}</span></label></div>
+    <div class="check"><input id="o-sh" name="shadow" type="checkbox" value="1"{{if $sp.ShadowCopies}} checked{{end}}{{if not .D.Shadow}} disabled{{end}} data-e2e="files-wizard-check-shadow"><label for="o-sh">{{t "files.opt.shadow"}} <span class="hint">{{if .D.Shadow}}{{t "files.opt.shadow_hint"}}{{else}}{{t "files.opt.shadow_unavailable"}}{{end}}</span></label></div>
+  </section>
+  <div class="actions">
+    <button class="btn" type="submit" name="go" value="save" data-e2e="files-wizard-btn-options-save">{{t "form.save"}}</button>
+    <button class="btn btn-primary" type="submit" name="go" value="plan" data-e2e="files-wizard-btn-review">{{t "files.wizard.review"}}</button>
+  </div>
+  <p class="hint">{{t "files.wizard.review_hint"}}</p>
+</form>
+{{end}}
+<form method="post" action="/admin/files/{{$sid}}/wizard/discard" class="actions">{{template "csrf" .}}<button class="btn btn-small" type="submit" data-e2e="files-wizard-btn-discard">{{t "files.wizard.discard"}}</button></form>
+{{end}}

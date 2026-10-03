@@ -43,12 +43,15 @@ const (
 
 	PermSyncRead  Perm = "sync.read"  // Google Workspace sync: status, plans, runs, settings
 	PermSyncWrite Perm = "sync.write" // settings, key, plans, applies (administrators only)
+
+	PermFilesRead  Perm = "files.read"  // file servers: status, shares, permissions, sessions
+	PermFilesWrite Perm = "files.write" // enroll/remove servers, create/edit/remove shares
 )
 
 // allPerms lists every privileged permission (navigation, tests).
 var allPerms = []Perm{PermDashboard, PermUsersRead, PermUsersHelpdesk, PermUsersWrite, PermDirRead, PermDirWrite,
 	PermAuditRead, PermDomainRead, PermMFAManage, PermDNSRead, PermDNSWrite, PermGPORead, PermGPOWrite,
-	PermPolicyRead, PermPolicyWrite, PermHealthRead, PermBulk, PermBackupRead, PermBackupWrite, PermSyncRead, PermSyncWrite}
+	PermPolicyRead, PermPolicyWrite, PermHealthRead, PermBulk, PermBackupRead, PermBackupWrite, PermSyncRead, PermSyncWrite, PermFilesRead, PermFilesWrite}
 
 // privileged reports whether p is beyond self-service.
 func (p Perm) privileged() bool {
@@ -66,7 +69,7 @@ var rolePerms = map[string][]Perm{
 	"admin":    allPerms,
 	"helpdesk": {PermUsersRead, PermUsersHelpdesk, PermHealthRead},
 	"auditor": {PermDashboard, PermUsersRead, PermDirRead, PermAuditRead, PermDomainRead, PermDNSRead, PermGPORead,
-		PermPolicyRead, PermHealthRead, PermBackupRead},
+		PermPolicyRead, PermHealthRead, PermBackupRead, PermFilesRead},
 }
 
 // Has reports whether the roles grant p.

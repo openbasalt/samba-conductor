@@ -52,6 +52,9 @@ type userInfo struct {
 
 var e2eRE = regexp.MustCompile(`[^a-z0-9]+`)
 
+// rightsKey turns an ACL rights name into a message key suffix.
+var rightsKey = strings.NewReplacer(" ", "_", "(", "", ")", "")
+
 // e2eID turns any value into a safe data-e2e suffix.
 func e2eID(v any) string {
 	s := strings.Trim(e2eRE.ReplaceAllString(strings.ToLower(fmt.Sprint(v)), "-"), "-")
@@ -155,6 +158,17 @@ func (s *Server) funcs(lang string) template.FuncMap {
 			return int64(s.now().Sub(t) / (24 * time.Hour))
 		},
 		"has": func(m map[string]bool, k string) bool { return m[k] },
+		// File servers: the folder picker's links.
+		"browse": func(srvID, p string) template.URL { return template.URL(browseLink(srvID, p)) },
+		"pathq":  url.PathEscape,
+		// rights names an ACL entry's rights (file or share), or keeps the
+		// hex mask.
+		"rights": func(r string) string {
+			if key := "files.rights." + rightsKey.Replace(r); s.cat.Has(key) {
+				return s.cat.T(lang, key)
+			}
+			return r
+		},
 		// Backups page: sizes and durations.
 		"bytes": humanBytes,
 		"dur":   shortDur,
@@ -221,6 +235,8 @@ func (rc *reqCtx) render(status int, page string, d map[string]any) {
 			pd.Nav["admin"] = rc.roles.Privileged()
 			// The sync section appears only where it is enabled.
 			pd.Nav["sync"] = rc.s.sync != nil && rc.roles.Has(PermSyncRead)
+			// So does the File servers section.
+			pd.Nav["files"] = rc.s.files != nil && rc.roles.Has(PermFilesRead)
 		}
 	}
 	if pd.CSRF == "" {

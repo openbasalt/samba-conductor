@@ -1,0 +1,44 @@
+{{define "title"}}{{.D.S.Name}}{{end}}
+{{define "content"}}<h1 data-e2e="files-server-title">{{.D.S.Name}}</h1>
+<p class="muted small mono">{{.D.S.Address}}</p>
+{{template "files-subnav" (dict "S" .D.S "Tab" "server")}}
+{{template "error-alert" .D.Error}}
+<div class="grid grid-2">
+<section class="card" aria-labelledby="fs-status">
+  <h2 id="fs-status">{{t "files.status"}}</h2>
+  {{if .D.StErr}}<p>{{template "files-state" (dict "Err" .D.StErr)}}</p>{{else}}{{with .D.St}}
+  <p data-e2e="files-server-state">{{template "files-state" (dict "St" .)}}</p>
+  <dl class="props" data-e2e="files-list-status">
+    <dt>{{t "files.domain"}}</dt><dd>{{.Domain}} · {{.Realm}}</dd>
+    <dt>{{t "files.versions"}}</dt><dd>Samba {{.SambaVersion}} · conductor-files {{.Version}}</dd>
+    <dt>{{t "files.roots"}}</dt><dd class="mono small">{{join .Roots ", "}}</dd>
+    <dt>{{t "files.shadow"}}</dt><dd>{{if .ShadowCopies}}{{t "form.yes"}}{{else}}{{t "files.shadow.none"}}{{end}}</dd>
+  </dl>
+  <h3>{{t "files.checks"}}</h3>
+  <ul class="tree" data-e2e="files-list-checks">{{range .Checks}}<li data-e2e="files-check-{{e2e .Name}}">{{if .OK}}<span class="badge badge-ok">{{t "files.check.ok"}}</span>{{else}}<span class="badge badge-danger">{{t "files.check.failed"}}</span>{{end}} {{t (print "files.check." .Name)}}{{if not .OK}}<br><span class="small">{{.Detail}}</span>{{end}}</li>{{end}}</ul>
+  {{end}}{{end}}
+</section>
+<section class="card" aria-labelledby="fs-trust">
+  <h2 id="fs-trust">{{t "files.trust"}}</h2>
+  <dl class="props">
+    <dt>{{t "files.trust.agent_key"}}</dt><dd class="mono small" data-e2e="files-text-agent-pin">{{.D.S.AgentPin}}</dd>
+    <dt>{{t "files.trust.conductor_key"}}</dt><dd class="mono small">{{.D.Pin}}</dd>
+    <dt>{{t "files.trust.enrolled"}}</dt><dd>{{time .D.S.EnrolledAt}} · {{.D.S.EnrolledBy}}</dd>
+  </dl>
+  {{if .D.CanWrite}}<form method="post" action="/admin/files/{{.D.S.ID}}/remove" class="actions">{{template "csrf" .}}<button class="btn btn-danger btn-small" type="submit" data-e2e="files-btn-remove-server">{{t "files.remove.button"}}</button></form>
+  <p class="hint">{{t "files.remove.hint"}}</p>{{end}}
+</section>
+</div>
+<section class="card" aria-labelledby="fs-shares">
+  <h2 id="fs-shares">{{t "files.shares"}}</h2>
+  {{if and .D.CanWrite .D.St}}<div class="row"><a class="btn btn-primary" href="/admin/files/{{.D.S.ID}}/new-share" data-e2e="files-link-new-share">{{t "files.share.new"}}</a></div>{{end}}
+  {{if .D.Shares}}<table class="table" data-e2e="files-table-shares">
+    <thead><tr><th>{{t "files.share.name"}}</th><th>{{t "files.share.path"}}</th><th>{{t "files.share.source"}}</th></tr></thead>
+    <tbody>{{range .D.Shares}}<tr data-e2e="files-share-row-{{e2e .Name}}">
+      <td><a href="/admin/files/{{$.D.S.ID}}/shares/{{pathq .Name}}" data-e2e="files-link-share-{{e2e .Name}}">{{.Name}}</a>{{if not .Browseable}} <span class="badge">{{t "files.share.hidden"}}</span>{{end}}{{with .Comment}}<br><span class="muted small">{{.}}</span>{{end}}</td>
+      <td data-label="{{t "files.share.path"}}" class="mono small">{{.Path}}</td>
+      <td data-label="{{t "files.share.source"}}">{{if .Managed}}<span class="badge badge-ok">{{t "files.share.managed"}}</span>{{else}}<span class="badge">{{t (print "files.source." .Source)}}</span>{{end}}</td>
+    </tr>{{end}}</tbody>
+  </table>{{else if .D.St}}<p class="muted" data-e2e="files-shares-empty">{{t "files.shares.none"}}</p>{{end}}
+</section>
+{{end}}

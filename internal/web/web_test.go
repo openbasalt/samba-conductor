@@ -232,6 +232,7 @@ func concretePath(p string) string {
 	p = strings.ReplaceAll(p, "{id}", "pending-id-000000000000")
 	p = strings.ReplaceAll(p, "{zone}", "apps.example")
 	p = strings.ReplaceAll(p, "{kind}", "create.csv")
+	p = strings.ReplaceAll(p, "{name}", "eng")
 	return strings.ReplaceAll(p, "{$}", "")
 }
 

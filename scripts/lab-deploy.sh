@@ -1,12 +1,14 @@
 #!/usr/bin/env bash
-# Build conductor, conductor-helper, conductor-backup and conductor-sync
-# (with the lab's fake Directory API) on server-home and install them in the
-# lab (planning/lab/conductor-install.sh, which follows docs/install.md;
-# backup-install.sh for conductor-backup; sync-install.sh for conductor-sync).
+# Build conductor, conductor-helper, conductor-backup, conductor-sync (with
+# the lab's fake Directory API) and conductor-files on server-home and
+# install them in the lab (planning/lab/conductor-install.sh, which follows
+# docs/install.md; backup-install.sh for conductor-backup; sync-install.sh
+# for conductor-sync; files-install.sh for conductor-files on fs1).
 #
-#   scripts/lab-deploy.sh                 # build + install/upgrade on dc1 (+ drill VM)
-#   scripts/lab-deploy.sh --snapshot      # rebuild the conductor-p5b snapshot from conductor-p3
-#                                         # (planning/lab/p5b-snapshot.sh)
+#   scripts/lab-deploy.sh                 # build + install/upgrade on dc1 (+ drill VM, fs1)
+#   scripts/lab-deploy.sh --snapshot      # rebuild the conductor-p2b snapshot from conductor-p5b
+#                                         # (planning/lab/p2b-snapshot.sh: dc1, dc2 and fs1)
+#   scripts/lab-deploy.sh --snapshot-p5b  # rebuild conductor-p5b from conductor-p3 (p5b-snapshot.sh)
 #   scripts/lab-deploy.sh --snapshot-p3   # rebuild conductor-p3 from "seeded" (p3-snapshot.sh)
 #   LAB_HOST=server-home (default)
 set -euo pipefail
@@ -15,7 +17,7 @@ LAB_HOST="${LAB_HOST:-server-home}"
 VERSION="$(git -C conductor describe --always --dirty 2>/dev/null || echo dev)"
 
 rsync -a --delete --exclude .git/ --exclude node_modules/ --exclude /conductor/bin/ --exclude /conductor-backup/bin/ --exclude /ACESSO-AMBIENTE-TESTE.md \
-  --exclude /conductor/e2e/test-results/ --exclude /conductor/e2e/playwright-report/ --exclude /conductor-sync/bin/ ./ "$LAB_HOST:samba-conductor/"
+  --exclude /conductor/e2e/test-results/ --exclude /conductor/e2e/playwright-report/ --exclude /conductor-sync/bin/ --exclude /conductor-files/bin/ ./ "$LAB_HOST:samba-conductor/"
 ssh -o BatchMode=yes "$LAB_HOST" bash -s -- "$VERSION" "${1:-}" <<'REMOTE'
 set -euo pipefail
 version="$1" snap="${2:-}"
@@ -35,9 +37,13 @@ go build -trimpath -ldflags "-s -w -X main.version=$version" -o ~/conductor-buil
 go build -trimpath -o ~/conductor-build/fakegws ./tools/fakegws
 cp deploy/systemd/conductor-sync.service deploy/systemd/conductor-sync.timer deploy/systemd/conductor-sync-api.service \
   deploy/systemd/conductor-sync-api.socket ~/conductor-build/
+cd ~/samba-conductor/conductor-files
+go build -trimpath -ldflags "-s -w -X main.version=$version" -o ~/conductor-build/conductor-files ./cmd/conductor-files
+cp deploy/systemd/conductor-files.service ~/conductor-build/
 cd ~/samba-conductor/planning/lab
 case "$snap" in
---snapshot) ./p5b-snapshot.sh ~/conductor-build ;;
+--snapshot) ./p2b-snapshot.sh ~/conductor-build ;;
+--snapshot-p5b) ./p5b-snapshot.sh ~/conductor-build ;;
 --snapshot-p3) ./p3-snapshot.sh ~/conductor-build ;;
 *)
   ./conductor-install.sh ~/conductor-build
@@ -45,6 +51,7 @@ case "$snap" in
   ./drill-up.sh
   ./backup-install.sh ~/conductor-build both
   ./sync-install.sh ~/conductor-build
+  ./files-install.sh ~/conductor-build
   ;;
 esac
 REMOTE

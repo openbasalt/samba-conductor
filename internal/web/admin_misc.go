@@ -79,6 +79,12 @@ func (s *Server) handleDashboard(rc *reqCtx) {
 				d["Sync"] = st
 			}
 		}
+		if s.files != nil && rc.roles.Has(PermFilesRead) {
+			d["FilesCard"] = true
+			if total, ready, ok := s.filesDashboard(ctx, rc); ok {
+				d["FilesTotal"], d["FilesReady"] = total, ready
+			}
+		}
 		if rc.roles.Has(PermAuditRead) {
 			recent, _, err := s.store.ListAudit(ctx, store.AuditFilter{}, 0, 10)
 			if err == nil {

@@ -5,6 +5,11 @@
 <div class="stats">
   {{range .D.Stats}}<a class="stat" href="{{.Link}}" data-e2e="dashboard-card-{{e2e .Key}}"><b data-e2e="dashboard-text-{{e2e .Key}}">{{.Value}}</b><span>{{.Label}}</span></a>{{end}}
 </div>
+{{if .D.FilesCard}}<section class="card" aria-labelledby="dash-files" data-e2e="dashboard-card-files">
+  <h2 id="dash-files">{{t "nav.files"}}</h2>
+  <p data-e2e="dashboard-text-files">{{if .D.FilesTotal}}{{t "dashboard.files.count" .D.FilesReady .D.FilesTotal}}{{else}}{{t "files.empty.title"}}{{end}}</p>
+  <a class="btn btn-small" href="/admin/files" data-e2e="dashboard-link-files">{{t "dashboard.files.open"}}</a>
+</section>{{end}}
 {{if .D.SyncCard}}<section class="card" aria-labelledby="dash-sync" data-e2e="dashboard-card-sync">
   <h2 id="dash-sync">{{t "nav.sync"}}</h2>
   {{with .D.Sync}}{{range .OpenBlocked}}<div class="alert-warn" role="alert" data-e2e="dashboard-alert-sync-blocked">{{t "sync.blocked.title" .ID}}</div>{{end}}

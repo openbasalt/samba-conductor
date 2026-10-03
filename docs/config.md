@@ -159,6 +159,14 @@ nonce and Subresource Integrity; it makes no requests of its own
 | `enabled` | `false` | Show the "Google Workspace sync" section (administrators only) and drive conductor-sync through its management API. Needs `conductor-sync serve` (conductor-sync's `conductor-sync-api.socket`) on this host. |
 | `socket` | `"/run/conductor-sync/api.sock"` | The API socket (owner conductor-sync, group conductor, 0660; conductor-sync admits only the conductor user, SO_PEERCRED). |
 
+## `[files]`
+
+| Key | Default | Meaning |
+|---|---|---|
+| `enabled` | `false` | Show the "File servers" section (administrators manage, auditors read) and drive the conductor-files agents on domain-member file servers. See `usage-p2b.md`. |
+| `key_dir` | `"/var/lib/conductor/files"` | conductor's client key pair for the agents (`tls-key.pem` 0600, `tls-cert.pem`), generated on first start; the directory is created 0700. The agents pin this key at enrollment: replacing it means enrolling every file server again. |
+| `name` | the host name | How conductor's key is labelled on the agents (`conductor-files trust list`). |
+
 ## Files
 
 | Path | Owner / mode | What |
@@ -172,3 +180,4 @@ nonce and Subresource Integrity; it makes no requests of its own
 | `/etc/conductor/helper.toml` | root:conductor 0640 | helper configuration (backups) |
 | `/run/conductor-helper/backup.sock` | root:conductor-backup 0660 | helper socket for conductor-backup (with backups) |
 | `/run/conductor-sync/api.sock` | conductor-sync:conductor 0660 | conductor-sync's management API (with `[sync]`) |
+| `/var/lib/conductor/files/` | conductor 0700 | conductor's key pair for the conductor-files agents (with `[files]`) |

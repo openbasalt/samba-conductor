@@ -54,7 +54,9 @@ type Deps struct {
 	MFABox *secret.Box
 	Helper HelperClient // nil when the helper is disabled
 	// Sync is conductor-sync's management API (nil when [sync] is off).
-	Sync    SyncClient
+	Sync SyncClient
+	// Files reaches the conductor-files agents (nil when [files] is off).
+	Files   FilesClient
 	Logger  *slog.Logger
 	Version string
 }
@@ -105,6 +107,11 @@ type Server struct {
 	// syncStatus caches its status for the dashboard card.
 	sync       SyncClient
 	syncStatus syncCache
+
+	// files reaches the conductor-files agents (nil when not enabled);
+	// filesStatus caches their status (list, dashboard).
+	files       FilesClient
+	filesStatus filesCache
 }
 
 // New builds the server.
@@ -120,7 +127,7 @@ func New(d Deps) (*Server, error) {
 		return nil, err
 	}
 	s := &Server{cfg: d.Config, store: d.Store, backend: d.Backend, box: d.MFABox, helper: d.Helper, log: d.Logger,
-		cat: cat, version: d.Version, now: time.Now, sync: d.Sync}
+		cat: cat, version: d.Version, now: time.Now, sync: d.Sync, files: d.Files}
 	for _, p := range d.Config.Server.TrustedProxies {
 		pre, err := netip.ParsePrefix(p)
 		if err != nil {

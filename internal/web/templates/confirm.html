@@ -4,8 +4,9 @@
   <p data-e2e="confirm-text-summary">{{.D.Summary}}</p>
   {{if .D.Warning}}<div class="alert-warn" role="alert" data-e2e="confirm-text-warning">{{.D.Warning}}</div>{{end}}
   {{template "error-alert" .D.Error}}
+  {{with .D.Files}}{{template "files-plan" .}}{{end}}
   <h2>{{t "confirm.preview"}}</h2>
-  <p class="hint">{{t "confirm.preview_hint"}}</p>
+  <p class="hint">{{if .D.Files}}{{t "files.plan.preview_hint"}}{{else}}{{t "confirm.preview_hint"}}{{end}}</p>
   <pre data-e2e="confirm-text-preview">{{.D.Preview}}</pre>
   <form method="post" action="/confirm/{{.D.ID}}" autocomplete="off">
     {{template "csrf" .}}

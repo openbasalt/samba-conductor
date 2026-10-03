@@ -185,6 +185,25 @@ func (s *Server) routeTable() []route {
 		{method: "POST", pattern: "/admin/sync/setup/save", perm: PermSyncWrite, h: s.handleSyncSetupSave},
 		{method: "POST", pattern: "/admin/sync/setup/discard", perm: PermSyncWrite, h: s.handleSyncSetupDiscard},
 
+		// File servers (conductor-files agents): status, shares and
+		// sessions for administrators and auditors; enrollment, removal
+		// and share changes for administrators, each previewed with the
+		// agent's plan and confirmed with re-authentication.
+		{method: "GET", pattern: "/admin/files", perm: PermFilesRead, h: s.handleFiles},
+		{method: "GET", pattern: "/admin/files/new", perm: PermFilesWrite, h: s.handleFilesNewPage},
+		{method: "POST", pattern: "/admin/files/new", perm: PermFilesWrite, h: s.handleFilesNew},
+		{method: "GET", pattern: "/admin/files/{id}", perm: PermFilesRead, h: s.handleFileServer},
+		{method: "POST", pattern: "/admin/files/{id}/remove", perm: PermFilesWrite, h: s.handleFileServerRemove},
+		{method: "GET", pattern: "/admin/files/{id}/sessions", perm: PermFilesRead, h: s.handleFileSessions},
+		{method: "GET", pattern: "/admin/files/{id}/new-share", perm: PermFilesWrite, h: s.handleShareNew},
+		{method: "GET", pattern: "/admin/files/{id}/wizard", perm: PermFilesWrite, h: s.handleShareWizard},
+		{method: "POST", pattern: "/admin/files/{id}/wizard", perm: PermFilesWrite, h: s.handleShareWizardPost},
+		{method: "POST", pattern: "/admin/files/{id}/wizard/plan", perm: PermFilesWrite, h: s.handleShareWizardPlan},
+		{method: "POST", pattern: "/admin/files/{id}/wizard/discard", perm: PermFilesWrite, h: s.handleShareWizardDiscard},
+		{method: "GET", pattern: "/admin/files/{id}/shares/{name}", perm: PermFilesRead, h: s.handleFileShare},
+		{method: "GET", pattern: "/admin/files/{id}/shares/{name}/edit", perm: PermFilesWrite, h: s.handleShareEdit},
+		{method: "POST", pattern: "/admin/files/{id}/shares/{name}/remove", perm: PermFilesWrite, h: s.handleFileShareRemove},
+
 		{method: "GET", pattern: "/admin/audit", perm: PermAuditRead, h: s.handleAudit},
 		{method: "GET", pattern: "/admin/audit/export", perm: PermAuditRead, h: s.handleAuditExport},
 		{method: "GET", pattern: "/admin/domain", perm: PermDomainRead, h: s.handleDomain},

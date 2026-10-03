@@ -26,6 +26,7 @@ import (
 	"time"
 
 	"github.com/samba-conductor/ad/helper"
+	"github.com/samba-conductor/conductor-files/filesapi"
 	"github.com/samba-conductor/conductor-sync/syncapi"
 	"github.com/samba-conductor/conductor/internal/config"
 	"github.com/samba-conductor/conductor/internal/directory"
@@ -140,7 +141,16 @@ func cmdServe(args []string) error {
 	if cfg.Sync.Enabled {
 		sc = syncClient{socket: cfg.Sync.Socket}
 	}
-	srv, err := web.New(web.Deps{Config: cfg, Store: st, Backend: dir, MFABox: box, Helper: hc, Sync: sc, Logger: log, Version: buildVersion()})
+	var fc web.FilesClient
+	if cfg.Files.Enabled {
+		c, err := newFilesClient(cfg)
+		if err != nil {
+			return fmt.Errorf("files: %w", err)
+		}
+		log.Info("file servers section on", "key", c.id.Pin, "name", c.name)
+		fc = c
+	}
+	srv, err := web.New(web.Deps{Config: cfg, Store: st, Backend: dir, MFABox: box, Helper: hc, Sync: sc, Files: fc, Logger: log, Version: buildVersion()})
 	if err != nil {
 		return err
 	}
@@ -203,6 +213,40 @@ type syncClient struct{ socket string }
 func (c syncClient) Call(ctx context.Context, req syncapi.Request) (syncapi.Response, error) {
 	return syncapi.Call(ctx, c.socket, req)
 }
+
+// filesClient reaches conductor-files agents with conductor's own key
+// pair (generated on first start in files.key_dir, 0700), pinning each
+// agent's key.
+type filesClient struct {
+	id   filesapi.Identity
+	name string
+}
+
+func newFilesClient(cfg *config.Config) (*filesClient, error) {
+	if err := os.MkdirAll(cfg.Files.KeyDir, 0o700); err != nil {
+		return nil, err
+	}
+	name := cfg.Files.Name
+	if name == "" {
+		h, err := os.Hostname()
+		if err != nil {
+			return nil, err
+		}
+		name = h
+	}
+	id, err := filesapi.LoadOrCreateIdentity(cfg.Files.KeyDir, name)
+	if err != nil {
+		return nil, err
+	}
+	return &filesClient{id: id, name: name}, nil
+}
+
+func (c *filesClient) Call(ctx context.Context, addr, agentPin string, req filesapi.Request) (filesapi.Response, error) {
+	return filesapi.Call(ctx, addr, c.id, agentPin, req)
+}
+
+func (c *filesClient) Pin() string  { return c.id.Pin }
+func (c *filesClient) Name() string { return c.name }
 
 type helperClient struct{ socket string }
 

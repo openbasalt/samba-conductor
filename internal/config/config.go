@@ -45,6 +45,20 @@ type Config struct {
 	Bulk      Bulk      `toml:"bulk"`
 	Tools     Tools     `toml:"tools"`
 	Sync      Sync      `toml:"sync"`
+	Files     Files     `toml:"files"`
+}
+
+// Files is the File servers section of the admin UI: conductor drives the
+// conductor-files agents on domain-member file servers over TLS, both keys
+// pinned (each server is enrolled from the UI with a one-time code). Off by
+// default.
+type Files struct {
+	Enabled bool `toml:"enabled"`
+	// KeyDir holds conductor's client key pair, generated on first start
+	// (mode 0700; inside conductor's state directory by default).
+	KeyDir string `toml:"key_dir"`
+	// Name labels conductor's key on the agents (default: the host name).
+	Name string `toml:"name"`
 }
 
 // Sync is the Google Workspace sync section of the admin UI: conductor
@@ -218,6 +232,7 @@ func Default() *Config {
 		Bulk:      Bulk{MaxRows: 1000},
 		Tools:     Tools{SambaTool: "/usr/bin/samba-tool"},
 		Sync:      Sync{Socket: "/run/conductor-sync/api.sock"},
+		Files:     Files{KeyDir: "/var/lib/conductor/files"},
 	}
 }
 
@@ -329,6 +344,12 @@ func (c *Config) Validate() error {
 	}
 	if c.Sync.Enabled && !filepath.IsAbs(c.Sync.Socket) {
 		bad("sync.socket must be absolute")
+	}
+	if c.Files.Enabled && !filepath.IsAbs(c.Files.KeyDir) {
+		bad("files.key_dir must be absolute")
+	}
+	if len(c.Files.Name) > 253 || strings.ContainsAny(c.Files.Name, " \t\r\n%\\\"") {
+		bad("files.name must be a host name")
 	}
 	return errors.Join(errs...)
 }

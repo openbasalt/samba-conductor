@@ -1,0 +1,29 @@
+{{define "title"}}{{t "files.sessions.title" .D.S.Name}}{{end}}
+{{define "content"}}<h1>{{t "files.sessions.title" .D.S.Name}}</h1>
+{{template "files-subnav" (dict "S" .D.S "Tab" "sessions")}}
+{{template "error-alert" .D.Error}}
+{{with .D.X}}<p class="muted small" data-e2e="files-sessions-time">{{t "files.sessions.at" (time .Time)}} · <a href="/admin/files/{{$.D.S.ID}}/sessions" data-e2e="files-link-sessions-refresh">{{t "files.refresh"}}</a></p>
+<section class="card" aria-labelledby="ss-s">
+  <h2 id="ss-s">{{t "files.sessions.sessions"}}</h2>
+  {{if .Sessions}}<table class="table" data-e2e="files-table-sessions">
+    <thead><tr><th>{{t "files.sessions.user"}}</th><th>{{t "files.sessions.machine"}}</th><th>{{t "files.sessions.protocol"}}</th><th>{{t "files.sessions.security"}}</th></tr></thead>
+    <tbody>{{range .Sessions}}<tr data-e2e="files-session-row-{{e2e .User}}"><td>{{.User}}</td><td data-label="{{t "files.sessions.machine"}}">{{.Machine}}<br><span class="muted small mono">{{.Remote}}</span></td>
+      <td data-label="{{t "files.sessions.protocol"}}">{{.Protocol}}</td><td data-label="{{t "files.sessions.security"}}" class="small">{{t "files.sessions.encryption"}}: {{.Encryption}} · {{t "files.sessions.signing"}}: {{.Signing}}</td></tr>{{end}}</tbody>
+  </table>{{else}}<p class="muted" data-e2e="files-sessions-none">{{t "files.sessions.none"}}</p>{{end}}
+</section>
+<section class="card" aria-labelledby="ss-c">
+  <h2 id="ss-c">{{t "files.sessions.connections"}}</h2>
+  {{if .Connections}}<table class="table" data-e2e="files-table-connections">
+    <thead><tr><th>{{t "files.share.name"}}</th><th>{{t "files.sessions.machine"}}</th><th>{{t "files.sessions.since"}}</th></tr></thead>
+    <tbody>{{range .Connections}}<tr data-e2e="files-connection-row-{{e2e .Share}}"><td>{{.Share}}</td><td data-label="{{t "files.sessions.machine"}}">{{.Machine}}</td><td data-label="{{t "files.sessions.since"}}" class="small">{{.Since}}</td></tr>{{end}}</tbody>
+  </table>{{else}}<p class="muted">{{t "files.sessions.none"}}</p>{{end}}
+</section>
+<section class="card" aria-labelledby="ss-f">
+  <h2 id="ss-f">{{t "files.sessions.files"}}</h2>
+  {{if .Files}}<table class="table" data-e2e="files-table-open">
+    <thead><tr><th>{{t "files.sessions.path"}}</th><th>{{t "files.sessions.user"}}</th><th>{{t "files.sessions.access"}}</th></tr></thead>
+    <tbody>{{range .Files}}<tr><td class="mono small">{{.Path}}</td><td data-label="{{t "files.sessions.user"}}">{{.User}}</td><td data-label="{{t "files.sessions.access"}}" class="small">{{.Access}}{{if .Oplock}} · {{.Oplock}}{{end}}{{if .Locked}} · <span class="badge badge-warn">{{t "files.sessions.locked"}}</span>{{end}}</td></tr>{{end}}</tbody>
+  </table>{{else}}<p class="muted">{{t "files.sessions.no_files"}}</p>{{end}}
+</section>
+{{end}}
+{{end}}

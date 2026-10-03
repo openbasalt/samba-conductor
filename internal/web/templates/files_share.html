@@ -1,0 +1,44 @@
+{{define "title"}}{{t "files.share.title" .D.X.Name}}{{end}}
+{{define "content"}}{{$x := .D.X}}<p class="small"><a href="/admin/files/{{.D.S.ID}}" data-e2e="files-link-back-server">← {{.D.S.Name}}</a></p>
+<h1 data-e2e="files-share-title">{{t "files.share.title" $x.Name}}</h1>
+{{template "error-alert" .D.Error}}
+{{if $x.Name}}
+{{if not $x.Managed}}<div class="alert-warn" role="note" data-e2e="files-share-unmanaged">{{t "files.share.unmanaged"}}</div>{{end}}
+<div class="grid grid-2">
+<section class="card" aria-labelledby="sh-props">
+  <h2 id="sh-props">{{t "files.share.summary"}}</h2>
+  <dl class="props" data-e2e="files-share-props">
+    <dt>{{t "files.share.unc"}}</dt><dd class="mono small" data-e2e="files-share-unc">\\{{.D.S.Name}}\{{$x.Name}}</dd>
+    <dt>{{t "files.share.path"}}</dt><dd class="mono small" data-e2e="files-share-path">{{$x.Path}}</dd>
+    {{with $x.Comment}}<dt>{{t "files.share.comment"}}</dt><dd>{{.}}</dd>{{end}}
+    <dt>{{t "files.share.source"}}</dt><dd>{{if $x.Managed}}{{t "files.share.managed"}}{{else}}{{t (print "files.source." $x.Source)}}{{end}}</dd>
+    {{with $x.Spec}}<dt>{{t "files.opt.browseable"}}</dt><dd>{{if .Browseable}}{{t "form.yes"}}{{else}}{{t "form.no"}}{{end}}</dd>
+    <dt>{{t "files.opt.abe"}}</dt><dd>{{if .AccessBasedEnum}}{{t "form.yes"}}{{else}}{{t "form.no"}}{{end}}</dd>
+    <dt>{{t "files.opt.recycle"}}</dt><dd>{{if .RecycleBin}}{{t "form.yes"}}{{else}}{{t "form.no"}}{{end}}</dd>
+    <dt>{{t "files.opt.shadow"}}</dt><dd>{{if .ShadowCopies}}{{t "form.yes"}}{{else}}{{t "form.no"}}{{end}}</dd>{{end}}
+  </dl>
+  {{if and $.D.CanWrite $x.Managed}}<div class="row">
+    <a class="btn btn-primary" href="/admin/files/{{.D.S.ID}}/shares/{{pathq $x.Name}}/edit" data-e2e="files-link-edit-share">{{t "files.share.edit"}}</a>
+    <form method="post" action="/admin/files/{{.D.S.ID}}/shares/{{pathq $x.Name}}/remove">{{template "csrf" .}}<button class="btn btn-danger" type="submit" data-e2e="files-btn-remove-share">{{t "files.share.remove"}}</button></form>
+  </div>{{end}}
+</section>
+<section class="card" aria-labelledby="sh-access">
+  <h2 id="sh-access">{{t "files.share.access"}}</h2>
+  {{with $x.Spec}}<ul class="tree" data-e2e="files-share-access">{{range .Access}}<li data-e2e="files-share-grant-{{e2e .SID}}">{{if .Name}}{{.Name}}{{else}}<span class="mono small">{{.SID}}</span>{{end}} · <b>{{t (print "files.level." .Level)}}</b></li>{{else}}<li class="muted">—</li>{{end}}</ul>{{end}}
+  <h3>{{t "files.plan.share_acl"}}</h3>
+  {{template "files-acl" (dict "List" $x.ShareACL "Key" "share-acl")}}
+</section>
+</div>
+<section class="card" aria-labelledby="sh-nt">
+  <h2 id="sh-nt">{{t "files.plan.nt_acl"}}</h2>
+  <p class="hint">{{t "files.plan.nt_acl_hint" $x.Path}}</p>
+  {{with $x.NTACLError}}<div class="alert-warn" role="note">{{.}}</div>{{end}}
+  {{template "files-acl" (dict "List" $x.NTACL "Key" "nt-acl")}}
+</section>
+<details class="card"><summary>{{t "files.share.params"}}</summary>
+  <pre data-e2e="files-share-params">[{{$x.Name}}]
+{{range $x.Params}}	{{index . 0}} = {{index . 1}}
+{{end}}</pre>
+</details>
+{{end}}
+{{end}}

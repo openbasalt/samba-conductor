@@ -1,0 +1,19 @@
+{{define "title"}}{{t "files.new.title"}}{{end}}
+{{define "content"}}<h1>{{t "files.new.title"}}</h1>
+<section class="card narrow" aria-labelledby="fn-steps">
+  <h2 id="fn-steps">{{t "files.new.steps"}}</h2>
+  <ol class="small">
+    <li>{{t "files.new.step1"}}</li>
+    <li>{{t "files.new.step2"}} <code>conductor-files enroll-code</code></li>
+    <li>{{t "files.new.step3"}}</li>
+  </ol>
+</section>
+<form method="post" action="/admin/files/new" class="card narrow" autocomplete="off" data-e2e="files-form-new">
+  {{template "csrf" .}}
+  {{template "error-alert" .D.Error}}
+  <div class="field"><label for="address">{{t "files.new.address"}}</label><input id="address" name="address" type="text" value="{{.D.Address}}" required placeholder="fs1.example.com" spellcheck="false" autocapitalize="off" data-e2e="files-input-address"><span class="hint">{{t "files.new.address_hint"}}</span></div>
+  <div class="field"><label for="code">{{t "files.new.code"}}</label><input id="code" name="code" type="text" required spellcheck="false" autocapitalize="off" class="mono" data-e2e="files-input-code"><span class="hint">{{t "files.new.code_hint"}}</span></div>
+  <p class="hint">{{t "files.new.key_hint"}} <span class="mono small" data-e2e="files-text-pin">{{.D.Pin}}</span></p>
+  <div class="actions"><button class="btn btn-primary" type="submit" data-e2e="files-btn-enroll">{{t "files.new.submit"}}</button><a class="btn" href="/admin/files" data-e2e="files-link-cancel">{{t "form.cancel"}}</a></div>
+</form>
+{{end}}

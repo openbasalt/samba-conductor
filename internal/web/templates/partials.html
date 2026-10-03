@@ -87,7 +87,7 @@
   <noscript><p class="hint">{{t "keys.noscript"}}</p></noscript>
 </form>{{end}}
 
-{{define "reauth-fields"}}<div class="alert-info" data-e2e="confirm-text-reauth">{{if .D.CodeAllowed}}{{t "confirm.reauth"}}{{else}}{{t "confirm.reauth_key"}}{{end}}</div>
+{{define "reauth-fields"}}<div class="alert-info" data-e2e="confirm-text-reauth">{{if .D.ReauthKey}}{{t .D.ReauthKey}}{{else if .D.CodeAllowed}}{{t "confirm.reauth"}}{{else}}{{t "confirm.reauth_key"}}{{end}}</div>
 <div class="field"><label for="password">{{t "signin.password"}}</label><input id="password" name="password" type="password" autocomplete="current-password" required data-e2e="confirm-input-password"></div>
 <div class="field"><label for="code">{{if .D.CodeAllowed}}{{t "mfa.code"}}{{else}}{{t "mfa.recovery_code"}}{{end}}</label><input id="code" name="code" type="text" autocomplete="one-time-code" required maxlength="16" data-e2e="confirm-input-code"></div>{{end}}
 
@@ -101,3 +101,35 @@
 {{define "sync-status"}}<span class="badge{{if or (eq . "applied") (eq . "nothing-to-do") (eq . "planned")}} badge-ok{{else if or (eq . "blocked") (eq . "partial") (eq . "dry-run") (eq . "running")}} badge-warn{{else if or (eq . "failed") (eq . "interrupted")}} badge-danger{{end}}" data-e2e="sync-badge-{{e2e .}}">{{t (print "sync.status." .)}}</span>{{end}}
 
 {{define "sync-groupref"}}{{$g := index .G .Ref}}<div data-e2e="sync-groupref-{{e2e .Ref}}">{{if $g.Found}}<b>{{$g.Name}}</b>{{else}}<span class="badge badge-warn">{{t "sync.group.unresolved"}}</span>{{end}} <span class="mono small muted">{{.Ref}}</span></div>{{end}}
+
+{{/* ---- File servers (P2b) ---- */}}
+{{define "files-state"}}{{if .Err}}<span class="badge badge-danger" data-e2e="files-badge-unreachable">{{t "files.state.unreachable"}}</span> <span class="small" data-e2e="files-text-error">{{.Err}}</span>{{else if .St.Ready}}<span class="badge badge-ok" data-e2e="files-badge-ready">{{t "files.state.ready"}}</span>{{else}}<span class="badge badge-warn" data-e2e="files-badge-not-ready">{{t "files.state.not_ready"}}</span>{{end}}{{end}}
+
+{{define "files-acl"}}{{if .List}}<table class="table" data-e2e="files-table-{{.Key}}">
+  <thead><tr><th>{{t "files.acl.who"}}</th><th>{{t "files.acl.rights"}}</th><th>{{t "files.acl.type"}}</th></tr></thead>
+  <tbody>{{range .List}}<tr data-e2e="files-{{$.Key}}-row-{{e2e .SID}}"><td>{{if .Name}}{{.Name}}{{else}}<span class="muted">{{t "files.acl.unknown"}}</span>{{end}}<br><span class="muted small mono">{{.SID}}</span></td>
+    <td data-label="{{t "files.acl.rights"}}">{{rights .Rights}}{{if .Flags}} <span class="muted small">({{.Flags}})</span>{{end}}</td>
+    <td data-label="{{t "files.acl.type"}}">{{if eq .Type "allow"}}{{t "files.acl.allow"}}{{else if eq .Type "deny"}}<span class="badge badge-danger">{{t "files.acl.deny"}}</span>{{else}}{{.Type}}{{end}}</td></tr>{{end}}</tbody>
+</table>{{else}}<p class="muted" data-e2e="files-{{.Key}}-empty">—</p>{{end}}{{end}}
+
+{{define "files-diff"}}<ul class="diff" data-e2e="files-diff-{{.Key}}">{{range .List}}<li class="diff-{{if eq .Mark "+"}}add{{else if eq .Mark "-"}}del{{else}}same{{end}}" data-e2e="files-diff-{{$.Key}}-{{if eq .Mark "+"}}add{{else if eq .Mark "-"}}del{{else}}same{{end}}-{{e2e .ACE.SID}}">
+  <span class="diff-mark" aria-hidden="true">{{if eq .Mark " "}}·{{else}}{{.Mark}}{{end}}</span>
+  <span class="sr">{{if eq .Mark "+"}}{{t "files.diff.added"}}{{else if eq .Mark "-"}}{{t "files.diff.removed"}}{{else}}{{t "files.diff.kept"}}{{end}}:</span>
+  <span class="grow">{{if .ACE.Name}}{{.ACE.Name}}{{else}}<span class="mono small">{{.ACE.SID}}</span>{{end}}</span>
+  <span>{{rights .ACE.Rights}}</span>
+</li>{{else}}<li class="muted">—</li>{{end}}</ul>{{end}}
+
+{{define "files-plan"}}<section class="files-plan" data-e2e="files-plan">
+  <div class="grid grid-2">
+    <div><h2>{{t "files.plan.share_acl"}}</h2><p class="hint">{{t "files.plan.share_acl_hint"}}</p>{{template "files-diff" (dict "List" .ShareACL "Key" "share")}}</div>
+    {{if .NTACL}}<div><h2>{{t "files.plan.nt_acl"}}</h2><p class="hint">{{t "files.plan.nt_acl_hint" .P.Path}}</p>{{template "files-diff" (dict "List" .NTACL "Key" "nt")}}</div>{{end}}
+  </div>
+  {{if .P.Section}}<h2>{{t "files.plan.section"}}</h2><pre data-e2e="files-plan-section">{{.P.Section}}</pre>{{end}}
+  <h2>{{t "files.plan.commands"}}</h2>
+  <pre data-e2e="files-plan-commands">{{join .P.Commands "\n"}}</pre>
+</section>{{end}}
+
+{{define "files-subnav"}}<nav class="tabs" aria-label="{{t "files.server"}}" data-e2e="files-subnav">
+  <a href="/admin/files/{{.S.ID}}" data-e2e="files-tab-server"{{if eq .Tab "server"}} aria-current="page"{{end}}>{{t "files.tab.shares"}}</a>
+  <a href="/admin/files/{{.S.ID}}/sessions" data-e2e="files-tab-sessions"{{if eq .Tab "sessions"}} aria-current="page"{{end}}>{{t "files.tab.sessions"}}</a>
+</nav>{{end}}

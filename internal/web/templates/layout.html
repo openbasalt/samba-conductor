@@ -70,6 +70,12 @@
           <li><a href="/admin/sync/setup" data-e2e="nav-link-sync-setup"{{if or (active .Path "/admin/sync/setup") (active .Path "/admin/sync/config")}} aria-current="page"{{end}}>{{t "nav.sync.setup"}}</a></li>
         </ul>
       </div>{{end}}
+      {{if has .Nav "files"}}<div class="nav-group" data-e2e="nav-group-files">
+        <h2 class="nav-heading">{{t "nav.group.files"}}</h2>
+        <ul>
+          <li><a href="/admin/files" data-e2e="nav-link-files"{{if active .Path "/admin/files"}} aria-current="page"{{end}}>{{t "nav.files.servers"}}</a></li>
+        </ul>
+      </div>{{end}}
       {{if or (has .Nav "audit.read") (has .Nav "domain.read")}}<div class="nav-group" data-e2e="nav-group-audit">
         <h2 class="nav-heading">{{t "nav.group.audit"}}</h2>
         <ul>

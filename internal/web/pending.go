@@ -42,6 +42,12 @@ type pendingOp struct {
 	back string
 	// done is the translated success message.
 	done string
+	// files is the structured view of a file server plan (shown above the
+	// text preview; the text is what is audited).
+	files *filesPlanView
+	// reauthKey replaces the default re-authentication note (a message
+	// key; only shown when a code is allowed).
+	reauthKey string
 }
 
 // propose stores a pending operation and sends the browser to its preview.
@@ -105,7 +111,7 @@ func (s *Server) confirmAllowed(rc *reqCtx, p *pendingOp) bool {
 
 func (s *Server) confirmData(p *pendingOp, errMsg string) map[string]any {
 	return map[string]any{"ID": p.id, "Title": p.title, "Summary": p.summary, "Warning": p.warning,
-		"Preview": p.preview, "Reauth": p.reauth, "Back": p.back, "Error": errMsg, "Target": p.target}
+		"Preview": p.preview, "Reauth": p.reauth, "Back": p.back, "Error": errMsg, "Target": p.target, "Files": p.files}
 }
 
 // confirmPageData adds what the re-authentication form needs.
@@ -114,6 +120,9 @@ func (s *Server) confirmPageData(rc *reqCtx, p *pendingOp, errMsg string) map[st
 	if p.reauth {
 		d["HasKeys"] = s.hasKeys(rc)
 		d["CodeAllowed"] = !s.keyRequired(rc.roles)
+		if d["CodeAllowed"] == true && p.reauthKey != "" {
+			d["ReauthKey"] = p.reauthKey
+		}
 	}
 	return d
 }
@@ -307,6 +316,9 @@ func (s *Server) adErrorKey(err error) string {
 	var se *syncapi.Error
 	if errors.As(err, &se) || errors.Is(err, errSyncDisabled) {
 		return "sync.err.failed"
+	}
+	if s.isFilesErr(err) {
+		return "files.err.failed"
 	}
 	if isNotAllowedOnNonLeaf(err) {
 		return "err.ad.not_empty"

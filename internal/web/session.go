@@ -100,6 +100,8 @@ type Session struct {
 	enrollKeyOnly bool
 	// syncDraft is the Google Workspace sync setup in progress.
 	syncDraft *syncDraft
+	// filesDraft is the share wizard in progress.
+	filesDraft *filesDraft
 }
 
 type flash struct {
