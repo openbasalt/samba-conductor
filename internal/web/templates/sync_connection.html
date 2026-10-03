@@ -1,0 +1,114 @@
+{{define "title"}}{{t "sync.conn.title"}}{{end}}
+{{define "content"}}<h1>{{t "sync.conn.title"}}</h1>
+{{template "sync-subnav" (dict "Path" .Path)}}
+{{template "sync-config-subnav" (dict "Path" .Path)}}
+{{template "error-alert" .D.Error}}
+{{with .D.C}}{{$c := .}}{{$v := $.D.V}}{{$x := $v.Connection}}{{$dr := $.D.Draft}}{{$w := $.D.CanWrite}}
+<p class="hint" data-e2e="sync-conn-text-source">{{if .Host.ConnectionStored}}{{t "sync.conn.source_stored" .Version}}{{else}}{{t "sync.conn.source_file" .Host.ConfigPath}}{{end}}</p>
+{{if $dr}}<div class="alert-info" role="status" data-e2e="sync-conn-draft">{{t "sync.conn.draft"}}
+  {{if $.D.Stale}}<div class="alert-warn" data-e2e="sync-conn-stale">{{t "sync.setup.stale"}}</div>{{end}}
+  {{with $.D.Validation}}{{if .Valid}}{{if .Changes}}<ul class="small" data-e2e="sync-conn-draft-changes">{{range .Changes}}<li><code>{{.Path}}</code>: <span class="muted">{{.Old}}</span> → {{.New}}</li>{{end}}</ul>{{else}}<p class="small muted" data-e2e="sync-conn-draft-nochange">{{t "sync.conn.draft_nochange"}}</p>{{end}}
+  {{else}}<ul class="small" data-e2e="sync-conn-draft-errors">{{range .Errors}}<li>{{.}}</li>{{end}}</ul>{{end}}{{end}}
+  {{if $dr.HasPassword}}<p class="small" data-e2e="sync-conn-draft-password">{{t "sync.conn.draft_password"}}</p>{{end}}
+</div>{{end}}
+
+<form method="post" action="/admin/sync/config/connection" enctype="multipart/form-data" autocomplete="off" data-e2e="sync-conn-form">
+{{template "csrf" $}}
+<section class="card" aria-labelledby="cn-ad">
+  <h2 id="cn-ad">{{t "sync.conn.ad"}}</h2>
+  <p class="hint">{{t "sync.conn.ad_hint"}}</p>
+  <div class="grid grid-2">
+    <div class="field"><label for="realm">{{t "sync.conn.realm"}}</label><input id="realm" name="realm" type="text" value="{{$x.AD.Realm}}" required{{if not $w}} disabled{{end}} data-e2e="sync-conn-input-realm"></div>
+    <div class="field"><label for="auth">{{t "sync.conn.auth"}}</label><select id="auth" name="auth"{{if not $w}} disabled{{end}} data-e2e="sync-conn-select-auth">
+      <option value="kerberos"{{if eq $x.AD.Auth "kerberos"}} selected{{end}}>{{t "sync.conn.auth.kerberos"}}</option>
+      <option value="simple"{{if eq $x.AD.Auth "simple"}} selected{{end}}>{{t "sync.conn.auth.simple"}}</option></select></div>
+  </div>
+  <div class="grid grid-2">
+    <div class="field"><label for="dcs">{{t "sync.conn.dcs"}}</label><textarea id="dcs" name="dcs" rows="2"{{if not $w}} disabled{{end}} data-e2e="sync-conn-input-dcs">{{join $x.AD.DCs "\n"}}</textarea><span class="hint">{{t "sync.conn.dcs_hint"}}</span></div>
+    <div class="field"><label for="preferred">{{t "sync.conn.preferred"}}</label><textarea id="preferred" name="preferred" rows="2"{{if not $w}} disabled{{end}} data-e2e="sync-conn-input-preferred">{{join $x.AD.Preferred "\n"}}</textarea><span class="hint">{{t "sync.conn.preferred_hint"}}</span></div>
+  </div>
+  <div class="grid grid-2">
+    <div class="field"><label for="dns_servers">{{t "sync.conn.dns"}}</label><textarea id="dns_servers" name="dns_servers" rows="2"{{if not $w}} disabled{{end}} data-e2e="sync-conn-input-dns">{{join $x.AD.DNSServers "\n"}}</textarea><span class="hint">{{t "sync.conn.dns_hint"}}</span></div>
+    <div class="field"><label for="bind_user">{{t "sync.conn.bind_user"}}</label><input id="bind_user" name="bind_user" type="text" value="{{$x.AD.BindUser}}" required{{if not $w}} disabled{{end}} data-e2e="sync-conn-input-bind-user"><span class="hint">{{t "sync.conn.bind_user_hint"}}</span></div>
+  </div>
+  {{if $w}}<div class="field"><label for="new_password">{{t "sync.conn.new_password"}}</label><input id="new_password" name="new_password" type="password" autocomplete="new-password" data-e2e="sync-conn-input-new-password"><span class="hint">{{t "sync.conn.new_password_hint"}}</span>
+    {{if and $dr $dr.HasPassword}}<div class="check"><input id="drop_password" name="drop_password" type="checkbox" value="1" data-e2e="sync-conn-check-drop-password"><label for="drop_password">{{t "sync.conn.drop_password"}}</label></div>{{end}}</div>{{end}}
+  <h3>{{t "sync.conn.ca"}}</h3>
+  <p class="small" data-e2e="sync-conn-ca-current">{{if $x.AD.CAPEM}}<span class="badge">{{t "sync.conn.ca_inline"}}</span>{{else}}<span class="badge">{{t "sync.conn.ca_file"}}</span> <span class="mono">{{$x.AD.CAFile}}</span>{{end}}</p>
+  {{if $.D.CA}}<ul class="small" data-e2e="sync-conn-ca-list">{{range $.D.CA}}<li><b>{{.Subject}}</b> · {{t "sync.conn.ca_until" (time .NotAfter)}}{{if .Expired}} <span class="badge badge-danger">{{t "sync.conn.ca_expired"}}</span>{{end}}<br><span class="mono muted">SHA-256 {{.SHA256}}</span></li>{{end}}</ul>{{end}}
+  {{if $w}}<div class="field"><label for="ca_pem">{{t "sync.conn.ca_pem"}}</label><textarea id="ca_pem" name="ca_pem" rows="4" class="mono small" spellcheck="false" placeholder="-----BEGIN CERTIFICATE-----" data-e2e="sync-conn-input-ca-pem">{{$x.AD.CAPEM}}</textarea><span class="hint">{{t "sync.conn.ca_pem_hint"}}</span></div>
+  <div class="field"><label for="ca_upload">{{t "sync.conn.ca_upload"}}</label><input id="ca_upload" name="ca_upload" type="file" accept=".pem,.crt,.cer,application/x-pem-file" data-e2e="sync-conn-input-ca-upload"></div>
+  {{if $x.AD.CAFile}}<div class="check"><input id="ca_use_file" name="ca_use_file" type="checkbox" value="1" data-e2e="sync-conn-check-ca-file"><label for="ca_use_file">{{t "sync.conn.ca_use_file" $x.AD.CAFile}}</label></div>{{end}}{{end}}
+</section>
+
+<section class="card" aria-labelledby="cn-g">
+  <h2 id="cn-g">{{t "sync.conn.google"}}</h2>
+  <div class="grid grid-2">
+    <div class="field"><label for="admin_subject">{{t "sync.admin_subject"}}</label><input id="admin_subject" name="admin_subject" type="email" value="{{$v.Google.AdminSubject}}" required{{if not $w}} disabled{{end}} data-e2e="sync-conn-input-subject"><span class="hint">{{t "sync.admin_subject_hint"}}</span></div>
+    <div class="field"><label for="customer">{{t "sync.customer"}}</label><input id="customer" name="customer" type="text" value="{{$v.Google.Customer}}"{{if not $w}} disabled{{end}} data-e2e="sync-conn-input-customer"><span class="hint">{{t "sync.customer_hint"}}</span></div>
+  </div>
+  <div class="grid grid-2">
+    <div class="field"><label for="rps">{{t "sync.conn.rps"}}</label><input id="rps" name="requests_per_second" type="text" inputmode="decimal" value="{{$x.Google.RequestsPerSecond}}" required{{if not $w}} disabled{{end}} data-e2e="sync-conn-input-rps"><span class="hint">{{t "sync.conn.rps_hint"}}</span></div>
+    <div class="field"><label for="retries">{{t "sync.conn.retries"}}</label><input id="retries" name="max_retries" type="text" inputmode="numeric" value="{{$x.Google.MaxRetries}}" required{{if not $w}} disabled{{end}} data-e2e="sync-conn-input-retries"></div>
+    <div class="field"><label for="timeout">{{t "sync.conn.timeout"}}</label><input id="timeout" name="timeout" type="text" value="{{$x.Google.Timeout}}"{{if not $w}} disabled{{end}} data-e2e="sync-conn-input-timeout"><span class="hint">{{t "sync.conn.timeout_hint"}}</span></div>
+  </div>
+</section>
+
+<section class="card" aria-labelledby="cn-al">
+  <h2 id="cn-al">{{t "sync.conn.alerts"}}</h2>
+  <div class="field"><label for="webhook_url">{{t "sync.conn.webhook_url"}}</label><input id="webhook_url" name="webhook_url" type="url" value="{{$x.Alert.WebhookURL}}"{{if not $w}} disabled{{end}} data-e2e="sync-conn-input-webhook-url"><span class="hint">{{t "sync.conn.webhook_url_hint"}}</span></div>
+</section>
+
+{{if $w}}<section class="card" aria-labelledby="cn-test" id="test">
+  <h2 id="cn-test">{{t "sync.test.heading"}}</h2>
+  <p class="hint">{{t "sync.conn.test_hint"}}</p>
+  {{if $dr}}{{with $dr.Test}}<dl class="props" data-e2e="sync-conn-test-result">
+    <dt>{{t "sync.ad"}}</dt><dd>{{if .AD.OK}}<span class="badge badge-ok" data-e2e="sync-conn-test-ad-ok">{{t "sync.test.ok"}}</span> <span class="small">{{.AD.Detail}}</span>{{else}}<span class="badge badge-danger" data-e2e="sync-conn-test-ad-failed">{{t "sync.test.failed"}}</span> <span class="small">{{.AD.Error}}</span>{{end}}</dd>
+    <dt>Google</dt><dd>{{if .Google.OK}}<span class="badge badge-ok" data-e2e="sync-conn-test-google-ok">{{t "sync.test.ok"}}</span> <span class="small">{{.Google.Detail}}</span>{{else}}<span class="badge badge-danger" data-e2e="sync-conn-test-google-failed">{{t "sync.test.failed"}}</span> <span class="small">{{.Google.Error}}</span>{{end}}</dd>
+  </dl>
+  {{if not $.D.Tested}}<p class="alert-warn small" data-e2e="sync-conn-test-outdated">{{t "sync.conn.test_outdated"}}</p>{{end}}{{end}}
+  {{if or $.D.NeedAD $.D.NeedGoogle}}{{if not $.D.Tested}}<p class="small muted" data-e2e="sync-conn-test-needed">{{t "sync.conn.test_needed"}}</p>{{end}}{{end}}{{end}}
+  <div class="field"><label for="comment">{{t "sync.review.comment"}}</label><input id="comment" name="comment" type="text" maxlength="64" data-e2e="sync-conn-input-comment"></div>
+  <div class="actions">
+    <button class="btn" type="submit" name="go" value="test" data-e2e="sync-conn-btn-test">{{t "sync.conn.btn_test"}}</button>
+    <button class="btn btn-primary" type="submit" name="go" value="save" data-e2e="sync-conn-btn-save">{{t "sync.conn.btn_save"}}</button>
+    {{if $dr}}<button class="btn" type="submit" name="go" value="discard" formnovalidate data-e2e="sync-conn-btn-discard">{{t "sync.conn.btn_discard"}}</button>{{end}}
+  </div>
+</section>{{end}}
+</form>
+
+<section class="card" aria-labelledby="cn-sec" id="secrets">
+  <h2 id="cn-sec">{{t "sync.secret.heading"}}</h2>
+  <p class="hint">{{t "sync.secret.hint"}}</p>
+  <table class="table" data-e2e="sync-conn-table-secrets">
+    <thead><tr><th>{{t "sync.secret.col.name"}}</th><th>{{t "sync.secret.col.state"}}</th><th>{{t "sync.secret.col.changed"}}</th></tr></thead>
+    <tbody>{{range $.D.Secrets}}<tr data-e2e="sync-conn-secret-{{e2e .Name}}">
+      <td><b>{{t (print "sync.secret." .Name)}}</b>{{if .Credential}}<br><span class="small muted">{{t "sync.secret.credential" .Credential}}</span>{{end}}</td>
+      <td data-label="{{t "sync.secret.col.state"}}">{{if .Configured}}<span class="badge badge-ok" data-e2e="sync-conn-secret-state-{{e2e .Name}}">{{t "sync.secret.configured"}}</span> <span class="small muted">{{t (print "sync.secret.source." .Source)}}</span>{{else}}<span class="badge badge-warn" data-e2e="sync-conn-secret-state-{{e2e .Name}}">{{t "sync.secret.not_configured"}}</span>{{if .Error}}<br><span class="small">{{.Error}}</span>{{end}}{{end}}</td>
+      <td data-label="{{t "sync.secret.col.changed"}}" class="small">{{if .SetBy}}{{time .SetAt}}<br><span class="muted">{{.SetBy}}</span>{{else}}—{{end}}</td>
+    </tr>
+    {{if $w}}<tr><td colspan="3"><div class="row">
+      {{if eq .Replace "file"}}<form method="post" action="/admin/sync/setup/key" enctype="multipart/form-data" class="row grow">{{template "csrf" $}}<input type="hidden" name="from" value="connection">
+        <label class="sr" for="sk-{{e2e .Name}}">{{t "sync.key.file"}}</label><input id="sk-{{e2e .Name}}" name="key" type="file" accept="application/json,.json" required data-e2e="sync-conn-input-secret-{{e2e .Name}}">
+        <button class="btn btn-small" type="submit" data-e2e="sync-conn-btn-replace-{{e2e .Name}}">{{t "sync.secret.replace"}}</button></form>
+      {{else}}<form method="post" action="/admin/sync/config/secret" class="row grow" autocomplete="off">{{template "csrf" $}}<input type="hidden" name="name" value="{{.Name}}"><input type="hidden" name="action" value="replace">
+        <label class="sr" for="sv-{{e2e .Name}}">{{t "sync.secret.new_value"}}</label><input id="sv-{{e2e .Name}}" name="value" type="password" autocomplete="new-password" required class="grow" placeholder="{{t "sync.secret.new_value"}}" data-e2e="sync-conn-input-secret-{{e2e .Name}}">
+        <button class="btn btn-small" type="submit" data-e2e="sync-conn-btn-replace-{{e2e .Name}}">{{t "sync.secret.replace"}}</button></form>{{end}}
+      {{if eq .Source "database"}}<form method="post" action="/admin/sync/config/secret">{{template "csrf" $}}<input type="hidden" name="name" value="{{.Name}}"><input type="hidden" name="action" value="remove">
+        <button class="btn btn-small btn-danger" type="submit" data-e2e="sync-conn-btn-remove-{{e2e .Name}}">{{t "sync.secret.remove"}}</button></form>{{end}}
+    </div></td></tr>{{end}}{{end}}</tbody>
+  </table>
+</section>
+
+<section class="card" aria-labelledby="cn-mk" id="marker">
+  <h2 id="cn-mk">{{t "sync.marker.heading"}}</h2>
+  <p>{{t "sync.marker.current"}} <code data-e2e="sync-conn-text-marker">{{$c.Settings.Connection.Marker}}</code></p>
+  <div class="alert-warn" role="note" data-e2e="sync-conn-marker-warning">{{t "sync.marker.explain"}}</div>
+  {{if $w}}<form method="post" action="/admin/sync/config/marker" autocomplete="off" class="grid grid-2">
+    {{template "csrf" $}}
+    <div class="field"><label for="marker">{{t "sync.marker.new"}}</label><input id="marker" name="marker" type="text" required maxlength="64" pattern="[A-Za-z0-9][A-Za-z0-9._\-]{0,63}" data-e2e="sync-conn-input-marker"></div>
+    <div class="field"><label for="mconfirm">{{t "sync.marker.type"}}</label><input id="mconfirm" name="confirm" type="text" required autocomplete="off" spellcheck="false" data-e2e="sync-conn-input-marker-confirm"><span class="hint">{{t "sync.marker.type_hint" $.D.MarkerExample}}</span></div>
+    <div class="actions"><button class="btn btn-danger" type="submit" data-e2e="sync-conn-btn-marker">{{t "sync.marker.button"}}</button></div>
+  </form>{{end}}
+</section>
+{{end}}{{end}}

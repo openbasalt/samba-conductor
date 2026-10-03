@@ -30,6 +30,14 @@ type fakeSync struct {
 	updated *syncapi.ConfigUpdateParams
 	key     string
 	fail    map[syncapi.Op]*syncapi.Error
+	// P5c: secrets set or removed, the last rollback, the password a
+	// connection test was given, and a failing AD test.
+	secrets    map[string]string
+	removed    []string
+	rollback   *syncapi.ConfigRollbackParams
+	testPW     string
+	adTestFail bool
+	versions   map[int64]syncapi.Settings
 }
 
 func newFakeSync(now time.Time) *fakeSync {
@@ -44,8 +52,13 @@ func newFakeSync(now time.Time) *fakeSync {
 			Scope:   syncapi.ScopeSettings{UserBases: []string{"OU=People,DC=lab,DC=test"}, IncludeGroups: []string{"S-1-5-21-1-2-3-1500"}},
 			Mapping: syncapi.MappingSettings{PrimaryEmail: []string{"{sAMAccountName}@example.com"}, AllowedDomains: []string{"example.com"}, DefaultOrgUnit: "/"},
 			Google:  syncapi.GoogleSettings{AdminSubject: "admin@example.com", Customer: "my_customer", MemberRole: "MEMBER"},
-			Limits:  syncapi.LimitSettings{MaxCreates: 50, MaxSuspends: 10}, Schedule: syncapi.ScheduleSettings{Interval: "15m0s"}},
-			Host: syncapi.HostInfo{ConfigPath: "/etc/conductor-sync/conductor-sync.toml", Realm: "LAB.TEST", BindUser: "svc.sync"}},
+			Limits:  syncapi.LimitSettings{MaxCreates: 50, MaxSuspends: 10}, Schedule: syncapi.ScheduleSettings{Interval: "15m0s"},
+			Connection: &syncapi.ConnectionSettings{AD: syncapi.ADConnection{Realm: "LAB.TEST", DCs: []string{"dc1.lab.test"}, CAFile: "/etc/conductor-sync/domain-ca.pem",
+				BindUser: "svc.sync", Auth: "kerberos"}, Google: syncapi.GoogleConnection{RequestsPerSecond: 5, MaxRetries: 6, Timeout: "1m0s"}, Marker: "conductor-sync"}},
+			Host: syncapi.HostInfo{ConfigPath: "/etc/conductor-sync/conductor-sync.toml", Realm: "LAB.TEST", BindUser: "svc.sync"},
+			Secrets: []syncapi.SecretInfo{{Name: syncapi.SecretADBindPassword, Configured: true, Source: "credential", Credential: "ad-bind"},
+				{Name: syncapi.SecretGoogleKey, Configured: true, Source: "database", SetBy: "conductor:lab.admin@192.0.2.10", SetAt: now},
+				{Name: syncapi.SecretWebhookSecret}}},
 		detail: syncapi.RunDetail{Run: syncapi.Run{ID: 7, Action: "apply", Trigger: "scheduled", Status: "blocked", StartedAt: now.Add(-time.Hour),
 			Violations: []syncapi.Violation{{Limit: "max_suspends", Value: 500, Max: 10}}}, HasPlan: true, Digest: digest,
 			Counts: map[string]int{"user.suspend": 500}, Sections: map[string]int{"suspend": 500}, Writes: 500, ManagedUsers: 2500,
@@ -55,7 +68,7 @@ func newFakeSync(now time.Time) *fakeSync {
 			Groups: []syncapi.ScopeGroup{{Role: "exclude", Ref: "S-1-5-21-1-2-3-1600", Found: true, Name: "Support", Members: 500}}},
 		job: syncapi.Job{ID: "job-0000000001", Kind: "apply", State: syncapi.JobRunning, RunID: 8, Actor: "conductor:lab.admin",
 			Progress: syncapi.Progress{Total: 500, Done: 120}},
-		fail: map[syncapi.Op]*syncapi.Error{},
+		fail: map[syncapi.Op]*syncapi.Error{}, secrets: map[string]string{}, versions: map[int64]syncapi.Settings{},
 	}
 }
 
@@ -99,7 +112,31 @@ func (f *fakeSync) Call(_ context.Context, req syncapi.Request) (syncapi.Respons
 		f.key = p.(*syncapi.KeySetParams).KeyJSON
 		out = syncapi.KeyInfo{ClientEmail: "new@project.iam.gserviceaccount.com", KeyID: "k2", Source: "database"}
 	case syncapi.OpConnectionTest:
-		out = syncapi.TestResult{AD: syncapi.Check{OK: true, Detail: "connected to dc1"}, Google: syncapi.Check{OK: true, Detail: "token issued"}}
+		f.testPW = p.(*syncapi.ConnectionTestParams).ADPassword
+		ad := syncapi.Check{OK: true, Detail: "connected to dc1"}
+		if f.adTestFail {
+			ad = syncapi.Check{Error: "LDAP Result Code 49 \"Invalid Credentials\""}
+		}
+		out = syncapi.TestResult{AD: ad, Google: syncapi.Check{OK: true, Detail: "token issued"}}
+	case syncapi.OpConfigVersion:
+		id := p.(*syncapi.ConfigVersionParams).ID
+		st, ok := f.versions[id]
+		if !ok {
+			e := &syncapi.Error{Code: syncapi.CodeNotFound, Message: "no version"}
+			return syncapi.ErrorResponse(req.ID, e), e
+		}
+		out = syncapi.ConfigVersionDetail{ConfigVersion: syncapi.ConfigVersion{ID: id, Actor: "conductor:lab.admin", Origin: "api"}, Settings: st}
+	case syncapi.OpConfigRollback:
+		rp := *p.(*syncapi.ConfigRollbackParams)
+		f.rollback = &rp
+		out = syncapi.ConfigUpdateResult{Version: f.cfg.Version + 1}
+	case syncapi.OpSecretSet:
+		sp := p.(*syncapi.SecretSetParams)
+		f.secrets[sp.Name] = sp.Value
+		out = syncapi.SecretInfo{Name: sp.Name, Configured: true, Source: "database"}
+	case syncapi.OpSecretRemove:
+		f.removed = append(f.removed, p.(*syncapi.SecretRemoveParams).Name)
+		out = syncapi.SecretInfo{Name: p.(*syncapi.SecretRemoveParams).Name}
 	case syncapi.OpMappingPreview:
 		out = syncapi.PreviewResult{Users: []syncapi.PreviewUser{{Account: "jdoe", InScope: true, Email: "jdoe@example.com", OrgUnit: "/", Placement: "default"}}}
 	default:

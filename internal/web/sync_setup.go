@@ -309,9 +309,15 @@ type keyFile struct {
 
 func (s *Server) handleSyncSetupKey(rc *reqCtx) {
 	f, _, err := rc.r.FormFile("key")
+	// The key is replaced from the setup wizard or from the connection
+	// settings (Settings > Connection > Secrets).
+	back := setupURL("google")
+	if rc.form("from") == "connection" {
+		back = syncConnURL + "#secrets"
+	}
 	if err != nil {
 		rc.flashErr("sync.key.err_missing")
-		rc.redirect(setupURL("google"))
+		rc.redirect(back)
 		return
 	}
 	raw, err := io.ReadAll(io.LimitReader(f, maxKeyUpload+1))
@@ -319,7 +325,7 @@ func (s *Server) handleSyncSetupKey(rc *reqCtx) {
 	var k keyFile
 	if err != nil || len(raw) > maxKeyUpload || json.Unmarshal(raw, &k) != nil || k.Type != "service_account" || k.ClientEmail == "" || k.PrivateKey == "" {
 		rc.flashErr("sync.key.err_invalid")
-		rc.redirect(setupURL("google"))
+		rc.redirect(back)
 		return
 	}
 	// The preview names the key; the key itself is never shown, logged or
@@ -331,7 +337,7 @@ func (s *Server) handleSyncSetupKey(rc *reqCtx) {
 		run: func(ctx context.Context, rc *reqCtx) error {
 			return s.syncCall(ctx, rc, syncapi.OpKeySet, syncapi.KeySetParams{KeyJSON: keyJSON}, &syncapi.KeyInfo{})
 		},
-		back: setupURL("google"), done: rc.T("sync.key.done")})
+		back: back, done: rc.T("sync.key.done")})
 }
 
 func validDN(dn string) bool {

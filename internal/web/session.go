@@ -100,6 +100,9 @@ type Session struct {
 	enrollKeyOnly bool
 	// syncDraft is the Google Workspace sync setup in progress.
 	syncDraft *syncDraft
+	// syncConn is the edit of the sync's connection settings in progress
+	// (it may hold a new AD bind password until it is saved or dropped).
+	syncConn *syncConnDraft
 	// filesDraft is the share wizard in progress.
 	filesDraft *filesDraft
 }

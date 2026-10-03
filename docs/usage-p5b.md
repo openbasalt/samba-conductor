@@ -77,8 +77,49 @@ manual apply (`usage-p5.md` §6).
 | Setup (`/admin/sync/setup`) | a wizard on a draft kept in the session (nothing is stored until the review is confirmed): 1 Google (key upload, admin subject, domains, connection test), 2 Who (OUs searched for users and left out, include and exclude groups from a directory search, groups synced to Google), 3 Org units (group rules with priorities, OU rules, default; the resolution order is explained on the page), 4 E-mail (templates, optional fields, groups; preview with real AD users, in or out of scope and why), 5 Safety (limits, policy, schedule interval), 6 Review (conductor-sync validates the draft and lists every changed setting; save with re-authentication) |
 | Plans and runs (`/admin/sync/runs`) | every plan and apply, filter by status |
 | Run (`/admin/sync/runs/{id}`) | the plan grouped by kind (create, update, rename, suspend, unsuspend, groups, memberships, local links) and paged, each operation with its details and reason (`org unit from group Finance (priority 10)`), the limits table, plan errors (users left untouched), warnings, skipped AD objects, the resolved groups with their current names and member counts; for an apply, each operation's result and a "failures" tab; the apply form when the plan is the latest and the mode is apply |
-| Settings (`/admin/sync/config`) | the settings in force, the host settings (file only), the version history (who, when, comment, each changed setting) and a TOML export |
+| Settings (`/admin/sync/config`) | the settings in force, a summary of the connection and the secrets, the host settings (file only), the version history (who, when, comment, each changed setting) with "Roll back to this version", and a TOML export |
+| Settings > Connection (`/admin/sync/config/connection`, P5c) | how conductor-sync reaches AD and Google, the alert webhook, the secrets (write only) and the ownership marker; see below |
+| Rollback (`/admin/sync/config/rollback?version=N`, P5c) | what restoring version N changes, the typed confirmation when it changes the marker; saved as a new version with re-authentication |
 | Dashboard | a card with the last run, the mode, the next run and any blocked run |
+
+## Connection settings and secrets (P5c)
+
+Owner decision 2026-10-03: the settings that were file-only in P5b are
+edited on Google Workspace sync > Settings > Connection. conductor-sync side:
+`../../conductor-sync/docs/usage-p5.md` §14 and `decisions.md` 38-43.
+
+- **Active Directory**: realm, DCs, preferred DCs, DNS servers, the bind
+  account and the authentication (Kerberos or simple bind over TLS), the
+  domain CA pinned for LDAPS (pasted or uploaded PEM, shown as subject,
+  expiry and SHA-256; "use the host's CA file" goes back to the file).
+  **Google**: admin subject, customer, requests per second, retries,
+  timeout. **Alerts**: the webhook URL.
+- Edits are a draft in the session (shown with every changed setting).
+  "Test connection" signs in to AD and reads the admin subject on Google
+  with exactly the draft; "Review and save" is refused until a test of the
+  current draft passed for the part that changed (AD, Google or both). The
+  preview lists every changed setting (the CA as a count and a short hash)
+  and warns that AD settings decide where the bind credentials go; saving
+  needs the password and a fresh second factor. conductor-sync signs in to
+  AD again before it stores an AD change.
+- **Secrets** (AD bind password, Google service account key, webhook HMAC
+  secret): a table with the state only (configured or not, stored encrypted
+  by conductor-sync or from the credential file named in the configuration,
+  when and by whom), "Replace" and, for a stored one, "Remove" (with a
+  warning: the credential file, if any, is used again). A new bind password
+  is tested against AD before it is proposed and again by conductor-sync
+  before it is stored. A new bind account and its password can also be
+  saved together from the AD card. Values are never shown, logged or
+  audited: previews and audit lines name the secret only.
+- **Ownership marker**: its own card, a warning (accounts marked with the
+  current value are orphaned), the typed confirmation
+  `change marker to <new marker>`, then the preview with the warning and
+  re-authentication. conductor-sync checks the typed text too.
+- **Rollback**: from the history; the page lists what changes back and
+  says that secrets are not versioned.
+- Administrators only (`sync.read` / `sync.write`); auditors and helpdesk
+  get 403 on every page and action. No new script source; the forms work
+  without JavaScript; the CSP is unchanged.
 
 ## Lab run (2026-10-03)
 

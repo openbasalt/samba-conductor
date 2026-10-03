@@ -10,6 +10,9 @@ export const env = {
   adminPassword: required('E2E_ADMIN_PASSWORD'),
   helpdeskPassword: required('E2E_HELPDESK_PASSWORD'),
   adminEnrollURL: required('E2E_ADMIN_ENROLL_URL'),
+  // conductor-sync's AD bind account (svc-conductor-sync), for the
+  // connection settings spec (P5c); optional.
+  syncPassword: process.env.E2E_SYNC_PASSWORD ?? '',
 };
 
 function required(name: string): string {

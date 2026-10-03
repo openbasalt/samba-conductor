@@ -1,0 +1,22 @@
+{{define "title"}}{{t "sync.rollback.heading"}}{{end}}
+{{define "content"}}<h1>{{t "sync.rollback.heading"}}</h1>
+{{template "sync-subnav" (dict "Path" .Path)}}
+{{template "error-alert" .D.Error}}
+{{with .D.Ver}}<section class="card" aria-labelledby="rb-h" data-e2e="sync-rollback-card">
+  <h2 id="rb-h">{{t "sync.rollback.to" .ID}}</h2>
+  <p class="small muted" data-e2e="sync-rollback-version">{{t "sync.config.version" .ID .Actor (time .At)}}{{if .Comment}} · {{.Comment}}{{end}}</p>
+  <p>{{t "sync.rollback.hint" $.D.C.Version}}</p>
+  <p class="alert-info small" data-e2e="sync-rollback-secrets">{{t "sync.rollback.secrets_note"}}</p>
+  {{with $.D.V}}{{if not .Valid}}<div class="alert-error" role="alert" data-e2e="sync-rollback-invalid"><ul>{{range .Errors}}<li>{{.}}</li>{{end}}</ul></div>
+  {{else if .Changes}}<h3>{{t "sync.rollback.changes"}}</h3>
+  <ul class="small" data-e2e="sync-rollback-changes">{{range .Changes}}<li><code>{{.Path}}</code>: <span class="muted">{{.Old}}</span> → {{.New}}</li>{{end}}</ul>
+  {{else}}<p class="muted" data-e2e="sync-rollback-nochange">{{t "sync.rollback.nochange"}}</p>{{end}}{{end}}
+  {{if and $.D.V.Valid $.D.V.Changes}}<form method="post" action="/admin/sync/config/rollback" autocomplete="off">
+    {{template "csrf" $}}<input type="hidden" name="version" value="{{.ID}}">
+    {{if $.D.Marker}}<div class="alert-warn" role="alert" data-e2e="sync-rollback-marker-warning">{{t "sync.marker.explain"}}</div>
+    <div class="field"><label for="rbconfirm">{{t "sync.marker.type"}}</label><input id="rbconfirm" name="confirm" type="text" required spellcheck="false" data-e2e="sync-rollback-input-confirm"><span class="hint">{{t "sync.rollback.type_hint" $.D.MarkerConfirm}}</span></div>{{end}}
+    <div class="field"><label for="rbcomment">{{t "sync.review.comment"}}</label><input id="rbcomment" name="comment" type="text" maxlength="64" data-e2e="sync-rollback-input-comment"></div>
+    <div class="actions"><button class="btn btn-primary" type="submit" data-e2e="sync-rollback-btn-submit">{{t "sync.rollback.button"}}</button>
+      <a class="btn" href="/admin/sync/config" data-e2e="sync-rollback-link-cancel">{{t "form.cancel"}}</a></div>
+  </form>{{end}}
+</section>{{end}}{{end}}

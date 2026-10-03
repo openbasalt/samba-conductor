@@ -98,6 +98,11 @@
   <a href="/admin/sync/config" data-e2e="sync-tab-config"{{if active .Path "/admin/sync/config"}} aria-current="page"{{end}}>{{t "sync.tab.config"}}</a>
 </nav>{{end}}
 
+{{define "sync-config-subnav"}}<nav class="tabs" aria-label="{{t "sync.tab.config"}}">
+  <a href="/admin/sync/config" data-e2e="sync-config-tab-overview"{{if eq .Path "/admin/sync/config"}} aria-current="page"{{end}}>{{t "sync.config.tab.overview"}}</a>
+  <a href="/admin/sync/config/connection" data-e2e="sync-config-tab-connection"{{if eq .Path "/admin/sync/config/connection"}} aria-current="page"{{end}}>{{t "sync.config.tab.connection"}}</a>
+</nav>{{end}}
+
 {{define "sync-status"}}<span class="badge{{if or (eq . "applied") (eq . "nothing-to-do") (eq . "planned")}} badge-ok{{else if or (eq . "blocked") (eq . "partial") (eq . "dry-run") (eq . "running")}} badge-warn{{else if or (eq . "failed") (eq . "interrupted")}} badge-danger{{end}}" data-e2e="sync-badge-{{e2e .}}">{{t (print "sync.status." .)}}</span>{{end}}
 
 {{define "sync-groupref"}}{{$g := index .G .Ref}}<div data-e2e="sync-groupref-{{e2e .Ref}}">{{if $g.Found}}<b>{{$g.Name}}</b>{{else}}<span class="badge badge-warn">{{t "sync.group.unresolved"}}</span>{{end}} <span class="mono small muted">{{.Ref}}</span></div>{{end}}

@@ -69,6 +69,25 @@ GOWORK=off go get github.com/openbasalt/samba-conductor-ad@<commit or tag>
 GOWORK=off go mod tidy
 ```
 
+When a change spans two repositories (for example a new
+`samba-conductor-sync/syncapi` operation used by conductor), the consumer's
+pin can name the sibling's local commit before it is pushed: point git at the
+local clone for that one command, so the go command records the same
+pseudo-version and `go.sum` hash that GitHub will serve once the commit is
+pushed (the hash depends on the commit's content only):
+
+```sh
+GIT_CONFIG_COUNT=1 \
+GIT_CONFIG_KEY_0="url.file://$PWD/../samba-conductor-sync.insteadOf" \
+GIT_CONFIG_VALUE_0="https://github.com/openbasalt/samba-conductor-sync" \
+GOWORK=off GOPRIVATE='github.com/openbasalt/*' GOFLAGS=-mod=mod \
+go get github.com/openbasalt/samba-conductor-sync@<local commit>
+GOWORK=off go mod tidy
+```
+
+Push the sibling before the consumer: a pin that names an unpushed commit
+does not build anywhere else.
+
 ## Pull requests
 
 - Keep them focused; one topic per pull request.

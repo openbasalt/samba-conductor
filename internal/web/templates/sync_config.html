@@ -1,6 +1,7 @@
 {{define "title"}}{{t "sync.tab.config"}}{{end}}
 {{define "content"}}<h1>{{t "sync.config.title"}}</h1>
 {{template "sync-subnav" (dict "Path" .Path)}}
+{{template "sync-config-subnav" (dict "Path" .Path)}}
 {{template "error-alert" .D.Error}}
 {{with .D.C}}{{$s := .Settings}}
 <p class="muted small" data-e2e="sync-config-version">{{if .Version}}{{t "sync.config.version" .Version .UpdatedBy (time .UpdatedAt)}}{{else}}{{t "sync.config.from_file" .Host.ConfigPath}}{{end}}</p>
@@ -42,13 +43,19 @@
   </dl>
 </section>
 <section class="card" aria-labelledby="sc-host">
-  <h2 id="sc-host">{{t "sync.config.host"}}</h2>
-  <p class="hint">{{t "sync.config.host_hint"}}</p>
+  <h2 id="sc-host">{{t "sync.config.connection"}}</h2>
+  <p class="hint">{{t "sync.config.connection_hint"}}</p>
   <dl class="props" data-e2e="sync-config-host">
-    <dt>{{t "sync.config.file"}}</dt><dd class="mono small">{{.Host.ConfigPath}}</dd>
     <dt>{{t "sync.ad"}}</dt><dd class="small">{{.Host.Realm}} · {{.Host.BindUser}} ({{.Host.Auth}})</dd>
-    <dt>{{t "sync.config.api"}}</dt><dd class="mono small">{{.Host.APIBaseURL}}</dd>
     <dt>{{t "sync.config.marker"}}</dt><dd class="mono small">{{.Host.Marker}}</dd>
+    <dt>{{t "sync.config.secrets"}}</dt><dd class="small" data-e2e="sync-config-secrets">{{range .Secrets}}<div>{{t (print "sync.secret." .Name)}}: {{if .Configured}}<span class="badge badge-ok">{{t "sync.secret.configured"}}</span>{{else}}<span class="badge badge-warn">{{t "sync.secret.not_configured"}}</span>{{end}}</div>{{end}}</dd>
+  </dl>
+  <p><a class="btn btn-small" href="/admin/sync/config/connection" data-e2e="sync-config-link-connection">{{t "sync.config.open_connection"}}</a></p>
+  <h3>{{t "sync.config.host"}}</h3>
+  <p class="hint">{{t "sync.config.host_hint"}}</p>
+  <dl class="props">
+    <dt>{{t "sync.config.file"}}</dt><dd class="mono small">{{.Host.ConfigPath}}</dd>
+    <dt>{{t "sync.config.api"}}</dt><dd class="mono small">{{.Host.APIBaseURL}}</dd>
     <dt>{{t "sync.config.state"}}</dt><dd class="mono small">{{.Host.StateDir}}</dd>
   </dl>
 </section>
@@ -60,7 +67,8 @@
     <tbody>{{range $.D.History}}<tr data-e2e="sync-config-history-{{.ID}}">
       <td>{{t "sync.version.n" .ID}}<br><span class="muted small">{{time .At}}</span></td>
       <td data-label="{{t "sync.config.col.who"}}" class="small">{{.Actor}} <span class="badge">{{.Origin}}</span>{{if .Comment}}<br><span class="muted">{{.Comment}}</span>{{end}}</td>
-      <td data-label="{{t "sync.config.col.changes"}}" class="small"><details><summary>{{t "sync.config.n_changes" (len .Changes)}}</summary><ul>{{range .Changes}}<li><code>{{.Path}}</code>: <span class="muted">{{.Old}}</span> → {{.New}}</li>{{end}}</ul></details></td>
+      <td data-label="{{t "sync.config.col.changes"}}" class="small"><details><summary>{{t "sync.config.n_changes" (len .Changes)}}</summary><ul>{{range .Changes}}<li><code>{{.Path}}</code>: <span class="muted">{{.Old}}</span> → {{.New}}</li>{{end}}</ul></details>
+        {{if and $.D.CanWrite (ne .ID $.D.C.Version)}}<a class="btn btn-small" href="/admin/sync/config/rollback?version={{.ID}}" data-e2e="sync-config-link-rollback-{{.ID}}">{{t "sync.rollback.link"}}</a>{{end}}</td>
     </tr>{{end}}</tbody>
   </table>{{else}}<p class="muted" data-e2e="sync-config-no-history">{{t "sync.config.no_history"}}</p>{{end}}
 </section>
