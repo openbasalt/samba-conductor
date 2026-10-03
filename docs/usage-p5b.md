@@ -121,6 +121,25 @@ edited on Google Workspace sync > Settings > Connection. conductor-sync side:
   get 403 on every page and action. No new script source; the forms work
   without JavaScript; the CSP is unchanged.
 
+Lab run (2026-10-03, snapshot conductor-p2b rebuilt with conductor and
+conductor-sync of this phase): `e2e/run-lab.sh`, **53 passed, 1 skipped,
+desktop and mobile**. `tests/19-sync-connection.spec.ts`: a second DC
+(untested save refused, test against the preferred DC, preview,
+re-authentication, new version), the lab CA uploaded and pinned inline, a
+wrong bind password refused by AD, the right one stored and removed again,
+the webhook secret set and removed (no page ever contains a value), the
+marker change (wrong typed confirmation refused, warning) and its rollback,
+then a plan with the stored connection; auditors get 403.
+
+Screenshots (`docs/screenshots/{desktop,mobile}/`): `19-sync-connection`,
+`19-sync-connection-test`, `19-sync-connection-confirm`,
+`19-sync-connection-ca`, `19-sync-secret-confirm`, `19-sync-secrets`,
+`19-sync-marker-confirm`, `19-sync-rollback`.
+
+| | |
+|---|---|
+| ![Connection settings](screenshots/desktop/19-sync-secrets.png) | ![Tested draft on a phone](screenshots/mobile/19-sync-connection-test.png) |
+
 ## Lab run (2026-10-03)
 
 In the lab (`../../planning/docs/lab.md`, snapshot
