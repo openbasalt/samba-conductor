@@ -1,0 +1,61 @@
+.TH CONDUCTOR 8 "2026-10-03" "Samba Conductor" "System Administration"
+.SH NAME
+conductor \- web administrator and self-service portal for Samba AD
+.SH SYNOPSIS
+.B conductor
+.I command
+.RI [ flags ]
+.SH DESCRIPTION
+.B conductor
+serves the Samba Conductor web interface: administration of a Samba Active
+Directory domain (users, groups, OUs, computers, DNS, Group Policy links,
+password policies, lockouts, bulk operations) and a self-service portal.
+Every directory operation uses the signed-in user's own Kerberos identity;
+writes are previewed, confirmed and recorded in a hash-chained audit log.
+Privileged local operations go through
+.BR conductor-helper (8).
+.PP
+Each command accepts
+.B \-h
+for its flags.
+.SH COMMANDS
+.TP
+.B serve
+Run the web server (normally started by
+.BR conductor.service ).
+.TP
+.B setup
+First-run configuration, as root: pins the domain CA, resolves the role
+groups to SIDs, generates the TOTP key and writes
+.IR /etc/conductor/conductor.toml .
+.TP
+.B enroll-link
+Issue a one-time second-factor enrollment link, as the conductor user.
+.TP
+.B audit verify
+Check the audit log hash chain, as the conductor user.
+.TP
+.B audit export
+Write the audit log as JSON lines.
+.TP
+.B version
+Print the version.
+.SH FILES
+.TP
+.I /etc/conductor/conductor.toml
+Configuration, written by
+.BR "conductor setup" .
+.TP
+.I /etc/conductor/credentials/totp-key
+Key that seals the TOTP secrets, passed to the service as a systemd
+credential. Keep an offline copy.
+.TP
+.I /etc/conductor/tls/
+Web certificate and key.
+.TP
+.I /var/lib/conductor/conductor.db
+State: sessions, settings, second factors, audit log.
+.SH SEE ALSO
+.BR conductor-helper (8),
+.BR systemd.exec (5),
+.I /usr/share/doc/conductor/README.Debian

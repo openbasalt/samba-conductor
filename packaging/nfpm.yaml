@@ -1,0 +1,95 @@
+# nfpm configuration of the "conductor" package (conductor + conductor-helper).
+# Built by packaging/build.sh, which sets ARCH, DEB_VERSION, DEB_REVISION,
+# BUILD (staging directory) and SOURCE_DATE_EPOCH (every timestamp).
+# Paths are relative to the repository root.
+name: conductor
+arch: ${ARCH}
+platform: linux
+version: ${DEB_VERSION}
+version_schema: none
+release: ${DEB_REVISION}
+section: admin
+priority: optional
+maintainer: Samba Conductor maintainers <samba-conductor@openbasalt.org>
+vendor: OpenBasalt
+homepage: https://github.com/openbasalt/samba-conductor
+license: MIT
+description: |-
+  web administrator and self-service portal for Samba AD
+  Samba Conductor manages a Samba Active Directory domain from the browser:
+  users, groups, OUs, computers, DNS, Group Policy links, password policies,
+  lockouts and bulk operations, plus a self-service portal for every user.
+  Every change uses the signed-in user's own Kerberos identity, is previewed
+  before it is applied and is recorded in a hash-chained audit log;
+  administrators need a second factor.
+  .
+  This package also contains conductor-helper, the small privileged service
+  that runs the few samba-tool operations that need root on the domain
+  controller. Nothing is started at installation: run "conductor setup"
+  first (see /usr/share/doc/conductor/README.Debian).
+
+depends:
+  - systemd | systemd-standalone-sysusers | systemd-sysusers
+recommends:
+  - samba-ad-dc (>= 2:4.19)
+suggests:
+  - conductor-backup
+  - conductor-sync
+
+contents:
+  - expand: true
+    src: ${BUILD}/bin/conductor
+    dst: /usr/bin/conductor
+    file_info: {mode: 0755}
+  - expand: true
+    src: ${BUILD}/bin/conductor-helper
+    dst: /usr/bin/conductor-helper
+    file_info: {mode: 0755}
+
+  - expand: true
+    src: ${BUILD}/systemd/conductor.service
+    dst: /usr/lib/systemd/system/conductor.service
+    file_info: {mode: 0644}
+  - expand: true
+    src: ${BUILD}/systemd/conductor-helper.service
+    dst: /usr/lib/systemd/system/conductor-helper.service
+    file_info: {mode: 0644}
+  - src: packaging/sysusers.conf
+    dst: /usr/lib/sysusers.d/conductor.conf
+    file_info: {mode: 0644}
+
+  - src: packaging/helper.toml
+    dst: /etc/conductor/helper.toml
+    type: config|noreplace
+    file_info: {mode: 0644}
+
+  - expand: true
+    src: ${BUILD}/man/conductor.8.gz
+    dst: /usr/share/man/man8/conductor.8.gz
+    file_info: {mode: 0644}
+  - expand: true
+    src: ${BUILD}/man/conductor-helper.8.gz
+    dst: /usr/share/man/man8/conductor-helper.8.gz
+    file_info: {mode: 0644}
+
+  - src: packaging/copyright
+    dst: /usr/share/doc/conductor/copyright
+    file_info: {mode: 0644}
+  - expand: true
+    src: ${BUILD}/doc/conductor/changelog.Debian.gz
+    dst: /usr/share/doc/conductor/changelog.Debian.gz
+    file_info: {mode: 0644}
+  - src: packaging/README.Debian
+    dst: /usr/share/doc/conductor/README.Debian
+    file_info: {mode: 0644}
+  - src: conductor.toml.example
+    dst: /usr/share/doc/conductor/examples/conductor.toml
+    file_info: {mode: 0644}
+  - src: packaging/lintian-overrides
+    dst: /usr/share/lintian/overrides/conductor
+    file_info: {mode: 0644}
+
+scripts:
+  postinstall: packaging/scripts/postinst
+  preremove: packaging/scripts/prerm
+  postremove: packaging/scripts/postrm

@@ -1,0 +1,22 @@
+conductor for Debian and Ubuntu
+===============================
+
+Installing the package creates the "conductor" system user, /etc/conductor
+(root:conductor 0750) with tls/ and credentials/ (root 0700), and
+/var/lib/conductor. It does not enable or start anything.
+
+On the domain controller:
+
+  1. Put the web certificate in /etc/conductor/tls/ (cert.pem 0644,
+     key.pem 0640 root:conductor), or plan for a reverse proxy.
+  2. sudo conductor setup        (interactive; "conductor setup -h")
+  3. sudo systemctl enable --now conductor-helper conductor
+
+/etc/conductor/conductor.toml is written by "conductor setup" and is not
+managed by the package; /etc/conductor/helper.toml is a conffile.
+
+Upgrades restart the services that are running. "apt purge conductor"
+deletes /etc/conductor (including the TOTP key in credentials/) and
+/var/lib/conductor (database and audit log): back them up first.
+
+Full guide: https://github.com/openbasalt/samba-conductor/blob/main/docs/install.md

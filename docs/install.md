@@ -1,9 +1,10 @@
 # Installing conductor (Debian 13 / Ubuntu 26.04)
 
-Manual installation on a Samba AD domain controller with systemd. Packages
-(`.deb`) come in P6; until then this is the reference procedure, and the lab
-install script (`../planning/lab/remote/install-conductor.sh`) runs exactly
-these steps.
+Installation on a Samba AD domain controller with systemd, from the Debian
+package (recommended) or from source. Ubuntu 24.04 (Samba 4.19) is best
+effort. The lab install script (`../planning/lab/remote/install-conductor.sh`)
+runs the from-source steps; the package lab (`../planning/lab/pkglab/`)
+runs the package steps.
 
 conductor normally runs **on a DC** (the helper needs the local Samba
 database); it reaches AD over LDAPS and Kerberos like any client.
@@ -15,12 +16,43 @@ database); it reaches AD over LDAPS and Kerberos like any client.
   issued by a CA you can pin (Samba's self-generated certificate has no SAN
   and Go refuses it). See `../planning/docs/lab.md` for an example CA.
 - Time in sync (chrony with `ntp_signd`).
-- The binaries `conductor` and `conductor-helper` (`make build`, static,
-  CGO off) and `deploy/systemd/*.service`.
+- Samba 4.19 (Ubuntu 24.04, best effort) refuses Kerberos (GSSAPI) binds
+  over LDAPS that carry TLS channel bindings but no SASL signing ("Strong
+  Auth Required: Sign or Seal are required"); Samba 4.20 and later accept
+  them. On a 4.19 DC add `ldap server require strong auth =
+  allow_sasl_over_tls` to `[global]` in `smb.conf` and restart
+  `samba-ad-dc` (binds still require TLS). Verified in the package lab.
+- The `conductor` package (amd64 or arm64), or for a source install the
+  binaries `conductor` and `conductor-helper` (`make build`, static, CGO off)
+  and `deploy/systemd/*.service`.
 - A TLS certificate for the web address users open, or a TLS reverse proxy
   on the same host.
 
-## 1. System user and directories
+## 0. Install the package
+
+The project's APT repository is not published yet; until it is, install the
+`.deb` of a release directly (`sudo apt install ./conductor_<version>_amd64.deb`,
+after checking it against the release's signed `SHA256SUMS`). Once the
+repository is published:
+
+```sh
+curl -fsSLo /tmp/samba-conductor.gpg https://apt.openbasalt.org/samba-conductor/samba-conductor-archive-keyring.gpg
+gpg --show-keys /tmp/samba-conductor.gpg     # compare with the fingerprint published by the project
+sudo install -m 0644 /tmp/samba-conductor.gpg /usr/share/keyrings/samba-conductor-archive-keyring.gpg
+printf 'Types: deb\nURIs: https://apt.openbasalt.org/samba-conductor\nSuites: stable\nComponents: main\nSigned-By: /usr/share/keyrings/samba-conductor-archive-keyring.gpg\n' |
+  sudo tee /etc/apt/sources.list.d/samba-conductor.sources
+sudo apt update
+sudo apt install conductor
+```
+
+The package contains `conductor` and `conductor-helper` (`/usr/bin`), their
+units (`/usr/lib/systemd/system`), man pages and
+`/etc/conductor/helper.toml` (a conffile, backups off). It creates the
+`conductor` system user, `/etc/conductor` (root:conductor 0750) with `tls/`
+(0750) and `credentials/` (root 0700), and `/var/lib/conductor`. **It does
+not enable or start anything.** Skip steps 1 and 3 and continue with step 2.
+
+## 1. System user and directories (source install only)
 
 ```sh
 sudo useradd --system --user-group --home-dir /var/lib/conductor --no-create-home --shell /usr/sbin/nologin conductor
@@ -41,12 +73,16 @@ The key is readable by the `conductor` group only. Behind a reverse proxy
 skip this step and use `setup --behind-proxy` (conductor then listens on
 `127.0.0.1:8080` and never serves plain HTTP on another address).
 
-## 3. systemd units
+## 3. systemd units (source install only)
 
 ```sh
 sudo install -m 0644 deploy/systemd/conductor.service deploy/systemd/conductor-helper.service /etc/systemd/system/
 sudo systemctl daemon-reload
 ```
+
+The package installs the same units in `/usr/lib/systemd/system` (with
+`/usr/bin` paths); change them with drop-ins (`systemctl edit conductor`),
+never by editing the packaged files.
 
 `conductor.service` runs as `conductor` with an empty capability set,
 `ProtectSystem=strict`, a private `/tmp`, `MemoryDenyWriteExecute` and a
@@ -137,8 +173,16 @@ Helpdesk and auditor accounts enroll on their first sign-in
   database owner; root would leave root-owned WAL files). Export:
   `sudo -u conductor conductor audit export > audit.jsonl`.
 - Restart = everyone signs in again (Kerberos tickets live only in memory).
-- Upgrade: replace the binaries, `systemctl restart conductor-helper
-  conductor`. Database migrations are embedded and applied at start.
+- Upgrade: with the package, `apt upgrade` (the running services are
+  restarted; `conductor.toml`, credentials and the database are kept; an
+  edited `helper.toml` is kept and the new default lands next to it as
+  `helper.toml.dpkg-dist`). From source: replace the binaries, `systemctl
+  restart conductor-helper conductor`. Database migrations are embedded and
+  applied at start.
+- Removal: `apt remove conductor` stops the services and keeps the
+  configuration and the database; `apt purge conductor` also deletes
+  `/etc/conductor` (with the TOTP key) and `/var/lib/conductor` (database,
+  audit log): back them up first. The `conductor` user is kept.
 - Backups: install conductor-backup (`../../conductor-backup/README.md`):
   encrypted domain backups that include conductor's database; keep
   `/etc/conductor/credentials/totp-key` offline with the operator's age key

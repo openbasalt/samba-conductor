@@ -1,0 +1,45 @@
+.TH CONDUCTOR-HELPER 8 "2026-10-03" "Samba Conductor" "System Administration"
+.SH NAME
+conductor-helper \- privileged local helper of Samba Conductor
+.SH SYNOPSIS
+.B conductor-helper
+.RI [ options ]
+.SH DESCRIPTION
+.B conductor-helper
+is the only part of Samba Conductor that runs as root. It listens on a Unix
+socket that only the
+.B conductor
+user may use (checked with SO_PEERCRED) and performs a small allowlist of
+typed samba-tool operations on the domain controller. When backups are
+enabled in
+.IR /etc/conductor/helper.toml ,
+it also serves conductor-backup on a second socket. It is started by
+.BR conductor-helper.service ,
+whose sandbox limits it to Samba's state directories and loopback.
+.SH OPTIONS
+.TP
+.BI \-socket " PATH"
+Socket for conductor (default
+.IR /run/conductor-helper/helper.sock ).
+.TP
+.BI \-allow-user " USER"
+The only user allowed to connect (default
+.BR conductor ).
+.TP
+.BI \-samba-tool " PATH"
+samba-tool binary (default
+.IR /usr/bin/samba-tool ).
+.TP
+.BI \-config " FILE"
+Optional configuration that enables backups (default
+.IR /etc/conductor/helper.toml ).
+.TP
+.BI \-backup-socket " PATH"
+Socket for conductor-backup (default
+.IR /run/conductor-helper/backup.sock ).
+.TP
+.B \-version
+Print the version.
+.SH SEE ALSO
+.BR conductor (8),
+.BR conductor-backup (8)

@@ -8,7 +8,7 @@ GOVULNCHECK := $(GOBIN)/govulncheck
 VERSION ?= $(shell git describe --always --dirty 2>/dev/null || echo dev)
 LDFLAGS := -s -w -X main.version=$(VERSION)
 
-.PHONY: build test check fmt vet staticcheck vulncheck tools e2e-lab
+.PHONY: build test check fmt vet staticcheck vulncheck tools e2e-lab package lintian
 
 build:
 	mkdir -p bin
@@ -40,3 +40,13 @@ tools:
 # server-home (planning/docs/lab.md, docs/usage-p1.md).
 e2e-lab: build
 	./e2e/run-lab.sh
+
+# Debian packages and their SBOMs in dist/ (amd64 and arm64 by default;
+# version from the git tag, VERSION= overrides). Layout and release process:
+# ../planning/docs/packaging.md.
+ARCHES ?= amd64 arm64
+package:
+	packaging/build.sh $(ARCHES)
+
+lintian:
+	packaging/lintian.sh dist/*.deb

@@ -136,6 +136,7 @@ P1: [`docs/usage-p1.md`](docs/usage-p1.md)). Recovery runbook:
 ## Documentation
 
 - [Install (Debian 13 / Ubuntu 26.04)](docs/install.md)
+- Packaging, releases, CI: `../planning/docs/packaging.md`; package files in [`packaging/`](packaging/)
 - [Configuration reference](docs/config.md)
 - [Restore runbook](docs/restore.md)
 - [P5b: the Google Workspace sync section](docs/usage-p5b.md)
@@ -146,6 +147,8 @@ P1: [`docs/usage-p1.md`](docs/usage-p1.md)). Recovery runbook:
 ```sh
 make check       # gofmt, go vet, staticcheck, govulncheck, go test -race
 make build       # bin/conductor, bin/conductor-helper (CGO off, static)
+make package     # dist/: the conductor .deb for amd64 and arm64, SBOMs
+make lintian     # Debian 13's lintian on dist/*.deb
 scripts/lab-deploy.sh [--snapshot]   # build on server-home, install on the lab's dc1
 e2e/run-lab.sh [--no-deploy] [desktop|mobile]   # Playwright suite on server-home
 ```

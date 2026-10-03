@@ -1,0 +1,16 @@
+# conductor-helper configuration (/etc/conductor/helper.toml, root:conductor 0640).
+# Optional. With backups off the helper serves conductor only; enabling them
+# (conductor-backup's README, "Install on a domain controller") also opens
+# backup.sock for the conductor-backup user. Unknown keys are rejected.
+
+[backup]
+enabled = false
+# peer_user = "conductor-backup"
+# account = "svc-conductor-backup"
+# password_credential = "backup-account"   # LoadCredential= in conductor-backup's drop-in
+# server = "127.0.0.1"                     # this DC, over loopback
+# dc = "dc1"
+# recipients_file = "/etc/conductor-backup/recipients.txt"
+# state_dir = "/var/lib/conductor-backup"
+# work_dir = "/tmp/conductor-backup"       # the helper's private /tmp (tmpfs)
+# conductor_db = "/var/lib/conductor/conductor.db"
