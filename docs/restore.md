@@ -78,15 +78,28 @@ values to copy from. Automating this is out of scope for Samba Conductor.
 
 ## 4. Full-forest recovery
 
-Measured in the lab (two DCs, 2,500 users, Samba 4.22, Debian 13): see
-`usage-p3.md`.
+Measured in the lab (two DCs, 2,518 users, Samba 4.22, Debian 13;
+`usage-p3.md`): 124 s from the loss to conductor working again, of which
+101 s were creating a VM and installing Samba; 23 s from a host with Samba
+installed (download, verification, decryption and restore 15 s, conductor
+back with its state 8 s); a second DC rejoined in 136 s. Users, groups,
+SIDs and GUIDs identical; every FSMO role on the restored DC; dbcheck
+clean; the audit chain continuous.
 
 1. **Isolate.** Make sure no old DC of the domain is running (power off,
    disconnect). If they were compromised, keep them off for good.
-2. **A fresh host** with the old DC's name and address (clients, DNS
-   records and certificates keep working), Debian 13 or Ubuntu 26.04, the
-   distribution's `samba-ad-dc` packages installed, its services stopped
-   and masked, time in sync.
+2. **A fresh host with a new DC name** (e.g. `dc3`): `samba-tool domain
+   backup restore` creates the restored DC's account before it removes
+   every old DC from the database, so an old DC's name cannot be reused
+   for the restored one (it is free again for the DCs you join later).
+   Debian 13 or Ubuntu 26.04, the distribution's `samba-ad-dc` packages
+   installed, its services stopped and masked, time in sync, and a TLS
+   certificate for the new name from your CA (LDAPS clients, conductor
+   included, verify the host name). Clients find DCs through DNS SRV
+   records, which the restored DC registers for itself; anything that
+   names a DC explicitly must be updated. Serving conductor under a stable
+   service name (e.g. `conductor.example.com`) keeps its URL and WebAuthn
+   relying party unchanged through such a change.
 3. **conductor-backup** on it (binary only) with a minimal configuration,
    e.g. `/root/restore.toml`:
 
@@ -110,15 +123,18 @@ Measured in the lab (two DCs, 2,500 users, Samba 4.22, Debian 13): see
 
    ```sh
    conductor-backup restore latest --config /root/restore.toml \
-     --identity /root/operator-age.key --target /var/lib/samba-restored
+     --identity /root/operator-age.key --target /var/lib/samba-restored \
+     --newservername DC3
    ```
 
    It downloads the archive, checks its SHA-256 against the signed
    manifest, decrypts it, runs `samba-tool domain backup restore` (original
    SIDs and GUIDs; every FSMO role seized; the old DCs removed from the
-   restored database; krbtgt renewed twice), puts the DC's TLS files back,
-   shreds the plaintext archive and prints the next steps. Add
-   `--with-conductor-state` once conductor is installed (step 7).
+   restored database; krbtgt renewed twice), puts the old DC's TLS files
+   back (replace them with the new name's certificate in
+   `/var/lib/samba-restored/samba/private/tls/`), shreds the plaintext
+   archive and prints the next steps. Add `--with-conductor-state` once
+   conductor is installed (step 7).
 5. **Start the DC** with the restored configuration (the printed steps):
    the restored `smb.conf` points at `/var/lib/samba-restored/samba/…`;
    link it to `/etc/samba/smb.conf`, copy its `krb5.conf` to
@@ -131,8 +147,9 @@ Measured in the lab (two DCs, 2,500 users, Samba 4.22, Debian 13): see
    --attributes=objectSid`) against what you know, the user count.
 7. **conductor**: install it (`install.md`), put back
    `/etc/conductor/conductor.toml` from
-   `/var/lib/samba-restored/files/etc/conductor/conductor.toml`, the TOTP
-   key from where you keep it, then
+   `/var/lib/samba-restored/files/etc/conductor/conductor.toml` with its
+   `[domain] preferred`/`dcs` (and `[webauthn] rp_id` if it named the old
+   DC) changed to the new DC, the TOTP key from where you keep it, then
    `conductor-backup restore … --with-conductor-state` (or copy
    `/var/lib/samba-restored/conductor/conductor.db` to
    `/var/lib/conductor/conductor.db`, owner `conductor`, mode 0600) and
@@ -167,7 +184,7 @@ sha256sum 20261003T020000Z-dc1.tar.age        # compare with the manifest or you
 age -d -i operator-age.key 20261003T020000Z-dc1.tar.age | tar -x -C /root/restore-work
 # conductor-backup.json describes the archive; samba/ holds the samba-tool file
 samba-tool domain backup restore --backup-file=/root/restore-work/samba/samba-backup-….tar.bz2 \
-  --newservername=DC1 --targetdir=/var/lib/samba-restored/samba
+  --newservername=DC3 --targetdir=/var/lib/samba-restored/samba
 shred -u /root/restore-work/samba/*.tar.bz2
 ```
 

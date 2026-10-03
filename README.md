@@ -3,18 +3,22 @@
 Web administrator and self-service portal for Samba Active Directory
 (`conductor`), plus the privileged local helper (`conductor-helper`). Part of
 Samba Conductor v2; design in `../planning/docs/architecture.md`, phase specs
-in `../planning/docs/p1-spec.md` and `../planning/docs/p2-spec.md`.
+in `../planning/docs/p1-spec.md`, `p2-spec.md` and `p3-spec.md`.
 
-Status: **P2 complete** (2026-10-02): DNS, Group Policy links, password
-policies, lockouts across DCs, account health, bulk operations and
-security keys, on top of P1. Validated end to end in the two-DC
-server-home lab, desktop and mobile: [`docs/usage-p2.md`](docs/usage-p2.md)
-(P1: [`docs/usage-p1.md`](docs/usage-p1.md)).
+Status: **P3 complete** (2026-10-03): encrypted domain backups, restore and
+restore drills (with `../conductor-backup`), on top of P2 (DNS, Group Policy
+links, password policies, lockouts across DCs, account health, bulk
+operations, security keys) and P1. Validated end to end in the two-DC
+server-home lab, desktop and mobile, including a full-forest restore:
+[`docs/usage-p3.md`](docs/usage-p3.md) (P2: [`docs/usage-p2.md`](docs/usage-p2.md),
+P1: [`docs/usage-p1.md`](docs/usage-p1.md)). Recovery runbook:
+[`docs/restore.md`](docs/restore.md).
 
 | | |
 |---|---|
 | ![Dashboard](docs/screenshots/desktop/03-dashboard.png) | ![Preview with re-authentication](docs/screenshots/desktop/04-preview-reauth.png) |
 | ![Users on a phone](docs/screenshots/mobile/03-users.png) | ![Sign-in, pt-BR, dark](docs/screenshots/desktop/01-signin-pt-br.png) |
+| ![Backups](docs/screenshots/desktop/15-backups.png) | ![Backup banner](docs/screenshots/desktop/16-dashboard-backup-banner.png) |
 
 ## What it does
 
@@ -72,15 +76,26 @@ server-home lab, desktop and mobile: [`docs/usage-p2.md`](docs/usage-p2.md)
 - **Security keys** (P2): WebAuthn keys and platform authenticators next to
   TOTP (register, name, remove; sign-in and re-authentication); optionally
   mandatory for administrators.
+- **Backups** (P3): the Backups page (administrators; auditors read-only)
+  shows conductor-backup's encrypted backups per destination with their
+  verification, the restore drills with their checks and measured restore
+  time, RPO and RTO, the policy, destinations and recipients'
+  fingerprints (never a secret); "Back up now", "Run drill now" and policy
+  changes are previewed and need re-authentication. A dashboard banner
+  warns when the last good backup is too old, a backup or drill failed, or
+  conductor-backup stopped running. Results are recorded in conductor's
+  state and audit log.
 - **Self-service**: profile, edit of the attributes Samba lets users write
   on themselves (phones, office, address, web page), password change,
   2FA, sessions and "sign out everywhere".
 - **Audit log**: append-only SQLite table, hash-chained; viewer with
   filters, JSON lines export, `conductor audit verify`.
 - **conductor-helper**: the only root process, on a Unix socket only the
-  `conductor` user may use (SO_PEERCRED); P1 serves read-only domain
-  information (functional levels, FSMO roles, DCs), every call logged and
-  audited.
+  `conductor` user may use (SO_PEERCRED): read-only domain information
+  (functional levels, FSMO roles, DCs) and, with backups configured
+  (`/etc/conductor/helper.toml`), the backup status, requests and policy;
+  a second socket admits only conductor-backup, for the online backup it
+  encrypts before writing anything. Every call logged and audited.
 
 ## Security notes
 
@@ -109,7 +124,8 @@ server-home lab, desktop and mobile: [`docs/usage-p2.md`](docs/usage-p2.md)
 
 - [Install (Debian 13 / Ubuntu 26.04)](docs/install.md)
 - [Configuration reference](docs/config.md)
-- [P2 lab run (e2e transcript)](docs/usage-p2.md), [P1 lab run](docs/usage-p1.md) and [screenshots](docs/screenshots/)
+- [Restore runbook](docs/restore.md)
+- [P3 lab run (backups, drills, restore exercise)](docs/usage-p3.md), [P2 lab run](docs/usage-p2.md), [P1 lab run](docs/usage-p1.md) and [screenshots](docs/screenshots/)
 
 ## Development
 
@@ -132,7 +148,7 @@ family has a public home. Layout:
 | `internal/directory` | sign-in and connections through `ad` |
 | `internal/totp`, `internal/secret` | RFC 6238, recovery codes, AES-GCM sealing |
 | `internal/i18n` | message catalogs (`en`, `pt-BR`) |
-| `internal/helperd` | helper socket server |
+| `internal/helperd` | helper socket server; backup operations (`backup.go`) |
 | `deploy/systemd` | units |
 | `e2e` | Playwright suite |
 
