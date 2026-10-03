@@ -10,10 +10,10 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/samba-conductor/ad"
-	"github.com/samba-conductor/ad/escape"
-	"github.com/samba-conductor/ad/sambatool"
-	"github.com/samba-conductor/conductor/internal/store"
+	ad "github.com/openbasalt/samba-conductor-ad"
+	"github.com/openbasalt/samba-conductor-ad/escape"
+	"github.com/openbasalt/samba-conductor-ad/sambatool"
+	"github.com/openbasalt/samba-conductor/internal/store"
 )
 
 // Group Policy: GPOs and where they are linked. Links, link flags, link

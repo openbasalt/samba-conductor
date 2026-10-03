@@ -10,9 +10,9 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/samba-conductor/conductor-files/filesapi"
-	"github.com/samba-conductor/conductor/internal/store"
-	"github.com/samba-conductor/conductor/internal/totp"
+	"github.com/openbasalt/samba-conductor-files/filesapi"
+	"github.com/openbasalt/samba-conductor/internal/store"
+	"github.com/openbasalt/samba-conductor/internal/totp"
 )
 
 const (

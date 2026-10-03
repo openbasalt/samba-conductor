@@ -12,7 +12,7 @@ of P3 (encrypted domain backups, restore and restore drills with
 `../conductor-backup`), P2 (DNS, Group Policy
 links, password policies, lockouts across DCs, account health, bulk
 operations, security keys) and P1. Validated end to end in the two-DC
-server-home lab, desktop and mobile, including a full-forest restore:
+lab, desktop and mobile, including a full-forest restore:
 [`docs/usage-p3.md`](docs/usage-p3.md) (P2: [`docs/usage-p2.md`](docs/usage-p2.md),
 P1: [`docs/usage-p1.md`](docs/usage-p1.md)). Recovery runbook:
 [`docs/restore.md`](docs/restore.md).
@@ -149,13 +149,15 @@ make check       # gofmt, go vet, staticcheck, govulncheck, go test -race
 make build       # bin/conductor, bin/conductor-helper (CGO off, static)
 make package     # dist/: the conductor .deb for amd64 and arm64, SBOMs
 make lintian     # Debian 13's lintian on dist/*.deb
-scripts/lab-deploy.sh [--snapshot]   # build on server-home, install on the lab's dc1
-e2e/run-lab.sh [--no-deploy] [desktop|mobile]   # Playwright suite on server-home
+scripts/lab-deploy.sh [--snapshot]   # build on the lab host, install on the lab's dc1
+e2e/run-lab.sh [--no-deploy] [desktop|mobile]   # Playwright suite on the lab host
 ```
 
-The module uses `replace github.com/samba-conductor/ad => ../ad` (and
-`../conductor-sync` for the sync API protocol, package `syncapi`) until the
-family has a public home. Layout:
+The module is `github.com/openbasalt/samba-conductor`. It imports the `ad`
+library (`github.com/openbasalt/samba-conductor-ad`), conductor-sync's API
+protocol (package `syncapi`) and conductor-files' agent protocol (package
+`filesapi`) at the versions `go.mod` pins; a Go workspace builds against
+local copies instead ([CONTRIBUTING.md](CONTRIBUTING.md)). Layout:
 
 | Path | What |
 |---|---|

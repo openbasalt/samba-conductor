@@ -6,13 +6,13 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/samba-conductor/ad"
-	"github.com/samba-conductor/ad/helper"
-	"github.com/samba-conductor/ad/sambatool"
-	"github.com/samba-conductor/conductor-sync/syncapi"
-	"github.com/samba-conductor/conductor/internal/directory"
-	"github.com/samba-conductor/conductor/internal/store"
-	"github.com/samba-conductor/conductor/internal/totp"
+	ad "github.com/openbasalt/samba-conductor-ad"
+	"github.com/openbasalt/samba-conductor-ad/helper"
+	"github.com/openbasalt/samba-conductor-ad/sambatool"
+	"github.com/openbasalt/samba-conductor-sync/syncapi"
+	"github.com/openbasalt/samba-conductor/internal/directory"
+	"github.com/openbasalt/samba-conductor/internal/store"
+	"github.com/openbasalt/samba-conductor/internal/totp"
 )
 
 // pendingTTL bounds how long a preview may wait for confirmation.

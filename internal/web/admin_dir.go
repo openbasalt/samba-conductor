@@ -6,8 +6,8 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/samba-conductor/ad"
-	"github.com/samba-conductor/ad/escape"
+	ad "github.com/openbasalt/samba-conductor-ad"
+	"github.com/openbasalt/samba-conductor-ad/escape"
 )
 
 // ---- OUs ----

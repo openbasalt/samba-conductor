@@ -13,9 +13,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/samba-conductor/ad"
-	"github.com/samba-conductor/ad/escape"
-	"github.com/samba-conductor/conductor/internal/i18n"
+	ad "github.com/openbasalt/samba-conductor-ad"
+	"github.com/openbasalt/samba-conductor-ad/escape"
+	"github.com/openbasalt/samba-conductor/internal/i18n"
 )
 
 //go:embed templates/*.html

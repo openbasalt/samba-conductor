@@ -18,15 +18,15 @@ import (
 	"time"
 
 	"github.com/go-webauthn/webauthn/webauthn"
-	"github.com/samba-conductor/ad"
-	"github.com/samba-conductor/ad/helper"
-	"github.com/samba-conductor/ad/sid"
-	"github.com/samba-conductor/conductor/internal/config"
-	"github.com/samba-conductor/conductor/internal/directory"
-	"github.com/samba-conductor/conductor/internal/i18n"
-	"github.com/samba-conductor/conductor/internal/ratelimit"
-	"github.com/samba-conductor/conductor/internal/secret"
-	"github.com/samba-conductor/conductor/internal/store"
+	ad "github.com/openbasalt/samba-conductor-ad"
+	"github.com/openbasalt/samba-conductor-ad/helper"
+	"github.com/openbasalt/samba-conductor-ad/sid"
+	"github.com/openbasalt/samba-conductor/internal/config"
+	"github.com/openbasalt/samba-conductor/internal/directory"
+	"github.com/openbasalt/samba-conductor/internal/i18n"
+	"github.com/openbasalt/samba-conductor/internal/ratelimit"
+	"github.com/openbasalt/samba-conductor/internal/secret"
+	"github.com/openbasalt/samba-conductor/internal/store"
 )
 
 // Backend is the directory as conductor uses it (directory.Directory in

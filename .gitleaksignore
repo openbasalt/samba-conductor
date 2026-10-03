@@ -1,0 +1,4 @@
+# gitleaks findings reviewed and accepted (secret scan, planning/docs/oss-readiness.md).
+# RFC 6238 test vector: the base32 form of the published secret
+# "12345678901234567890" in a TOTP URI test, not a credential.
+3006c3c0e5663ea9b5b5c53e91db885c4c5d22ac:internal/totp/totp_test.go:generic-api-key:45

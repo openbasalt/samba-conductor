@@ -6,10 +6,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/samba-conductor/ad"
-	"github.com/samba-conductor/ad/escape"
-	"github.com/samba-conductor/ad/helper"
-	"github.com/samba-conductor/conductor/internal/store"
+	ad "github.com/openbasalt/samba-conductor-ad"
+	"github.com/openbasalt/samba-conductor-ad/escape"
+	"github.com/openbasalt/samba-conductor-ad/helper"
+	"github.com/openbasalt/samba-conductor/internal/store"
 )
 
 // ---- dashboard ----

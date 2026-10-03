@@ -3,7 +3,7 @@ import * as crypto from 'node:crypto';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 
-// Secrets come from the environment set by run-lab.sh (read on server-home
+// Secrets come from the environment set by run-lab.sh (read on the lab host
 // from the lab secrets file); they are never printed.
 export const env = {
   userPassword: required('E2E_USER_PASSWORD'),
@@ -115,7 +115,7 @@ export async function shot(page: Page, info: TestInfo, name: string) {
 }
 
 // gotoStable navigates, retrying once when Chromium (host network on
-// server-home) reports a host interface change (another Docker stack
+// the lab host) reports a host interface change (another Docker stack
 // creating or removing a network) during the navigation.
 export async function gotoStable(page: Page, url: string) {
   try {

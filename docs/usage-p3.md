@@ -1,19 +1,19 @@
 # P3 lab run: encrypted backups, restore drills, a full-forest restore
 
-Run on 2026-10-03 in the server-home lab (`../../planning/docs/lab.md`):
+Run on 2026-10-03 in the lab (`../../planning/docs/lab.md`):
 two Samba 4.22 DCs on Debian 13 (`lab.conductor.test`, 2,517 users, P2
 seed), conductor and conductor-helper on dc1, conductor-backup on dc1, a
 drill host VM on its own network, MinIO and mailpit in containers. Builds
 from the committed code of `ad`, `conductor` and `conductor-backup`. No
 secret appears below; every value that is one stayed in
-`~/conductor-lab/` on server-home.
+`~/conductor-lab/` on the lab host.
 
 Spec: `../../planning/docs/p3-spec.md`. Choices: `../../planning/docs/decisions.md` (P3).
 
 ## 1. Setting it up
 
 ```sh
-scripts/lab-deploy.sh --snapshot      # build on server-home, planning/lab/p3-snapshot.sh
+scripts/lab-deploy.sh --snapshot      # build on the lab host, planning/lab/p3-snapshot.sh
 ```
 
 `p3-snapshot.sh` follows the READMEs: `backup-infra.sh` (drill network,

@@ -26,8 +26,8 @@ import (
 	"time"
 
 	"filippo.io/age"
-	"github.com/samba-conductor/ad/helper"
-	"github.com/samba-conductor/ad/sambatool"
+	"github.com/openbasalt/samba-conductor-ad/helper"
+	"github.com/openbasalt/samba-conductor-ad/sambatool"
 
 	_ "modernc.org/sqlite" // pure-Go SQLite for the conductor state snapshot
 )

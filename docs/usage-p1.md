@@ -1,16 +1,16 @@
 # P1 lab run
 
-Transcript of `e2e/run-lab.sh` against the server-home lab
+Transcript of `e2e/run-lab.sh` against the lab
 (`../../planning/docs/lab.md`), run on 2026-10-02 from commit `1eef13d`. No
 secrets appear: passwords reach the Playwright container only through a
-temporary 0600 env file on server-home, the tests never log them, and this
+temporary 0600 env file on the lab host, the tests never log them, and this
 transcript was checked against the lab's secrets file before committing.
 Screenshots mask TOTP secrets, QR codes and recovery codes (the lab's 2FA
 enrollments are destroyed by the next `reset.sh` anyway).
 
 What happens (spec `planning/docs/p1-spec.md` §4):
 
-1. `scripts/lab-deploy.sh --snapshot`: rsync to server-home, build both
+1. `scripts/lab-deploy.sh --snapshot`: rsync to the lab host, build both
    binaries there (CGO off), reset the lab to `seeded`, install on dc1 with
    `planning/lab/conductor-install.sh` exactly as [install.md](install.md)
    describes (system user, directories, units, `conductor setup
@@ -85,15 +85,15 @@ tests (`go test ./...`, same commit; `make check` also runs them with the race
 detector, plus gofmt, go vet, staticcheck and govulncheck, all clean):
 
 ```text
-ok  	github.com/samba-conductor/conductor/internal/config	0.004s
-ok  	github.com/samba-conductor/conductor/internal/directory	0.003s
-ok  	github.com/samba-conductor/conductor/internal/helperd	0.008s
-ok  	github.com/samba-conductor/conductor/internal/i18n	0.002s
-ok  	github.com/samba-conductor/conductor/internal/ratelimit	0.002s
-ok  	github.com/samba-conductor/conductor/internal/secret	0.002s
-ok  	github.com/samba-conductor/conductor/internal/store	0.007s
-ok  	github.com/samba-conductor/conductor/internal/totp	0.001s
-ok  	github.com/samba-conductor/conductor/internal/web	0.150s
+ok  	github.com/openbasalt/samba-conductor/internal/config	0.004s
+ok  	github.com/openbasalt/samba-conductor/internal/directory	0.003s
+ok  	github.com/openbasalt/samba-conductor/internal/helperd	0.008s
+ok  	github.com/openbasalt/samba-conductor/internal/i18n	0.002s
+ok  	github.com/openbasalt/samba-conductor/internal/ratelimit	0.002s
+ok  	github.com/openbasalt/samba-conductor/internal/secret	0.002s
+ok  	github.com/openbasalt/samba-conductor/internal/store	0.007s
+ok  	github.com/openbasalt/samba-conductor/internal/totp	0.001s
+ok  	github.com/openbasalt/samba-conductor/internal/web	0.150s
 ```
 
 Security tests in `internal/web`: `TestRouteGuards` walks every route of

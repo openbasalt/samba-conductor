@@ -10,10 +10,10 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/samba-conductor/ad"
-	"github.com/samba-conductor/ad/escape"
-	"github.com/samba-conductor/ad/sid"
-	"github.com/samba-conductor/conductor-sync/syncapi"
+	ad "github.com/openbasalt/samba-conductor-ad"
+	"github.com/openbasalt/samba-conductor-ad/escape"
+	"github.com/openbasalt/samba-conductor-ad/sid"
+	"github.com/openbasalt/samba-conductor-sync/syncapi"
 )
 
 // The setup wizard edits a draft of the sync settings held in the

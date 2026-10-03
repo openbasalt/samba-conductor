@@ -15,12 +15,12 @@ import (
 	"time"
 
 	"github.com/go-ldap/ldap/v3"
-	"github.com/samba-conductor/ad"
-	"github.com/samba-conductor/ad/sid"
-	"github.com/samba-conductor/conductor/internal/config"
-	"github.com/samba-conductor/conductor/internal/directory"
-	"github.com/samba-conductor/conductor/internal/secret"
-	"github.com/samba-conductor/conductor/internal/store"
+	ad "github.com/openbasalt/samba-conductor-ad"
+	"github.com/openbasalt/samba-conductor-ad/sid"
+	"github.com/openbasalt/samba-conductor/internal/config"
+	"github.com/openbasalt/samba-conductor/internal/directory"
+	"github.com/openbasalt/samba-conductor/internal/secret"
+	"github.com/openbasalt/samba-conductor/internal/store"
 )
 
 const (

@@ -17,9 +17,9 @@ import (
 	"testing"
 
 	"github.com/fxamacker/cbor/v2"
-	"github.com/samba-conductor/ad"
-	"github.com/samba-conductor/conductor/internal/config"
-	"github.com/samba-conductor/conductor/internal/store"
+	ad "github.com/openbasalt/samba-conductor-ad"
+	"github.com/openbasalt/samba-conductor/internal/config"
+	"github.com/openbasalt/samba-conductor/internal/store"
 )
 
 func withWebAuthn(c *config.Config) {

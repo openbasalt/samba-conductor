@@ -10,11 +10,11 @@ import (
 	"strings"
 
 	"github.com/go-ldap/ldap/v3"
-	"github.com/samba-conductor/ad"
-	"github.com/samba-conductor/ad/escape"
-	"github.com/samba-conductor/ad/sid"
-	"github.com/samba-conductor/conductor-sync/syncapi"
-	"github.com/samba-conductor/conductor/internal/directory"
+	ad "github.com/openbasalt/samba-conductor-ad"
+	"github.com/openbasalt/samba-conductor-ad/escape"
+	"github.com/openbasalt/samba-conductor-ad/sid"
+	"github.com/openbasalt/samba-conductor-sync/syncapi"
+	"github.com/openbasalt/samba-conductor/internal/directory"
 )
 
 // Object class filters (the ad package keeps its own unexported).

@@ -17,8 +17,8 @@ import (
 	"strconv"
 	"syscall"
 
-	"github.com/samba-conductor/ad/helper"
-	"github.com/samba-conductor/conductor/internal/helperd"
+	"github.com/openbasalt/samba-conductor-ad/helper"
+	"github.com/openbasalt/samba-conductor/internal/helperd"
 )
 
 var version = "dev"

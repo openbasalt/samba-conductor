@@ -13,11 +13,11 @@ import (
 	"sync"
 	"time"
 
-	"github.com/samba-conductor/ad"
-	"github.com/samba-conductor/ad/escape"
-	"github.com/samba-conductor/ad/sid"
-	"github.com/samba-conductor/conductor/internal/config"
-	"github.com/samba-conductor/conductor/internal/secret"
+	ad "github.com/openbasalt/samba-conductor-ad"
+	"github.com/openbasalt/samba-conductor-ad/escape"
+	"github.com/openbasalt/samba-conductor-ad/sid"
+	"github.com/openbasalt/samba-conductor/internal/config"
+	"github.com/openbasalt/samba-conductor/internal/secret"
 )
 
 // Directory reaches the domain.

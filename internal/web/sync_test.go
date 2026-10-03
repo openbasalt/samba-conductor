@@ -14,9 +14,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/samba-conductor/conductor-sync/syncapi"
-	"github.com/samba-conductor/conductor/internal/store"
-	"github.com/samba-conductor/conductor/internal/totp"
+	"github.com/openbasalt/samba-conductor-sync/syncapi"
+	"github.com/openbasalt/samba-conductor/internal/store"
+	"github.com/openbasalt/samba-conductor/internal/totp"
 )
 
 // fakeSync answers conductor-sync's management API from memory.

@@ -3,7 +3,7 @@ package web
 import (
 	"slices"
 
-	"github.com/samba-conductor/ad/sid"
+	"github.com/openbasalt/samba-conductor-ad/sid"
 )
 
 // Perm is what a route requires.

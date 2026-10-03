@@ -1,18 +1,10 @@
-module github.com/samba-conductor/conductor
+module github.com/openbasalt/samba-conductor
 
 go 1.27.0
 
-// The ad library is local only until the family's GitHub home is decided
-// (planning/docs/decisions.md); the family go.work resolves it too.
-replace github.com/samba-conductor/ad => ../ad
-
-// conductor-sync's management API protocol (package syncapi), local for the
-// same reason.
-replace github.com/samba-conductor/conductor-sync => ../conductor-sync
-
-// conductor-files' agent protocol (package filesapi), local for the same
-// reason.
-replace github.com/samba-conductor/conductor-files => ../conductor-files
+// Sibling modules of the Samba Conductor family are pinned by commit
+// (pseudo-versions until they are tagged). A go.work in the family
+// directory overrides the pins for local development (CONTRIBUTING.md).
 
 require (
 	filippo.io/age v1.3.2
@@ -20,9 +12,9 @@ require (
 	github.com/fxamacker/cbor/v2 v2.9.4
 	github.com/go-ldap/ldap/v3 v3.4.14
 	github.com/go-webauthn/webauthn v0.18.2
-	github.com/samba-conductor/ad v0.0.0
-	github.com/samba-conductor/conductor-files v0.0.0
-	github.com/samba-conductor/conductor-sync v0.0.0
+	github.com/openbasalt/samba-conductor-ad v0.0.0-20261003121404-baa3a887013c
+	github.com/openbasalt/samba-conductor-files v0.0.0-20261003121543-ae09c0b6bd60
+	github.com/openbasalt/samba-conductor-sync v0.0.0-20261003121631-ce69002f39c9
 	golang.org/x/term v0.46.0
 	modernc.org/sqlite v1.60.1
 	rsc.io/qr v0.2.0

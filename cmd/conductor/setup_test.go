@@ -5,7 +5,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/samba-conductor/conductor/internal/config"
+	"github.com/openbasalt/samba-conductor/internal/config"
 )
 
 // TestRenderedConfigLoads: what setup writes is a valid configuration,

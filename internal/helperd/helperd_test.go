@@ -11,7 +11,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/samba-conductor/ad/helper"
+	"github.com/openbasalt/samba-conductor-ad/helper"
 )
 
 // fakeSambaTool prints canned output per subcommand.

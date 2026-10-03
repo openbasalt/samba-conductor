@@ -11,8 +11,8 @@ import (
 	"strings"
 	"unicode/utf8"
 
-	"github.com/samba-conductor/ad"
-	"github.com/samba-conductor/ad/escape"
+	ad "github.com/openbasalt/samba-conductor-ad"
+	"github.com/openbasalt/samba-conductor-ad/escape"
 )
 
 // CSV templates. The header must match exactly (same names, same order):

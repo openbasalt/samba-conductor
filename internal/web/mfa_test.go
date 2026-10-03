@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/samba-conductor/conductor/internal/totp"
+	"github.com/openbasalt/samba-conductor/internal/totp"
 )
 
 var secretRE = regexp.MustCompile(`data-e2e="enroll-text-secret">([A-Z2-7]+)<`)

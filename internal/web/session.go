@@ -12,9 +12,9 @@ import (
 	"time"
 
 	"github.com/go-webauthn/webauthn/webauthn"
-	"github.com/samba-conductor/ad/sid"
-	"github.com/samba-conductor/conductor/internal/directory"
-	"github.com/samba-conductor/conductor/internal/store"
+	"github.com/openbasalt/samba-conductor-ad/sid"
+	"github.com/openbasalt/samba-conductor/internal/directory"
+	"github.com/openbasalt/samba-conductor/internal/store"
 )
 
 // Cookie names. The __Host- prefix makes the browser refuse them unless

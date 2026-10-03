@@ -24,12 +24,12 @@ import (
 	"text/template"
 	"time"
 
-	"github.com/samba-conductor/ad"
-	"github.com/samba-conductor/ad/sid"
-	"github.com/samba-conductor/conductor/internal/config"
-	"github.com/samba-conductor/conductor/internal/secret"
-	"github.com/samba-conductor/conductor/internal/store"
-	"github.com/samba-conductor/conductor/internal/web"
+	ad "github.com/openbasalt/samba-conductor-ad"
+	"github.com/openbasalt/samba-conductor-ad/sid"
+	"github.com/openbasalt/samba-conductor/internal/config"
+	"github.com/openbasalt/samba-conductor/internal/secret"
+	"github.com/openbasalt/samba-conductor/internal/store"
+	"github.com/openbasalt/samba-conductor/internal/web"
 	"golang.org/x/term"
 )
 

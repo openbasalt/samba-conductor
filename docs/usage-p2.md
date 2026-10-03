@@ -1,9 +1,9 @@
 # P2 lab run
 
-Transcript of `e2e/run-lab.sh` against the server-home lab
+Transcript of `e2e/run-lab.sh` against the lab
 (`../../planning/docs/lab.md`), run on 2026-10-02 from commit `b766779`. No
 secrets appear: passwords reach the Playwright container only through a
-temporary 0600 env file on server-home, the tests never log them, and this
+temporary 0600 env file on the lab host, the tests never log them, and this
 transcript was checked against the lab's secrets file before committing.
 Screenshots mask TOTP secrets, QR codes and recovery codes; the generated
 passwords shown in `11-job-passwords` and `12-bulk-result` belong to
@@ -11,7 +11,7 @@ throwaway lab accounts that the next `reset.sh` destroys.
 
 What happens (spec `planning/docs/p2-spec.md` §7):
 
-1. `scripts/lab-deploy.sh --snapshot`: rsync to server-home, build both
+1. `scripts/lab-deploy.sh --snapshot`: rsync to the lab host, build both
    binaries there, reset the lab to `seeded` (the P2 seed: DNS zones
    `apps.conductor.test` and `0.93.10.in-addr.arpa`, four lab GPOs with
    links and a blocked OU, the 20-day PSO `lab-staff-20d`, accounts

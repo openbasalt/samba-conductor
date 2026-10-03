@@ -11,7 +11,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/samba-conductor/ad"
+	ad "github.com/openbasalt/samba-conductor-ad"
 )
 
 // DNS management: AD-integrated zones and records, read and written over

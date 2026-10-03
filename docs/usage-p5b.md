@@ -82,7 +82,7 @@ manual apply (`usage-p5.md` §6).
 
 ## Lab run (2026-10-03)
 
-In the server-home lab (`../../planning/docs/lab.md`, snapshot
+In the lab (`../../planning/docs/lab.md`, snapshot
 `conductor-p5b`: two Samba 4.22 DCs, 2,517 users; conductor-sync on dc1
 behind its socket-activated API; the fake Google Directory API on dc1's
 loopback, no real Google involved). `e2e/run-lab.sh` runs the whole

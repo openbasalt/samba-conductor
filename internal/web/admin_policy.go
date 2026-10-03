@@ -7,8 +7,8 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/samba-conductor/ad"
-	"github.com/samba-conductor/ad/sid"
+	ad "github.com/openbasalt/samba-conductor-ad"
+	"github.com/openbasalt/samba-conductor-ad/sid"
 )
 
 // Password and lockout policy: the domain's default policy and the

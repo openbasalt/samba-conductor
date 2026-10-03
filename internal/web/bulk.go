@@ -14,10 +14,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/samba-conductor/ad"
-	"github.com/samba-conductor/ad/sid"
-	"github.com/samba-conductor/conductor/internal/directory"
-	"github.com/samba-conductor/conductor/internal/store"
+	ad "github.com/openbasalt/samba-conductor-ad"
+	"github.com/openbasalt/samba-conductor-ad/sid"
+	"github.com/openbasalt/samba-conductor/internal/directory"
+	"github.com/openbasalt/samba-conductor/internal/store"
 )
 
 // Bulk jobs: a CSV import or an action on selected accounts becomes a job.

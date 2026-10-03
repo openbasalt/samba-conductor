@@ -9,10 +9,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/samba-conductor/ad/helper"
-	"github.com/samba-conductor/ad/sid"
-	"github.com/samba-conductor/conductor/internal/store"
-	"github.com/samba-conductor/conductor/internal/totp"
+	"github.com/openbasalt/samba-conductor-ad/helper"
+	"github.com/openbasalt/samba-conductor-ad/sid"
+	"github.com/openbasalt/samba-conductor/internal/store"
+	"github.com/openbasalt/samba-conductor/internal/totp"
 )
 
 // fakeHelper answers the backup operations from memory and records calls.

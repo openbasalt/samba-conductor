@@ -6,7 +6,7 @@ import type { Page, TestInfo } from '@playwright/test';
 // File servers (P2b). The lab snapshot conductor-p2b has fs1, a Samba
 // member file server joined to the domain with conductor-files installed
 // and not enrolled; run-lab.sh makes a one-time enrollment code on fs1
-// (E2E_FILES_CODE) and runs an SMB watcher on server-home: a test writes a
+// (E2E_FILES_CODE) and runs an SMB watcher on the lab host: a test writes a
 // request file into .auth/ and the watcher answers with smbclient run from
 // dc2 against fs1 as a lab user (passwords never reach the browser).
 const reauth = (info: TestInfo) => ({ info, user: 'lab.admin', password: env.adminPassword });

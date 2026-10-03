@@ -8,9 +8,9 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/samba-conductor/ad"
-	"github.com/samba-conductor/conductor-files/filesapi"
-	"github.com/samba-conductor/conductor/internal/store"
+	ad "github.com/openbasalt/samba-conductor-ad"
+	"github.com/openbasalt/samba-conductor-files/filesapi"
+	"github.com/openbasalt/samba-conductor/internal/store"
 )
 
 // The share wizard edits a draft of a share spec held in the session (no

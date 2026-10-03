@@ -1,6 +1,6 @@
 import { defineConfig, devices } from '@playwright/test';
 
-// The suite runs on server-home in the official Playwright container
+// The suite runs on the lab host in the official Playwright container
 // (host network), against conductor installed on the lab's dc1.
 // e2e/run-lab.sh sets the environment; see docs/usage-p1.md.
 const host = 'dc1.lab.conductor.test';

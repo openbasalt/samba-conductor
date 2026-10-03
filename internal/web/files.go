@@ -12,8 +12,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/samba-conductor/conductor-files/filesapi"
-	"github.com/samba-conductor/conductor/internal/store"
+	"github.com/openbasalt/samba-conductor-files/filesapi"
+	"github.com/openbasalt/samba-conductor/internal/store"
 )
 
 // File servers (P2b). conductor never writes to a file server itself: the

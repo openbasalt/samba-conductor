@@ -15,7 +15,7 @@ import (
 	"time"
 
 	"filippo.io/age"
-	"github.com/samba-conductor/ad/helper"
+	"github.com/openbasalt/samba-conductor-ad/helper"
 )
 
 // fakeBackupTool answers `domain backup online` (checking the password it

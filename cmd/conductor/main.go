@@ -25,14 +25,14 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/samba-conductor/ad/helper"
-	"github.com/samba-conductor/conductor-files/filesapi"
-	"github.com/samba-conductor/conductor-sync/syncapi"
-	"github.com/samba-conductor/conductor/internal/config"
-	"github.com/samba-conductor/conductor/internal/directory"
-	"github.com/samba-conductor/conductor/internal/secret"
-	"github.com/samba-conductor/conductor/internal/store"
-	"github.com/samba-conductor/conductor/internal/web"
+	"github.com/openbasalt/samba-conductor-ad/helper"
+	"github.com/openbasalt/samba-conductor-files/filesapi"
+	"github.com/openbasalt/samba-conductor-sync/syncapi"
+	"github.com/openbasalt/samba-conductor/internal/config"
+	"github.com/openbasalt/samba-conductor/internal/directory"
+	"github.com/openbasalt/samba-conductor/internal/secret"
+	"github.com/openbasalt/samba-conductor/internal/store"
+	"github.com/openbasalt/samba-conductor/internal/web"
 )
 
 // version is set at build time with -ldflags "-X main.version=…".

@@ -11,8 +11,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/samba-conductor/conductor-sync/syncapi"
-	"github.com/samba-conductor/conductor/internal/store"
+	"github.com/openbasalt/samba-conductor-sync/syncapi"
+	"github.com/openbasalt/samba-conductor/internal/store"
 )
 
 // Google Workspace sync (P5b). conductor never talks to Google: it drives

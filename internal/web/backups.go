@@ -11,8 +11,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/samba-conductor/ad/helper"
-	"github.com/samba-conductor/conductor/internal/store"
+	"github.com/openbasalt/samba-conductor-ad/helper"
+	"github.com/openbasalt/samba-conductor/internal/store"
 )
 
 // Backups (P3). conductor never touches backups itself: conductor-backup

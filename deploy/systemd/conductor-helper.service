@@ -3,7 +3,7 @@
 # socket that only the "conductor" user may use (SO_PEERCRED check).
 [Unit]
 Description=Samba Conductor privileged helper
-Documentation=https://github.com/samba-conductor/conductor/blob/main/docs/install.md
+Documentation=https://github.com/openbasalt/samba-conductor/blob/main/docs/install.md
 After=samba-ad-dc.service
 Before=conductor.service
 

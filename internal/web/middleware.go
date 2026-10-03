@@ -10,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/samba-conductor/conductor/internal/i18n"
+	"github.com/openbasalt/samba-conductor/internal/i18n"
 )
 
 // route is one entry of the route table: every handler is reachable only

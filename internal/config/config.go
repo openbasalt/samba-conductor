@@ -17,7 +17,7 @@ import (
 	"time"
 
 	"github.com/BurntSushi/toml"
-	"github.com/samba-conductor/ad/sid"
+	"github.com/openbasalt/samba-conductor-ad/sid"
 )
 
 // DefaultPath is where conductor looks for its configuration.

@@ -7,9 +7,9 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/samba-conductor/ad"
-	"github.com/samba-conductor/ad/escape"
-	"github.com/samba-conductor/conductor/internal/store"
+	ad "github.com/openbasalt/samba-conductor-ad"
+	"github.com/openbasalt/samba-conductor-ad/escape"
+	"github.com/openbasalt/samba-conductor/internal/store"
 )
 
 var userListAttrs = []string{"distinguishedName", "objectGUID", "objectSid", "sAMAccountName", "displayName", "mail",

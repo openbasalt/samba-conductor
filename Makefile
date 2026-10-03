@@ -1,7 +1,10 @@
-# Quality gates and builds for conductor. GOWORK=off: the module is checked
-# on its own (go.mod points at ../ad with a replace directive). Binaries are
-# built with CGO off (pure-Go SQLite); the race detector needs cgo for tests.
-export GOWORK := off
+# Quality gates and builds for conductor. Binaries are built with CGO off
+# (pure-Go SQLite); the race detector needs cgo for tests.
+# GOWORK=off by default: the module is checked on its own, against the
+# versions go.mod pins (what CI and release builds use), not through a
+# family go.work; `make check GOWORK=$PWD/../go.work` checks it against
+# local copies of the sibling modules instead.
+export GOWORK ?= off
 GOBIN := $(shell go env GOPATH)/bin
 STATICCHECK := $(GOBIN)/staticcheck
 GOVULNCHECK := $(GOBIN)/govulncheck
@@ -37,7 +40,7 @@ tools:
 	@test -x $(GOVULNCHECK) || go install golang.org/x/vuln/cmd/govulncheck@latest
 
 # Build, install on the lab's dc1 and run the Playwright suite on
-# server-home (planning/docs/lab.md, docs/usage-p1.md).
+# the lab host (planning/docs/lab.md, docs/usage-p1.md).
 e2e-lab: build
 	./e2e/run-lab.sh
 

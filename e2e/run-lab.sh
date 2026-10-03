@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Run the Playwright suite on server-home against conductor on the lab's
+# Run the Playwright suite on the lab host against conductor on the lab's
 # dc1, once per project (desktop, mobile), each on a freshly reset lab.
 #
 #   e2e/run-lab.sh                    # deploy + snapshot conductor-p2b, run both
@@ -9,7 +9,7 @@
 #   E2E_NO_RESET=1 E2E_STALE=1 E2E_GREP='forced 2FA|missed schedule' e2e/run-lab.sh --no-deploy desktop
 #                                     # the missed-schedule check (lab as it is)
 #
-# Secrets stay on server-home: they go from ~/conductor-lab/secrets.env to
+# Secrets stay on the lab host: they go from ~/conductor-lab/secrets.env to
 # the container through a 0600 env file that is deleted afterwards. After
 # each run the audit chain is verified on dc1 (and conductor-files' on fs1).
 # Screenshots and the HTML report are copied back to e2e/screenshots and
