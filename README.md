@@ -172,4 +172,4 @@ local copies instead ([CONTRIBUTING.md](CONTRIBUTING.md)). Layout:
 | `deploy/systemd` | units |
 | `e2e` | Playwright suite |
 
-License: MIT.
+License: Apache-2.0 ([LICENSE](LICENSE), [NOTICE](NOTICE)).

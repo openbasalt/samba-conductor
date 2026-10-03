@@ -13,7 +13,7 @@ priority: optional
 maintainer: Samba Conductor maintainers <samba-conductor@openbasalt.org>
 vendor: OpenBasalt
 homepage: https://github.com/openbasalt/samba-conductor
-license: MIT
+license: Apache-2.0
 description: |-
   web administrator and self-service portal for Samba AD
   Samba Conductor manages a Samba Active Directory domain from the browser:
@@ -74,6 +74,13 @@ contents:
 
   - src: packaging/copyright
     dst: /usr/share/doc/conductor/copyright
+    file_info: {mode: 0644}
+  - src: NOTICE
+    dst: /usr/share/doc/conductor/NOTICE
+    file_info: {mode: 0644}
+  - expand: true
+    src: ${BUILD}/doc/conductor/THIRD-PARTY-LICENSES.gz
+    dst: /usr/share/doc/conductor/THIRD-PARTY-LICENSES.gz
     file_info: {mode: 0644}
   - expand: true
     src: ${BUILD}/doc/conductor/changelog.Debian.gz

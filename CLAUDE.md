@@ -17,5 +17,5 @@ plus separate optional components: OIDC provider, provisioning sync
   them locally (CONTRIBUTING.md).
 - Go: `go test ./...`, `go vet ./...`, gofmt, govulncheck. Heavy runs (Samba
   lab containers, e2e) on the lab host.
-- Open source (MIT, like v1). Code comments and docs in English.
+- Open source (Apache-2.0; v1 stays MIT). Code comments and docs in English.
 - Commit with explicit paths (never `git add -A`).
