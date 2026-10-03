@@ -219,6 +219,8 @@ func (rc *reqCtx) render(status int, page string, d map[string]any) {
 				pd.Nav[string(p)] = rc.roles.Has(p)
 			}
 			pd.Nav["admin"] = rc.roles.Privileged()
+			// The sync section appears only where it is enabled.
+			pd.Nav["sync"] = rc.s.sync != nil && rc.roles.Has(PermSyncRead)
 		}
 	}
 	if pd.CSRF == "" {

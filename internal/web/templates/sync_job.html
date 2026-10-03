@@ -1,0 +1,16 @@
+{{define "title"}}{{t "sync.job.title"}}{{end}}
+{{define "content"}}<h1 data-e2e="sync-job-title">{{t "sync.job.title"}}</h1>
+{{template "error-alert" .D.Error}}
+{{with .D.J}}<section class="card" data-e2e="sync-job-card">
+  <h2>{{t (print "sync.job.kind." .Kind)}}</h2>
+  <dl class="props">
+    <dt>{{t "sync.job.state"}}</dt><dd><span class="badge{{if eq .State "running"}} badge-warn{{else if eq .State "failed"}} badge-danger{{else}} badge-ok{{end}}" data-e2e="sync-job-state">{{t (print "sync.job.state." .State)}}</span>{{if .RunStatus}} {{template "sync-status" .RunStatus}}{{end}}</dd>
+    <dt>{{t "sync.job.started_by"}}</dt><dd>{{.Actor}} · <span class="muted small">{{time .StartedAt}}</span></dd>
+    {{if .RunID}}<dt>{{t "sync.run"}}</dt><dd><a href="/admin/sync/runs/{{.RunID}}" data-e2e="sync-job-link-run">#{{.RunID}}</a></dd>{{end}}
+    {{if .Progress.Total}}<dt>{{t "sync.job.progress"}}</dt><dd><progress max="{{.Progress.Total}}" value="{{add .Progress.Done .Progress.Failed}}" data-e2e="sync-job-progress">{{$.D.Percent}}%</progress>
+      <span class="small" data-e2e="sync-job-text-progress">{{t "sync.job.progress_text" .Progress.Done .Progress.Total .Progress.Failed .Progress.Skipped}}</span></dd>{{end}}
+    {{if .Error}}<dt>{{t "sync.job.error"}}</dt><dd><span class="small" data-e2e="sync-job-error">{{.Error}}</span></dd>{{end}}
+  </dl>
+  {{if eq .State "running"}}<p class="hint" data-e2e="sync-job-text-refresh">{{t "sync.job.refresh"}}</p>{{end}}
+</section>{{end}}
+<div class="actions"><a class="btn btn-small" href="/admin/sync" data-e2e="sync-job-link-back">{{t "sync.back"}}</a></div>{{end}}

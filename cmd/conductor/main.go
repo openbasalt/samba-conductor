@@ -26,6 +26,7 @@ import (
 	"time"
 
 	"github.com/samba-conductor/ad/helper"
+	"github.com/samba-conductor/conductor-sync/syncapi"
 	"github.com/samba-conductor/conductor/internal/config"
 	"github.com/samba-conductor/conductor/internal/directory"
 	"github.com/samba-conductor/conductor/internal/secret"
@@ -135,7 +136,11 @@ func cmdServe(args []string) error {
 	if cfg.Helper.Enabled {
 		hc = helperClient{socket: cfg.Helper.Socket}
 	}
-	srv, err := web.New(web.Deps{Config: cfg, Store: st, Backend: dir, MFABox: box, Helper: hc, Logger: log, Version: buildVersion()})
+	var sc web.SyncClient
+	if cfg.Sync.Enabled {
+		sc = syncClient{socket: cfg.Sync.Socket}
+	}
+	srv, err := web.New(web.Deps{Config: cfg, Store: st, Backend: dir, MFABox: box, Helper: hc, Sync: sc, Logger: log, Version: buildVersion()})
 	if err != nil {
 		return err
 	}
@@ -190,6 +195,13 @@ func listener(cfg *config.Config) (net.Listener, error) {
 		}
 	}
 	return net.Listen("tcp", cfg.Server.Listen)
+}
+
+// syncClient calls conductor-sync's management API.
+type syncClient struct{ socket string }
+
+func (c syncClient) Call(ctx context.Context, req syncapi.Request) (syncapi.Response, error) {
+	return syncapi.Call(ctx, c.socket, req)
 }
 
 type helperClient struct{ socket string }

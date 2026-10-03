@@ -73,6 +73,12 @@ func (s *Server) handleDashboard(rc *reqCtx) {
 				d["BackupAlerts"] = s.backupAlerts(rc, st)
 			}
 		}
+		if s.sync != nil && rc.roles.Has(PermSyncRead) {
+			d["SyncCard"] = true
+			if st, ok := s.syncDashboard(ctx, rc); ok {
+				d["Sync"] = st
+			}
+		}
 		if rc.roles.Has(PermAuditRead) {
 			recent, _, err := s.store.ListAudit(ctx, store.AuditFilter{}, 0, 10)
 			if err == nil {

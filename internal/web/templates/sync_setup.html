@@ -1,0 +1,246 @@
+{{define "title"}}{{t "sync.setup.title"}}{{end}}
+{{define "content"}}<h1>{{t "sync.setup.title"}}</h1>
+{{template "sync-subnav" (dict "Path" .Path)}}
+{{template "error-alert" .D.Error}}
+{{if .D.D}}{{$d := .D.D}}{{$s := $d.S}}{{$step := .D.Step}}
+<nav class="tabs" aria-label="{{t "sync.setup.steps"}}" data-e2e="sync-setup-steps">
+  {{range $i, $st := .D.Steps}}<a href="/admin/sync/setup?step={{$st}}" data-e2e="sync-setup-step-{{$st}}"{{if eq $st $step}} aria-current="step"{{end}}>{{add $i 1}}. {{t (print "sync.setup.step." $st)}}</a>{{end}}
+</nav>
+{{if .D.Stale}}<div class="alert-warn" role="alert" data-e2e="sync-setup-stale">{{t "sync.setup.stale"}}</div>{{end}}
+{{with .D.DirError}}<div class="alert-warn" role="alert" data-e2e="sync-setup-dir-error">{{.}}</div>{{end}}
+
+{{if eq $step "google"}}
+<section class="card" aria-labelledby="ss-key">
+  <h2 id="ss-key">{{t "sync.key.heading"}}</h2>
+  <p class="hint">{{t "sync.key.hint"}}</p>
+  <p data-e2e="sync-setup-key-current">{{with $.D.Key}}<span class="badge badge-ok">{{t "sync.key.present"}}</span> <span class="mono small">{{.ClientEmail}}</span> <span class="muted small">{{t "sync.key.id" .KeyID}}</span>{{else}}<span class="badge badge-warn">{{t "sync.key.none"}}</span>{{end}}</p>
+  <form method="post" action="/admin/sync/setup/key" enctype="multipart/form-data" class="row">
+    {{template "csrf" $}}
+    <label class="sr" for="keyfile">{{t "sync.key.file"}}</label>
+    <input id="keyfile" name="key" type="file" accept="application/json,.json" required data-e2e="sync-setup-input-key">
+    <button class="btn" type="submit" data-e2e="sync-setup-btn-key">{{t "sync.key.upload"}}</button>
+  </form>
+</section>
+<section class="card" aria-labelledby="ss-tenant">
+  <h2 id="ss-tenant">{{t "sync.setup.tenant"}}</h2>
+  <form method="post" action="/admin/sync/setup/google" autocomplete="off">
+    {{template "csrf" $}}
+    <div class="grid grid-2">
+      <div class="field"><label for="admin_subject">{{t "sync.admin_subject"}}</label><input id="admin_subject" name="admin_subject" type="email" value="{{$s.Google.AdminSubject}}" required data-e2e="sync-setup-input-subject"><span class="hint">{{t "sync.admin_subject_hint"}}</span></div>
+      <div class="field"><label for="customer">{{t "sync.customer"}}</label><input id="customer" name="customer" type="text" value="{{$s.Google.Customer}}" data-e2e="sync-setup-input-customer"><span class="hint">{{t "sync.customer_hint"}}</span></div>
+    </div>
+    <div class="field"><label for="domains">{{t "sync.domains"}}</label><input id="domains" name="domains" type="text" value="{{join $s.Mapping.AllowedDomains ", "}}" required data-e2e="sync-setup-input-domains"><span class="hint">{{t "sync.domains_hint"}}</span></div>
+    <div class="actions">
+      <button class="btn" type="submit" name="go" value="save" data-e2e="sync-setup-btn-save-google">{{t "form.save"}}</button>
+      <button class="btn btn-primary" type="submit" name="go" value="next" data-e2e="sync-setup-btn-next-google">{{t "sync.setup.next"}}</button>
+    </div>
+  </form>
+</section>
+<section class="card" aria-labelledby="ss-test">
+  <h2 id="ss-test">{{t "sync.test.heading"}}</h2>
+  <p class="hint">{{t "sync.test.hint"}}</p>
+  <form method="post" action="/admin/sync/setup/test">{{template "csrf" $}}<button class="btn" type="submit" data-e2e="sync-setup-btn-test">{{t "sync.test.button"}}</button></form>
+  {{with $d.Test}}<dl class="props" data-e2e="sync-setup-test-result">
+    <dt>{{t "sync.ad"}}</dt><dd>{{if .AD.OK}}<span class="badge badge-ok" data-e2e="sync-setup-test-ad-ok">{{t "sync.test.ok"}}</span> <span class="small">{{.AD.Detail}}</span>{{else}}<span class="badge badge-danger" data-e2e="sync-setup-test-ad-failed">{{t "sync.test.failed"}}</span> <span class="small">{{.AD.Error}}</span>{{end}}</dd>
+    <dt>Google</dt><dd>{{if .Google.OK}}<span class="badge badge-ok" data-e2e="sync-setup-test-google-ok">{{t "sync.test.ok"}}</span> <span class="small">{{.Google.Detail}}</span>{{else}}<span class="badge badge-danger" data-e2e="sync-setup-test-google-failed">{{t "sync.test.failed"}}</span> <span class="small">{{.Google.Error}}</span>{{end}}</dd>
+    {{range .Groups}}<dt>{{t (print "sync.role." .Role)}}</dt><dd class="small">{{if .Found}}{{.Name}} · {{t "sync.group.n_members" .Members}}{{else}}<span class="badge badge-danger">{{t "sync.group.missing"}}</span> {{.Ref}}{{end}}</dd>{{end}}
+  </dl>{{end}}
+</section>
+{{end}}
+
+{{if eq $step "scope"}}
+<section class="card" aria-labelledby="ss-bases">
+  <h2 id="ss-bases">{{t "sync.scope.user_bases"}}</h2>
+  <p class="hint">{{t "sync.scope.user_bases_hint"}}</p>
+  {{template "sync-dnlist" (dict "List" $s.Scope.UserBases "Action" "remove_base" "P" $ "Key" "base")}}
+  {{template "sync-ouadd" (dict "Action" "add_base" "P" $ "Key" "base")}}
+  <h3>{{t "sync.scope.exclude_bases"}}</h3>
+  {{template "sync-dnlist" (dict "List" $s.Scope.ExcludeBases "Action" "remove_exclude_base" "P" $ "Key" "exclude-base")}}
+  {{template "sync-ouadd" (dict "Action" "add_exclude_base" "P" $ "Key" "exclude-base")}}
+</section>
+<section class="card" aria-labelledby="ss-groups">
+  <h2 id="ss-groups">{{t "sync.scope.groups"}}</h2>
+  <p class="hint">{{t "sync.scope.groups_hint"}}</p>
+  <h3>{{t "sync.scope.include"}}</h3>
+  <ul class="tree" data-e2e="sync-setup-list-include">{{range $s.Scope.IncludeGroups}}<li class="row"><span class="grow">{{template "sync-groupref" (dict "Ref" . "G" $.D.Groups)}}</span>{{template "sync-groupremove" (dict "Ref" . "P" $)}}</li>{{else}}<li class="muted">{{t "sync.scope.all_users"}}</li>{{end}}</ul>
+  <h3>{{t "sync.scope.exclude"}}</h3>
+  <ul class="tree" data-e2e="sync-setup-list-exclude">{{range $s.Scope.ExcludeGroups}}<li class="row"><span class="grow">{{template "sync-groupref" (dict "Ref" . "G" $.D.Groups)}}</span>{{template "sync-groupremove" (dict "Ref" . "P" $)}}</li>{{else}}<li class="muted">—</li>{{end}}</ul>
+  {{template "sync-groupsearch" (dict "Step" "scope" "P" $)}}
+  {{if $.D.Hits}}<table class="table" data-e2e="sync-setup-table-hits">
+    <tbody>{{range $.D.Hits}}<tr data-e2e="sync-setup-hit-{{e2e .Name}}"><td>{{.Name}}<br><span class="muted small">{{.Description}}</span></td>
+      <td><div class="row">
+        <form method="post" action="/admin/sync/setup/scope">{{template "csrf" $}}<input type="hidden" name="action" value="include"><input type="hidden" name="ref" value="{{.SID}}"><button class="btn btn-small" type="submit" data-e2e="sync-setup-btn-include-{{e2e .Name}}">{{t "sync.scope.do_include"}}</button></form>
+        <form method="post" action="/admin/sync/setup/scope">{{template "csrf" $}}<input type="hidden" name="action" value="exclude"><input type="hidden" name="ref" value="{{.SID}}"><button class="btn btn-small" type="submit" data-e2e="sync-setup-btn-exclude-{{e2e .Name}}">{{t "sync.scope.do_exclude"}}</button></form>
+      </div></td></tr>{{end}}</tbody>
+  </table>{{else if $.D.Q}}<p class="muted" data-e2e="sync-setup-no-hits">{{t "sync.search.none"}}</p>{{end}}
+</section>
+<section class="card" aria-labelledby="ss-gbases">
+  <h2 id="ss-gbases">{{t "sync.scope.group_bases"}}</h2>
+  <p class="hint">{{t "sync.scope.group_bases_hint"}}</p>
+  {{template "sync-dnlist" (dict "List" $s.Scope.GroupBases "Action" "remove_group_base" "P" $ "Key" "group-base")}}
+  {{template "sync-ouadd" (dict "Action" "add_group_base" "P" $ "Key" "group-base")}}
+  <form method="post" action="/admin/sync/setup/scope" class="row">
+    {{template "csrf" $}}<input type="hidden" name="action" value="save">
+    <div class="check grow"><input id="ead" name="expired_as_disabled" type="checkbox" value="1"{{if $s.Scope.ExpiredAsDisabled}} checked{{end}} data-e2e="sync-setup-check-expired"><label for="ead">{{t "sync.scope.expired_as_disabled"}}</label></div>
+    <button class="btn btn-small" type="submit" data-e2e="sync-setup-btn-save-scope">{{t "form.save"}}</button>
+    <button class="btn btn-primary btn-small" type="submit" name="go" value="next" data-e2e="sync-setup-btn-next-scope">{{t "sync.setup.next"}}</button>
+  </form>
+</section>
+{{end}}
+
+{{if eq $step "mapping"}}
+<section class="card" aria-labelledby="ss-rules">
+  <h2 id="ss-rules">{{t "sync.map.rules"}}</h2>
+  <p class="hint">{{t "sync.map.order"}}</p>
+  {{if $s.Mapping.OrgUnits}}<table class="table" data-e2e="sync-setup-table-rules">
+    <thead><tr><th>{{t "sync.map.source"}}</th><th>{{t "sync.map.target"}}</th><th>{{t "sync.map.priority"}}</th><th></th></tr></thead>
+    <tbody>{{range $i, $r := $s.Mapping.OrgUnits}}<tr data-e2e="sync-setup-rule-{{$i}}">
+      <td>{{if $r.Group}}<span class="badge">{{t "sync.map.by_group"}}</span> {{template "sync-groupref" (dict "Ref" $r.Group "G" $.D.Groups)}}{{else}}<span class="badge">{{t "sync.map.by_ou"}}</span> <span class="mono small">{{$r.AD}}</span>{{end}}</td>
+      <td data-label="{{t "sync.map.target"}}"><code>{{$r.Target}}</code></td>
+      <td data-label="{{t "sync.map.priority"}}">{{if $r.Group}}{{$r.Priority}}{{else}}<span class="muted small">{{t "sync.map.most_specific"}}</span>{{end}}</td>
+      <td><form method="post" action="/admin/sync/setup/mapping">{{template "csrf" $}}<input type="hidden" name="action" value="remove_rule"><input type="hidden" name="index" value="{{$i}}"><button class="btn btn-small" type="submit" data-e2e="sync-setup-btn-remove-rule-{{$i}}">{{t "form.remove"}}</button></form></td>
+    </tr>{{end}}</tbody>
+  </table>{{else}}<p class="muted" data-e2e="sync-setup-no-rules">{{t "sync.map.no_rules"}}</p>{{end}}
+  <form method="post" action="/admin/sync/setup/mapping" class="row">
+    {{template "csrf" $}}<input type="hidden" name="action" value="default">
+    <label for="defou" class="small">{{t "sync.map.default"}}</label>
+    <input id="defou" name="default_org_unit" type="text" value="{{$s.Mapping.DefaultOrgUnit}}" required class="grow" data-e2e="sync-setup-input-default-ou">
+    <button class="btn btn-small" type="submit" data-e2e="sync-setup-btn-default-ou">{{t "form.save"}}</button>
+  </form>
+</section>
+<section class="card" aria-labelledby="ss-grule">
+  <h2 id="ss-grule">{{t "sync.map.add_group"}}</h2>
+  {{template "sync-groupsearch" (dict "Step" "mapping" "P" $)}}
+  {{if $.D.Hits}}<table class="table" data-e2e="sync-setup-table-rule-hits">
+    <tbody>{{range $.D.Hits}}<tr data-e2e="sync-setup-rule-hit-{{e2e .Name}}"><td>{{.Name}}</td>
+      <td><form method="post" action="/admin/sync/setup/mapping" class="row">{{template "csrf" $}}
+        <input type="hidden" name="action" value="add_group_rule"><input type="hidden" name="ref" value="{{.SID}}">
+        <label class="sr" for="t-{{e2e .Name}}">{{t "sync.map.target"}}</label><input id="t-{{e2e .Name}}" name="target" type="text" placeholder="/Finance" required class="grow" data-e2e="sync-setup-input-rule-target-{{e2e .Name}}">
+        <label class="sr" for="p-{{e2e .Name}}">{{t "sync.map.priority"}}</label><input id="p-{{e2e .Name}}" name="priority" type="text" inputmode="numeric" value="10" size="4" required data-e2e="sync-setup-input-rule-priority-{{e2e .Name}}">
+        <button class="btn btn-small" type="submit" data-e2e="sync-setup-btn-add-rule-{{e2e .Name}}">{{t "form.add"}}</button></form></td></tr>{{end}}</tbody>
+  </table>{{else if $.D.Q}}<p class="muted">{{t "sync.search.none"}}</p>{{end}}
+</section>
+<section class="card" aria-labelledby="ss-orule">
+  <h2 id="ss-orule">{{t "sync.map.add_ou"}}</h2>
+  <form method="post" action="/admin/sync/setup/mapping" class="grid grid-2">
+    {{template "csrf" $}}<input type="hidden" name="action" value="add_ou_rule">
+    <div class="field"><label for="oudn">{{t "sync.map.ou"}}</label><select id="oudn" name="dn" data-e2e="sync-setup-select-rule-ou">{{range $.D.OUs}}<option value="{{.DN}}">{{.Label}}</option>{{end}}</select></div>
+    <div class="field"><label for="outg">{{t "sync.map.target"}}</label><input id="outg" name="target" type="text" placeholder="/Staff" required data-e2e="sync-setup-input-ou-target"></div>
+    <div class="actions"><button class="btn btn-small" type="submit" data-e2e="sync-setup-btn-add-ou-rule">{{t "form.add"}}</button></div>
+  </form>
+</section>
+<div class="actions"><a class="btn btn-primary" href="/admin/sync/setup?step=templates" data-e2e="sync-setup-btn-next-mapping">{{t "sync.setup.next"}}</a></div>
+{{end}}
+
+{{if eq $step "templates"}}
+<form method="post" action="/admin/sync/setup/templates" autocomplete="off">
+{{template "csrf" $}}
+<section class="card" aria-labelledby="ss-tpl">
+  <h2 id="ss-tpl">{{t "sync.tpl.heading"}}</h2>
+  <p class="hint">{{t "sync.tpl.hint"}}</p>
+  <div class="field"><label for="pe">{{t "sync.tpl.primary_email"}}</label><textarea id="pe" name="primary_email" rows="2" required data-e2e="sync-setup-input-primary-email">{{join $s.Mapping.PrimaryEmail "\n"}}</textarea><span class="hint">{{t "sync.tpl.lines_hint"}}</span></div>
+  <div class="grid grid-2">
+    <div class="field"><label for="gn">{{t "sync.tpl.given_name"}}</label><textarea id="gn" name="given_name" rows="2" data-e2e="sync-setup-input-given-name">{{join $s.Mapping.GivenName "\n"}}</textarea></div>
+    <div class="field"><label for="fn">{{t "sync.tpl.family_name"}}</label><textarea id="fn" name="family_name" rows="2" data-e2e="sync-setup-input-family-name">{{join $s.Mapping.FamilyName "\n"}}</textarea></div>
+  </div>
+  <h3>{{t "sync.tpl.attributes"}}</h3>
+  <div class="grid grid-2">{{range $.D.AttrFields}}<div class="field"><label for="a-{{.}}">{{t (print "sync.tpl.attr." .)}}</label><input id="a-{{.}}" name="attr_{{.}}" type="text" value="{{index $s.Mapping.Attributes .}}" placeholder="{{t (print "sync.tpl.attr_ph." .)}}" data-e2e="sync-setup-input-attr-{{e2e .}}"></div>{{end}}</div>
+  <h3>{{t "sync.tpl.groups"}}</h3>
+  <div class="grid grid-2">
+    <div class="field"><label for="ge">{{t "sync.tpl.group_email"}}</label><textarea id="ge" name="group_email" rows="2" data-e2e="sync-setup-input-group-email">{{join $s.Mapping.GroupEmail "\n"}}</textarea><span class="hint">{{t "sync.tpl.group_email_hint"}}</span></div>
+    <div class="field"><label for="gd">{{t "sync.tpl.group_domains"}}</label><input id="gd" name="group_domains" type="text" value="{{join $s.Mapping.GroupAllowedDomains ", "}}" data-e2e="sync-setup-input-group-domains"></div>
+    <div class="field"><label for="gnm">{{t "sync.tpl.group_name"}}</label><textarea id="gnm" name="group_name" rows="1" data-e2e="sync-setup-input-group-name">{{join $s.Mapping.GroupName "\n"}}</textarea></div>
+    <div class="field"><label for="gds">{{t "sync.tpl.group_description"}}</label><textarea id="gds" name="group_description" rows="1" data-e2e="sync-setup-input-group-description">{{join $s.Mapping.GroupDescription "\n"}}</textarea></div>
+  </div>
+</section>
+<section class="card" aria-labelledby="ss-prev" id="preview">
+  <h2 id="ss-prev">{{t "sync.preview.heading"}}</h2>
+  <p class="hint">{{t "sync.preview.hint"}}</p>
+  <div class="row"><label for="pq" class="sr">{{t "sync.preview.query"}}</label><input id="pq" name="q" type="search" value="{{$d.Query}}" placeholder="{{t "sync.preview.query"}}" class="grow" data-e2e="sync-setup-input-preview-q">
+    <button class="btn" type="submit" name="go" value="preview" data-e2e="sync-setup-btn-preview">{{t "sync.preview.button"}}</button></div>
+  {{with $d.Preview}}<table class="table" data-e2e="sync-setup-table-preview">
+    <thead><tr><th>{{t "sync.preview.account"}}</th><th>{{t "sync.preview.scope"}}</th><th>{{t "sync.preview.email"}}</th><th>{{t "sync.preview.ou"}}</th></tr></thead>
+    <tbody>{{range .Users}}<tr data-e2e="sync-setup-preview-{{e2e .Account}}">
+      <td>{{.Account}}{{if not .Enabled}} <span class="badge badge-warn">{{t "status.disabled"}}</span>{{end}}<br><span class="muted small">{{.GivenName}} {{.FamilyName}}</span></td>
+      <td data-label="{{t "sync.preview.scope"}}">{{if .InScope}}<span class="badge badge-ok">{{t "sync.preview.in"}}</span>{{else}}<span class="badge">{{t "sync.preview.out"}}</span> <span class="small muted">{{.OutReason}}</span>{{end}}</td>
+      <td data-label="{{t "sync.preview.email"}}" class="mono small" data-e2e="sync-setup-preview-email-{{e2e .Account}}">{{if .Email}}{{.Email}}{{else}}—{{end}}</td>
+      <td data-label="{{t "sync.preview.ou"}}" class="small">{{if .OrgUnit}}<code>{{.OrgUnit}}</code> <span class="muted">{{.Placement}}</span>{{end}}{{if .Error}}<br><span class="badge badge-danger">{{t "sync.preview.error"}}</span> {{.Error}}{{end}}</td>
+    </tr>{{else}}<tr><td class="muted">{{t "sync.search.none"}}</td></tr>{{end}}</tbody>
+  </table>{{end}}
+</section>
+<div class="actions">
+  <button class="btn" type="submit" name="go" value="save" data-e2e="sync-setup-btn-save-templates">{{t "form.save"}}</button>
+  <button class="btn btn-primary" type="submit" name="go" value="next" data-e2e="sync-setup-btn-next-templates">{{t "sync.setup.next"}}</button>
+</div>
+</form>
+{{end}}
+
+{{if eq $step "safety"}}
+<form method="post" action="/admin/sync/setup/safety" autocomplete="off">
+{{template "csrf" $}}
+<section class="card" aria-labelledby="ss-lim">
+  <h2 id="ss-lim">{{t "sync.safety.limits"}}</h2>
+  <p class="hint">{{t "sync.safety.limits_hint"}}</p>
+  <div class="grid grid-2">
+    {{template "sync-num" (dict "N" "max_creates" "V" $s.Limits.MaxCreates)}}
+    {{template "sync-num" (dict "N" "max_suspends" "V" $s.Limits.MaxSuspends)}}
+    {{template "sync-num" (dict "N" "max_unsuspends" "V" $s.Limits.MaxUnsuspends)}}
+    {{template "sync-num" (dict "N" "max_renames" "V" $s.Limits.MaxRenames)}}
+    {{template "sync-num" (dict "N" "max_updates" "V" $s.Limits.MaxUpdates)}}
+    {{template "sync-num" (dict "N" "max_group_changes" "V" $s.Limits.MaxGroupChanges)}}
+    {{template "sync-num" (dict "N" "max_membership_changes" "V" $s.Limits.MaxMembershipChanges)}}
+    {{template "sync-num" (dict "N" "max_touched_percent" "V" $s.Limits.MaxTouchedPercent)}}
+    {{template "sync-num" (dict "N" "min_source_users" "V" $s.Limits.MinSourceUsers)}}
+    {{template "sync-num" (dict "N" "max_source_drop_percent" "V" $s.Limits.MaxSourceDropPercent)}}
+  </div>
+</section>
+<section class="card" aria-labelledby="ss-pol">
+  <h2 id="ss-pol">{{t "sync.safety.policy"}}</h2>
+  <div class="check"><input id="sd" name="suspend_disabled" type="checkbox" value="1"{{if $s.Policy.SuspendDisabled}} checked{{end}} data-e2e="sync-setup-check-suspend-disabled"><label for="sd">{{t "sync.policy.suspend_disabled"}}</label></div>
+  <div class="check"><input id="cd" name="create_disabled" type="checkbox" value="1"{{if $s.Policy.CreateDisabled}} checked{{end}} data-e2e="sync-setup-check-create-disabled"><label for="cd">{{t "sync.policy.create_disabled"}}</label></div>
+  <div class="check"><input id="rum" name="remove_unmanaged" type="checkbox" value="1"{{if $s.Policy.RemoveUnmanagedMembers}} checked{{end}} data-e2e="sync-setup-check-remove-unmanaged"><label for="rum">{{t "sync.policy.remove_unmanaged"}}</label></div>
+  <div class="grid grid-2">
+    <div class="field"><label for="adopt">{{t "sync.policy.adopt"}}</label><select id="adopt" name="adopt" data-e2e="sync-setup-select-adopt"><option value="never"{{if eq $s.Policy.Adopt "never"}} selected{{end}}>{{t "sync.policy.adopt_never"}}</option><option value="email"{{if eq $s.Policy.Adopt "email"}} selected{{end}}>{{t "sync.policy.adopt_email"}}</option></select></div>
+    <div class="field"><label for="iv">{{t "sync.schedule.interval"}}</label><input id="iv" name="interval" type="text" value="{{$s.Schedule.Interval}}" required data-e2e="sync-setup-input-interval"><span class="hint">{{t "sync.schedule.interval_hint"}}</span></div>
+  </div>
+</section>
+<div class="actions">
+  <button class="btn" type="submit" name="go" value="save" data-e2e="sync-setup-btn-save-safety">{{t "form.save"}}</button>
+  <button class="btn btn-primary" type="submit" name="go" value="next" data-e2e="sync-setup-btn-next-safety">{{t "sync.setup.next"}}</button>
+</div>
+</form>
+{{end}}
+
+{{if eq $step "review"}}
+<section class="card" aria-labelledby="ss-rev">
+  <h2 id="ss-rev">{{t "sync.review.heading"}}</h2>
+  {{with $.D.V}}{{if not .Valid}}<div class="alert-error" role="alert" data-e2e="sync-setup-review-errors"><b>{{t "sync.review.invalid"}}</b><ul>{{range .Errors}}<li>{{.}}</li>{{end}}</ul></div>
+  {{else if .Changes}}<p>{{t "sync.review.changes" (len .Changes)}}</p>
+  <pre data-e2e="sync-setup-review-changes">{{range .Changes}}{{.Path}}: {{.Old}} -> {{.New}}
+{{end}}</pre>
+  <form method="post" action="/admin/sync/setup/save" autocomplete="off">
+    {{template "csrf" $}}
+    <div class="field"><label for="cmt">{{t "sync.review.comment"}}</label><input id="cmt" name="comment" type="text" maxlength="200" data-e2e="sync-setup-input-comment"></div>
+    <div class="actions"><button class="btn btn-primary" type="submit" data-e2e="sync-setup-btn-save">{{t "sync.review.save"}}</button></div>
+  </form>
+  {{else}}<p class="muted" data-e2e="sync-setup-review-nochange">{{t "sync.review.no_changes"}}</p>{{end}}{{end}}
+  <p class="hint">{{t "sync.review.hint"}}</p>
+</section>
+{{end}}
+<form method="post" action="/admin/sync/setup/discard" class="actions">{{template "csrf" $}}<button class="btn btn-small" type="submit" data-e2e="sync-setup-btn-discard">{{t "sync.setup.discard"}}</button></form>
+{{end}}{{end}}
+
+{{define "sync-dnlist"}}<ul class="tree" data-e2e="sync-setup-list-{{.Key}}">{{range .List}}<li class="row"><span class="grow mono small">{{.}}</span><form method="post" action="/admin/sync/setup/scope">{{template "csrf" $.P}}<input type="hidden" name="action" value="{{$.Action}}"><input type="hidden" name="dn" value="{{.}}"><button class="btn btn-small" type="submit" data-e2e="sync-setup-btn-remove-{{$.Key}}-{{e2e .}}">{{t "form.remove"}}</button></form></li>{{else}}<li class="muted">—</li>{{end}}</ul>{{end}}
+
+{{define "sync-ouadd"}}<form method="post" action="/admin/sync/setup/scope" class="row">{{template "csrf" .P}}<input type="hidden" name="action" value="{{.Action}}">
+  <label class="sr" for="ou-{{.Key}}">{{t "sync.map.ou"}}</label><select id="ou-{{.Key}}" name="dn" class="grow" data-e2e="sync-setup-select-{{.Key}}">{{range .P.D.OUs}}<option value="{{.DN}}">{{.Label}}</option>{{end}}</select>
+  <button class="btn btn-small" type="submit" data-e2e="sync-setup-btn-add-{{.Key}}">{{t "form.add"}}</button></form>{{end}}
+
+{{define "sync-groupremove"}}<form method="post" action="/admin/sync/setup/scope">{{template "csrf" .P}}<input type="hidden" name="action" value="remove_group"><input type="hidden" name="ref" value="{{.Ref}}"><button class="btn btn-small" type="submit" data-e2e="sync-setup-btn-remove-group-{{e2e .Ref}}">{{t "form.remove"}}</button></form>{{end}}
+
+{{define "sync-groupsearch"}}<form method="get" action="/admin/sync/setup" class="row" role="search">
+  <input type="hidden" name="step" value="{{.Step}}">
+  <label class="sr" for="gq">{{t "sync.search.groups"}}</label><input id="gq" name="q" type="search" value="{{.P.D.Q}}" placeholder="{{t "sync.search.groups"}}" class="grow" data-e2e="sync-setup-input-group-q">
+  <button class="btn btn-small" type="submit" data-e2e="sync-setup-btn-group-search">{{t "sync.search.button"}}</button></form>{{end}}
+
+{{define "sync-num"}}<div class="field"><label for="l-{{.N}}">{{t (print "sync.limit." .N)}}</label><input id="l-{{.N}}" name="{{.N}}" type="text" inputmode="decimal" value="{{.V}}" required data-e2e="sync-setup-input-{{e2e .N}}"></div>{{end}}

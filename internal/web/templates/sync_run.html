@@ -1,0 +1,91 @@
+{{define "title"}}{{t "sync.run"}}{{end}}
+{{define "content"}}{{template "error-alert" .D.Error}}{{with .D.R}}{{$r := .Run}}
+<h1 data-e2e="sync-run-title">{{t "sync.run.title" $r.ID (t (print "sync.action." $r.Action))}} {{template "sync-status" $r.Status}}</h1>
+{{template "sync-subnav" (dict "Path" $.Path)}}
+<p class="muted small" data-e2e="sync-run-meta">{{t "sync.run.meta" (t (print "sync.trigger." $r.Trigger)) $r.Actor (time $r.StartedAt)}}</p>
+{{if eq $r.Status "blocked"}}<div class="alert-warn" role="alert" data-e2e="sync-run-alert-blocked">
+  <b>{{t "sync.run.blocked"}}</b>
+  <ul>{{range $r.Violations}}<li data-e2e="sync-run-violation-{{e2e .Limit}}">{{t (print "sync.limit." .Limit)}}: {{.Value}} &gt; {{.Max}}</li>{{end}}</ul>
+  {{if eq $r.Trigger "scheduled"}}<p class="small">{{t "sync.run.blocked_hint"}}</p>{{end}}
+</div>{{end}}
+{{if and $r.Error (ne $r.Status "blocked")}}<div class="alert-info" data-e2e="sync-run-error">{{$r.Error}}</div>{{end}}
+{{if not .HasPlan}}<p class="muted" data-e2e="sync-run-no-plan">{{t "sync.run.no_plan"}}</p>{{else}}
+<div class="stats">
+  <div class="stat"><b data-e2e="sync-run-source">{{$r.SourceUsers}}</b><span>{{t "sync.run.source" $r.SourceGroups}}</span></div>
+  <div class="stat"><b data-e2e="sync-run-managed">{{.ManagedUsers}}</b><span>{{t "sync.run.managed"}}</span></div>
+  <div class="stat"><b data-e2e="sync-run-writes">{{.Writes}}</b><span>{{t "sync.run.writes"}}</span></div>
+  <div class="stat"><b class="mono" title="{{.Digest}}" data-e2e="sync-run-digest">{{$.D.Short}}</b><span>{{t "sync.run.digest"}}</span></div>
+  {{if eq $r.Action "apply"}}<div class="stat"><b data-e2e="sync-run-done">{{$r.OpsDone}}</b><span>{{t "sync.run.done"}}</span></div>
+  <div class="stat"><b data-e2e="sync-run-failed">{{$r.OpsFailed}}</b><span>{{t "sync.run.failed"}}</span></div>{{end}}
+</div>
+{{if .Errors}}<div class="alert-error" role="alert" data-e2e="sync-run-errors"><b>{{t "sync.run.errors" (len .Errors)}}</b><ul>{{range .Errors}}<li data-e2e="sync-run-plan-error-{{e2e .Key}}"><code>{{.Key}}</code> {{.Message}}</li>{{end}}</ul></div>{{end}}
+
+{{if and $.D.CanWrite .Applicable}}<section class="card" aria-labelledby="sync-apply" data-e2e="sync-run-card-apply">
+  <h2 id="sync-apply">{{if .Override}}{{t "sync.apply.override_heading"}}{{else}}{{t "sync.apply.heading"}}{{end}}</h2>
+  {{if .Override}}<div class="alert-warn" data-e2e="sync-run-override-warning">{{t "sync.apply.override_text"}}</div>{{end}}
+  <p>{{t "sync.apply.text" .Writes}}</p>
+  <form method="post" action="/admin/sync/runs/{{$r.ID}}/apply" autocomplete="off" data-e2e="sync-run-form-apply">
+    {{template "csrf" $}}
+    <input type="hidden" name="digest" value="{{.Digest}}">
+    <div class="field"><label for="confirm">{{t "sync.apply.type" .Confirmation}}</label>
+      <input id="confirm" name="confirm" type="text" required autocomplete="off" spellcheck="false" data-e2e="sync-run-input-confirm">
+      <span class="hint">{{t "sync.apply.type_hint"}} <code data-e2e="sync-run-text-confirmation">{{.Confirmation}}</code></span></div>
+    <div class="actions"><button class="btn {{if .Override}}btn-danger{{else}}btn-primary{{end}}" type="submit" data-e2e="sync-run-btn-apply">{{if .Override}}{{t "sync.apply.override_button"}}{{else}}{{t "sync.apply.button"}}{{end}}</button></div>
+  </form>
+</section>{{else if and $.D.CanWrite .NotApply}}<p class="hint" data-e2e="sync-run-not-applicable">{{t (print "sync.notapply." .NotApply)}}</p>{{end}}
+
+<section class="card" aria-labelledby="sync-limits">
+  <h2 id="sync-limits">{{t "sync.run.limits"}}</h2>
+  <table class="table" data-e2e="sync-run-table-limits">
+    <thead><tr><th>{{t "sync.limit"}}</th><th>{{t "sync.limit.plan"}}</th><th>{{t "sync.limit.max"}}</th></tr></thead>
+    <tbody>{{range .Limits}}<tr data-e2e="sync-run-limit-{{e2e .Limit}}">
+      <td>{{t (print "sync.limit." .Limit)}}</td>
+      <td data-label="{{t "sync.limit.plan"}}">{{.Value}}{{if .Exceeded}} <span class="badge badge-danger" data-e2e="sync-run-limit-exceeded-{{e2e .Limit}}">{{t "sync.limit.exceeded"}}</span>{{end}}</td>
+      <td data-label="{{t "sync.limit.max"}}">{{if eq .Max -1.0}}{{t "sync.limit.none"}}{{else}}{{.Max}}{{end}}</td>
+    </tr>{{end}}</tbody>
+  </table>
+  <p class="hint">{{t "sync.run.limits_hint"}}</p>
+</section>
+
+{{if .Groups}}<section class="card" aria-labelledby="sync-groups">
+  <h2 id="sync-groups">{{t "sync.run.groups"}}</h2>
+  <table class="table" data-e2e="sync-run-table-groups">
+    <thead><tr><th>{{t "sync.group"}}</th><th>{{t "sync.group.role"}}</th><th>{{t "sync.group.members"}}</th></tr></thead>
+    <tbody>{{range .Groups}}<tr data-e2e="sync-run-group-{{e2e .Name}}">
+      <td>{{if .Found}}{{.Name}}{{else}}<span class="badge badge-danger">{{t "sync.group.missing"}}</span>{{end}}<br><span class="muted small mono">{{.Ref}}</span></td>
+      <td data-label="{{t "sync.group.role"}}">{{t (print "sync.role." .Role)}}{{if .Target}} → <code>{{.Target}}</code> <span class="muted small">{{t "sync.priority" .Priority}}</span>{{end}}</td>
+      <td data-label="{{t "sync.group.members"}}">{{.Members}}</td>
+    </tr>{{end}}</tbody>
+  </table>
+</section>{{end}}
+
+<section class="card" aria-labelledby="sync-ops">
+  <h2 id="sync-ops">{{t "sync.run.ops"}}</h2>
+  {{if $.D.Tabs}}<nav class="tabs" aria-label="{{t "sync.run.ops"}}">
+    {{range $.D.Tabs}}<a href="?section={{.Key}}" data-e2e="sync-run-tab-{{.Key}}"{{if and (eq .Key $.D.Section) (not $.D.Failed)}} aria-current="page"{{end}}>{{t (print "sync.section." .Key)}} <span class="badge">{{.Count}}</span></a>{{end}}
+    {{if eq $r.Action "apply"}}<a href="?failed=1" data-e2e="sync-run-tab-failed"{{if $.D.Failed}} aria-current="page"{{end}}>{{t "sync.run.failures"}}</a>{{end}}
+  </nav>
+  {{if .Ops}}<table class="table" data-e2e="sync-run-table-ops">
+    <thead><tr><th>{{t "sync.op.target"}}</th><th>{{t "sync.op.kind"}}</th><th>{{t "sync.op.details"}}</th>{{if eq $r.Action "apply"}}<th>{{t "sync.op.status"}}</th>{{end}}</tr></thead>
+    <tbody>{{range .Ops}}<tr data-e2e="sync-run-op-{{.Seq}}">
+      <td class="mono small">{{.Key}}</td>
+      <td data-label="{{t "sync.op.kind"}}"><span class="badge">{{t (print "sync.kind." .Kind)}}</span></td>
+      <td data-label="{{t "sync.op.details"}}" class="small">{{range .Changes}}<div><b>{{.Field}}</b>: <span class="muted">{{if .Old}}{{.Old}}{{else}}—{{end}}</span> → {{if .New}}{{.New}}{{else}}—{{end}}</div>{{end}}
+        {{if .Attrs}}<div>{{index .Attrs "given_name"}} {{index .Attrs "family_name"}} · <code>{{index .Attrs "org_unit"}}</code>{{if .Suspend}} · {{t "sync.op.suspended"}}{{end}}</div>{{end}}
+        {{if .GroupName}}<div>{{.GroupName}}</div>{{end}}
+        {{if .MemberEmail}}<div>{{if eq .MemberKind "group"}}{{t "sync.member.group"}}{{else}}{{t "sync.member.user"}}{{end}} <code>{{.MemberEmail}}</code></div>{{end}}
+        {{if .Reason}}<div class="muted">{{.Reason}}</div>{{end}}</td>
+      {{if eq $r.Action "apply"}}<td data-label="{{t "sync.op.status"}}">{{if .Status}}<span class="badge{{if eq .Status "done"}} badge-ok{{else if eq .Status "failed"}} badge-danger{{else if eq .Status "skipped"}} badge-warn{{end}}" data-e2e="sync-run-op-status-{{.Seq}}">{{t (print "sync.op.st." .Status)}}</span>{{end}}{{with .Error}}<br><span class="small">{{.}}</span>{{end}}</td>{{end}}
+    </tr>{{end}}</tbody>
+  </table>
+  {{template "pager" $}}
+  {{else}}<p class="muted" data-e2e="sync-run-text-no-ops">{{if $.D.Failed}}{{t "sync.run.no_failures"}}{{else}}{{t "sync.no_changes"}}{{end}}</p>{{end}}
+  {{else}}<p class="muted" data-e2e="sync-run-text-empty">{{t "sync.no_changes"}}</p>{{end}}
+</section>
+
+{{if .Warnings}}<section class="card"><details data-e2e="sync-run-warnings"><summary>{{t "sync.run.warnings" (len .Warnings)}}</summary>
+  <ul class="small">{{range .Warnings}}<li><span class="badge">{{.Code}}</span> <code>{{.Key}}</code> {{.Message}}</li>{{end}}</ul></details></section>{{end}}
+{{if .Skipped}}<section class="card"><details data-e2e="sync-run-skipped"><summary>{{t "sync.run.skipped" (len .Skipped)}}</summary>
+  <ul class="small">{{range .Skipped}}<li><span class="mono">{{.DN}}</span>: {{.Reason}}</li>{{end}}</ul></details></section>{{end}}
+{{end}}{{end}}
+<div class="actions"><a class="btn btn-small" href="/admin/sync/runs" data-e2e="sync-run-link-history">{{t "sync.history"}}</a></div>{{end}}

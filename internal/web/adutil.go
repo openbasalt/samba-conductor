@@ -13,6 +13,7 @@ import (
 	"github.com/samba-conductor/ad"
 	"github.com/samba-conductor/ad/escape"
 	"github.com/samba-conductor/ad/sid"
+	"github.com/samba-conductor/conductor-sync/syncapi"
 	"github.com/samba-conductor/conductor/internal/directory"
 )
 
@@ -389,6 +390,10 @@ func (s *Server) errMessage(t func(string, ...any) string, err error) string {
 			return t("err.dc_partial", strings.Join(ok, ", "), strings.Join(de.hosts(false), ", "))
 		}
 		return t("err.dc_none", strings.Join(de.hosts(false), ", "))
+	}
+	var se *syncapi.Error
+	if errors.As(err, &se) || errors.Is(err, errSyncDisabled) {
+		return s.syncErrT(t, err)
 	}
 	return t(s.adErrorKey(err))
 }

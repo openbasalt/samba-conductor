@@ -1,0 +1,63 @@
+{{define "title"}}{{t "nav.sync"}}{{end}}
+{{define "content"}}<h1>{{t "nav.sync"}}</h1>
+<p class="hint">{{t "sync.intro"}}</p>
+{{if .D.Disabled}}<section class="card" data-e2e="sync-card-disabled"><h2>{{t "sync.disabled.title"}}</h2><p>{{t "sync.disabled.text"}}</p></section>
+{{else}}{{template "error-alert" .D.Error}}{{with .D.S}}
+{{template "sync-subnav" (dict "Path" $.Path)}}
+{{if not .Ready}}<section class="card" data-e2e="sync-card-unconfigured">
+  <h2>{{t "sync.unconfigured.title"}}</h2>
+  <p>{{t "sync.unconfigured.text"}}</p>
+  {{if $.D.CanWrite}}<a class="btn btn-primary" href="/admin/sync/setup" data-e2e="sync-link-setup-start">{{t "sync.setup.start"}}</a>{{end}}
+</section>{{end}}
+{{range .OpenBlocked}}<div class="alert-warn" role="alert" data-e2e="sync-alert-blocked-{{.ID}}">
+  <b>{{t "sync.blocked.title" .ID}}</b> {{t "sync.blocked.text" (time .StartedAt)}}
+  <ul>{{range .Violations}}<li>{{t (print "sync.limit." .Limit)}}: {{.Value}} &gt; {{.Max}}</li>{{end}}</ul>
+  <a class="btn btn-small" href="/admin/sync/runs/{{.ID}}" data-e2e="sync-link-blocked-{{.ID}}">{{t "sync.blocked.review"}}</a>
+</div>{{end}}
+{{if not .Audit.Intact}}<div class="alert-error" role="alert" data-e2e="sync-alert-audit">{{t "sync.audit.broken" .Audit.BrokenAt .Audit.Reason}}</div>{{end}}
+{{with .Job}}<div class="alert-info" data-e2e="sync-alert-job"><a href="/admin/sync/jobs/{{.ID}}" data-e2e="sync-link-job">{{t (print "sync.job.kind." .Kind)}}: {{t "sync.job.running"}}</a></div>{{end}}
+<div class="stats">
+  <div class="stat" data-e2e="sync-card-mode"><b data-e2e="sync-text-mode">{{if eq .Mode "apply"}}{{t "sync.mode.apply"}}{{else}}{{t "sync.mode.dry_run"}}{{end}}</b><span>{{t "sync.mode"}}</span></div>
+  <div class="stat" data-e2e="sync-card-last"><b data-e2e="sync-text-last">{{with .LastRun}}{{t (print "sync.status." .Status)}}{{else}}—{{end}}</b><span>{{t "sync.last_run"}}{{with .LastRun}} · {{time .StartedAt}}{{end}}</span></div>
+  <div class="stat" data-e2e="sync-card-success"><b data-e2e="sync-text-success">{{with .LastSuccess}}{{t "sync.ago" (since .FinishedAt)}}{{else}}—{{end}}</b><span>{{t "sync.last_success"}}</span></div>
+  <div class="stat" data-e2e="sync-card-next"><b data-e2e="sync-text-next">{{if .NextScheduled.IsZero}}—{{else}}{{time .NextScheduled}}{{end}}</b><span>{{t "sync.next_run" .ScheduleInterval}}</span></div>
+  <div class="stat" data-e2e="sync-card-links"><b data-e2e="sync-text-links">{{.Links.Users}}</b><span>{{t "sync.links" .Links.SuspendedBySync .Links.Groups}}</span></div>
+  <div class="stat" data-e2e="sync-card-audit"><b data-e2e="sync-text-audit">{{if .Audit.Intact}}{{t "sync.audit.ok"}}{{else}}{{t "sync.audit.bad"}}{{end}}</b><span>{{t "sync.audit.rows" .Audit.Rows}}</span></div>
+</div>
+{{if $.D.CanWrite}}<section class="card" aria-labelledby="sync-actions" data-e2e="sync-card-actions">
+  <h2 id="sync-actions">{{t "sync.actions"}}</h2>
+  <div class="row">
+    <form method="post" action="/admin/sync/plan">{{template "csrf" $}}<button class="btn btn-primary" type="submit" data-e2e="sync-btn-plan"{{if not .Ready}} disabled{{end}}>{{t "sync.plan.button"}}</button></form>
+    <form method="post" action="/admin/sync/run-now">{{template "csrf" $}}<button class="btn" type="submit" data-e2e="sync-btn-run-now"{{if or (not .Ready) (eq .FirstManualApply "")}} disabled{{end}}>{{t "sync.runnow.button"}}</button></form>
+    <a class="btn" href="/admin/sync/setup" data-e2e="sync-link-setup">{{t "sync.setup.button"}}</a>
+  </div>
+  <p class="hint">{{t "sync.actions_hint"}}</p>
+  <form method="post" action="/admin/sync/mode" class="row" data-e2e="sync-form-mode">
+    {{template "csrf" $}}
+    {{if eq .Mode "apply"}}<input type="hidden" name="mode" value="dry-run"><button class="btn btn-small" type="submit" data-e2e="sync-btn-mode-dry-run">{{t "sync.mode.to_dry_run"}}</button>
+    {{else}}<input type="hidden" name="mode" value="apply"><button class="btn btn-small" type="submit" data-e2e="sync-btn-mode-apply">{{t "sync.mode.to_apply"}}</button>{{end}}
+    <span class="small muted grow">{{if eq .FirstManualApply ""}}{{t "sync.first_manual.pending"}}{{else}}{{t "sync.first_manual.done" .FirstManualApply}}{{end}}</span>
+  </form>
+</section>{{end}}
+<div class="grid grid-2">
+<section class="card" aria-labelledby="sync-conn">
+  <h2 id="sync-conn">{{t "sync.connection"}}</h2>
+  <dl class="props" data-e2e="sync-list-connection">
+    <dt>{{t "sync.key"}}</dt><dd data-e2e="sync-text-key">{{with .Key}}<span class="mono small">{{.ClientEmail}}</span><br><span class="muted small">{{t "sync.key.id" .KeyID}} · {{t (print "sync.key.source." .Source)}}</span>{{else}}<span class="muted">{{t "sync.key.none"}}</span>{{end}}</dd>
+    {{with $.D.Cfg}}<dt>{{t "sync.admin_subject"}}</dt><dd class="mono small" data-e2e="sync-text-subject">{{if .Settings.Google.AdminSubject}}{{.Settings.Google.AdminSubject}}{{else}}—{{end}}</dd>
+    <dt>{{t "sync.domains"}}</dt><dd>{{join .Settings.Mapping.AllowedDomains ", "}}</dd>
+    <dt>{{t "sync.ad"}}</dt><dd class="small">{{.Host.Realm}} · {{.Host.BindUser}}</dd>
+    <dt>{{t "sync.config_version"}}</dt><dd data-e2e="sync-text-version">{{if .Version}}{{t "sync.version.n" .Version}} · <span class="muted small">{{.UpdatedBy}}</span>{{else}}{{t "sync.version.file"}}{{end}}</dd>{{end}}
+    <dt>{{t "sync.scheduler"}}</dt><dd>{{t (print "sync.scheduler." .Scheduler)}}</dd>
+    <dt>{{t "sync.version.service"}}</dt><dd class="small muted">conductor-sync {{.Version}}</dd>
+  </dl>
+</section>
+<section class="card" aria-labelledby="sync-recent">
+  <h2 id="sync-recent">{{t "sync.recent"}}</h2>
+  {{if $.D.Runs}}<ul class="tree" data-e2e="sync-list-runs">{{range $.D.Runs}}<li><a href="/admin/sync/runs/{{.ID}}" data-e2e="sync-link-run-{{.ID}}">#{{.ID}} {{t (print "sync.action." .Action)}}</a> {{template "sync-status" .Status}} <span class="muted small">{{time .StartedAt}} · {{.Actor}}</span></li>{{end}}</ul>
+  <div class="actions"><a class="btn btn-small" href="/admin/sync/runs" data-e2e="sync-link-history">{{t "sync.history"}}</a></div>
+  {{else}}<p class="muted" data-e2e="sync-text-no-runs">{{t "sync.no_runs"}}</p>{{end}}
+</section>
+</div>
+{{end}}{{end}}{{end}}
+

@@ -98,6 +98,8 @@ type Session struct {
 	keyOK bool
 	// enrollKeyOnly: the enrollment stage accepts only a security key.
 	enrollKeyOnly bool
+	// syncDraft is the Google Workspace sync setup in progress.
+	syncDraft *syncDraft
 }
 
 type flash struct {

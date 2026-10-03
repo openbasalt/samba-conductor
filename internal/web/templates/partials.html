@@ -90,3 +90,14 @@
 {{define "reauth-fields"}}<div class="alert-info" data-e2e="confirm-text-reauth">{{if .D.CodeAllowed}}{{t "confirm.reauth"}}{{else}}{{t "confirm.reauth_key"}}{{end}}</div>
 <div class="field"><label for="password">{{t "signin.password"}}</label><input id="password" name="password" type="password" autocomplete="current-password" required data-e2e="confirm-input-password"></div>
 <div class="field"><label for="code">{{if .D.CodeAllowed}}{{t "mfa.code"}}{{else}}{{t "mfa.recovery_code"}}{{end}}</label><input id="code" name="code" type="text" autocomplete="one-time-code" required maxlength="16" data-e2e="confirm-input-code"></div>{{end}}
+
+{{define "sync-subnav"}}<nav class="tabs" aria-label="{{t "nav.sync"}}">
+  <a href="/admin/sync" data-e2e="sync-tab-overview"{{if eq .Path "/admin/sync"}} aria-current="page"{{end}}>{{t "sync.tab.overview"}}</a>
+  <a href="/admin/sync/runs" data-e2e="sync-tab-runs"{{if active .Path "/admin/sync/runs"}} aria-current="page"{{end}}>{{t "sync.tab.runs"}}</a>
+  <a href="/admin/sync/setup" data-e2e="sync-tab-setup"{{if active .Path "/admin/sync/setup"}} aria-current="page"{{end}}>{{t "sync.tab.setup"}}</a>
+  <a href="/admin/sync/config" data-e2e="sync-tab-config"{{if active .Path "/admin/sync/config"}} aria-current="page"{{end}}>{{t "sync.tab.config"}}</a>
+</nav>{{end}}
+
+{{define "sync-status"}}<span class="badge{{if or (eq . "applied") (eq . "nothing-to-do") (eq . "planned")}} badge-ok{{else if or (eq . "blocked") (eq . "partial") (eq . "dry-run") (eq . "running")}} badge-warn{{else if or (eq . "failed") (eq . "interrupted")}} badge-danger{{end}}" data-e2e="sync-badge-{{e2e .}}">{{t (print "sync.status." .)}}</span>{{end}}
+
+{{define "sync-groupref"}}{{$g := index .G .Ref}}<div data-e2e="sync-groupref-{{e2e .Ref}}">{{if $g.Found}}<b>{{$g.Name}}</b>{{else}}<span class="badge badge-warn">{{t "sync.group.unresolved"}}</span>{{end}} <span class="mono small muted">{{.Ref}}</span></div>{{end}}

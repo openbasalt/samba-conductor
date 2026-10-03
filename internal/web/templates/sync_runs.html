@@ -1,0 +1,24 @@
+{{define "title"}}{{t "sync.history"}}{{end}}
+{{define "content"}}<h1>{{t "sync.history"}}</h1>
+{{template "sync-subnav" (dict "Path" .Path)}}
+{{template "error-alert" .D.Error}}
+<form method="get" action="/admin/sync/runs" class="row filters" data-e2e="sync-runs-form-filter">
+  <label for="st" class="small">{{t "sync.filter.status"}}</label>
+  <select id="st" name="status" data-e2e="sync-runs-select-status">
+    <option value="">{{t "sync.filter.all"}}</option>
+    {{range .D.Statuses}}<option value="{{.}}"{{if eq . $.D.Status}} selected{{end}}>{{t (print "sync.status." .)}}</option>{{end}}
+  </select>
+  <button class="btn btn-small" type="submit" data-e2e="sync-runs-btn-filter">{{t "audit.filter"}}</button>
+</form>
+{{if .D.Runs}}<table class="table" data-e2e="sync-runs-table">
+  <thead><tr><th>{{t "sync.run"}}</th><th>{{t "sync.col.status"}}</th><th>{{t "sync.col.trigger"}}</th><th>{{t "sync.col.changes"}}</th><th>{{t "sync.col.result"}}</th></tr></thead>
+  <tbody>{{range .D.Runs}}<tr data-e2e="sync-runs-row-{{.ID}}">
+    <td><a href="/admin/sync/runs/{{.ID}}" data-e2e="sync-runs-link-{{.ID}}">#{{.ID}} {{t (print "sync.action." .Action)}}</a><br><span class="muted small">{{time .StartedAt}}</span></td>
+    <td data-label="{{t "sync.col.status"}}">{{template "sync-status" .Status}}{{if .Violations}}<br><span class="small muted">{{t "sync.violations" (len .Violations)}}</span>{{end}}</td>
+    <td data-label="{{t "sync.col.trigger"}}">{{t (print "sync.trigger." .Trigger)}}<br><span class="small muted">{{.Actor}}</span></td>
+    <td data-label="{{t "sync.col.changes"}}" class="small">{{range $k, $v := .Counts}}<span class="badge">{{t (print "sync.kind." $k)}} {{$v}}</span> {{else}}<span class="muted">{{t "sync.no_changes"}}</span>{{end}}</td>
+    <td data-label="{{t "sync.col.result"}}" class="small">{{if eq .Action "apply"}}{{t "sync.done_failed" .OpsDone .OpsFailed}}{{end}}{{if .Error}}<br><span class="muted">{{.Error}}</span>{{end}}</td>
+  </tr>{{end}}</tbody>
+</table>
+{{template "pager" .}}
+{{else if not .D.Error}}<p class="muted" data-e2e="sync-runs-text-none">{{t "sync.no_runs"}}</p>{{end}}{{end}}

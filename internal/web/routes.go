@@ -161,6 +161,30 @@ func (s *Server) routeTable() []route {
 		{method: "POST", pattern: "/admin/backups/run", perm: PermBackupWrite, h: s.handleBackupRun},
 		{method: "POST", pattern: "/admin/backups/drill", perm: PermBackupWrite, h: s.handleBackupDrill},
 
+		// Google Workspace sync (conductor-sync's management API):
+		// administrators only. Changes to the settings, the key and Google
+		// are previewed and confirmed with re-authentication.
+		{method: "GET", pattern: "/admin/sync", perm: PermSyncRead, h: s.handleSync},
+		{method: "POST", pattern: "/admin/sync/plan", perm: PermSyncWrite, h: s.handleSyncPlan},
+		{method: "POST", pattern: "/admin/sync/run-now", perm: PermSyncWrite, h: s.handleSyncRunNow},
+		{method: "POST", pattern: "/admin/sync/mode", perm: PermSyncWrite, h: s.handleSyncMode},
+		{method: "GET", pattern: "/admin/sync/jobs/{id}", perm: PermSyncRead, h: s.handleSyncJob},
+		{method: "GET", pattern: "/admin/sync/runs", perm: PermSyncRead, h: s.handleSyncRuns},
+		{method: "GET", pattern: "/admin/sync/runs/{id}", perm: PermSyncRead, h: s.handleSyncRun},
+		{method: "POST", pattern: "/admin/sync/runs/{id}/apply", perm: PermSyncWrite, h: s.handleSyncRunApply},
+		{method: "GET", pattern: "/admin/sync/config", perm: PermSyncRead, h: s.handleSyncConfig},
+		{method: "GET", pattern: "/admin/sync/config/export", perm: PermSyncRead, h: s.handleSyncExport},
+		{method: "GET", pattern: "/admin/sync/setup", perm: PermSyncWrite, h: s.handleSyncSetup},
+		{method: "POST", pattern: "/admin/sync/setup/google", perm: PermSyncWrite, h: s.handleSyncSetupGoogle},
+		{method: "POST", pattern: "/admin/sync/setup/key", perm: PermSyncWrite, h: s.handleSyncSetupKey, maxBody: maxKeyUpload + 64<<10},
+		{method: "POST", pattern: "/admin/sync/setup/test", perm: PermSyncWrite, h: s.handleSyncSetupTest},
+		{method: "POST", pattern: "/admin/sync/setup/scope", perm: PermSyncWrite, h: s.handleSyncSetupScope},
+		{method: "POST", pattern: "/admin/sync/setup/mapping", perm: PermSyncWrite, h: s.handleSyncSetupMapping},
+		{method: "POST", pattern: "/admin/sync/setup/templates", perm: PermSyncWrite, h: s.handleSyncSetupTemplates},
+		{method: "POST", pattern: "/admin/sync/setup/safety", perm: PermSyncWrite, h: s.handleSyncSetupSafety},
+		{method: "POST", pattern: "/admin/sync/setup/save", perm: PermSyncWrite, h: s.handleSyncSetupSave},
+		{method: "POST", pattern: "/admin/sync/setup/discard", perm: PermSyncWrite, h: s.handleSyncSetupDiscard},
+
 		{method: "GET", pattern: "/admin/audit", perm: PermAuditRead, h: s.handleAudit},
 		{method: "GET", pattern: "/admin/audit/export", perm: PermAuditRead, h: s.handleAuditExport},
 		{method: "GET", pattern: "/admin/domain", perm: PermDomainRead, h: s.handleDomain},

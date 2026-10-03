@@ -5,6 +5,14 @@
 <div class="stats">
   {{range .D.Stats}}<a class="stat" href="{{.Link}}" data-e2e="dashboard-card-{{e2e .Key}}"><b data-e2e="dashboard-text-{{e2e .Key}}">{{.Value}}</b><span>{{.Label}}</span></a>{{end}}
 </div>
+{{if .D.SyncCard}}<section class="card" aria-labelledby="dash-sync" data-e2e="dashboard-card-sync">
+  <h2 id="dash-sync">{{t "nav.sync"}}</h2>
+  {{with .D.Sync}}{{range .OpenBlocked}}<div class="alert-warn" role="alert" data-e2e="dashboard-alert-sync-blocked">{{t "sync.blocked.title" .ID}}</div>{{end}}
+  <p data-e2e="dashboard-text-sync">{{with .LastRun}}{{t "dashboard.sync.last" .ID (time .StartedAt)}} {{template "sync-status" .Status}}{{else}}{{t "sync.no_runs"}}{{end}}</p>
+  <p class="small muted">{{if eq .Mode "apply"}}{{t "sync.mode.apply"}}{{else}}{{t "sync.mode.dry_run"}}{{end}}{{if not .NextScheduled.IsZero}} · {{t "dashboard.sync.next" (time .NextScheduled)}}{{end}}</p>
+  {{else}}<p class="muted" data-e2e="dashboard-text-sync-unavailable">{{t "sync.err.unavailable"}}</p>{{end}}
+  <a class="btn btn-small" href="/admin/sync" data-e2e="dashboard-link-sync">{{t "dashboard.sync.open"}}</a>
+</section>{{end}}
 <div class="grid grid-2">
 <section class="card" aria-labelledby="dash-locked">
   <h2 id="dash-locked">{{t "dashboard.locked"}}</h2>

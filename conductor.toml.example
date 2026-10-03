@@ -82,3 +82,11 @@ max_rows = 1000
 [tools]
 # Run for GPO creation/deletion with the signed-in user's Kerberos ticket.
 samba_tool = "/usr/bin/samba-tool"
+
+[sync]
+# The "Google Workspace sync" section (administrators only): conductor
+# drives conductor-sync through its local management API
+# (`conductor-sync serve`, conductor-sync's docs/usage-p5.md). The socket
+# admits only the conductor user (SO_PEERCRED).
+enabled = false
+socket = "/run/conductor-sync/api.sock"

@@ -44,6 +44,15 @@ type Config struct {
 	WebAuthn  WebAuthn  `toml:"webauthn"`
 	Bulk      Bulk      `toml:"bulk"`
 	Tools     Tools     `toml:"tools"`
+	Sync      Sync      `toml:"sync"`
+}
+
+// Sync is the Google Workspace sync section of the admin UI: conductor
+// talks to `conductor-sync serve` (its management API) over a local Unix
+// socket. Off by default; conductor-sync may also run without it.
+type Sync struct {
+	Enabled bool   `toml:"enabled"`
+	Socket  string `toml:"socket"`
 }
 
 // WebAuthn configures security keys and platform authenticators as a
@@ -208,6 +217,7 @@ func Default() *Config {
 		WebAuthn:  WebAuthn{DisplayName: "Samba Conductor"},
 		Bulk:      Bulk{MaxRows: 1000},
 		Tools:     Tools{SambaTool: "/usr/bin/samba-tool"},
+		Sync:      Sync{Socket: "/run/conductor-sync/api.sock"},
 	}
 }
 
@@ -316,6 +326,9 @@ func (c *Config) Validate() error {
 	}
 	if !filepath.IsAbs(c.Tools.SambaTool) {
 		bad("tools.samba_tool must be an absolute path")
+	}
+	if c.Sync.Enabled && !filepath.IsAbs(c.Sync.Socket) {
+		bad("sync.socket must be absolute")
 	}
 	return errors.Join(errs...)
 }

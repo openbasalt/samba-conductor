@@ -40,12 +40,15 @@ const (
 
 	PermBackupRead  Perm = "backup.read"  // backups page (status, policy, drills)
 	PermBackupWrite Perm = "backup.write" // back up now, run drill now, policy edits
+
+	PermSyncRead  Perm = "sync.read"  // Google Workspace sync: status, plans, runs, settings
+	PermSyncWrite Perm = "sync.write" // settings, key, plans, applies (administrators only)
 )
 
 // allPerms lists every privileged permission (navigation, tests).
 var allPerms = []Perm{PermDashboard, PermUsersRead, PermUsersHelpdesk, PermUsersWrite, PermDirRead, PermDirWrite,
 	PermAuditRead, PermDomainRead, PermMFAManage, PermDNSRead, PermDNSWrite, PermGPORead, PermGPOWrite,
-	PermPolicyRead, PermPolicyWrite, PermHealthRead, PermBulk, PermBackupRead, PermBackupWrite}
+	PermPolicyRead, PermPolicyWrite, PermHealthRead, PermBulk, PermBackupRead, PermBackupWrite, PermSyncRead, PermSyncWrite}
 
 // privileged reports whether p is beyond self-service.
 func (p Perm) privileged() bool {

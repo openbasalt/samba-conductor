@@ -6,6 +6,10 @@ go 1.27.0
 // (planning/docs/decisions.md); the family go.work resolves it too.
 replace github.com/samba-conductor/ad => ../ad
 
+// conductor-sync's management API protocol (package syncapi), local for the
+// same reason.
+replace github.com/samba-conductor/conductor-sync => ../conductor-sync
+
 require (
 	filippo.io/age v1.3.2
 	github.com/BurntSushi/toml v1.6.0
@@ -13,6 +17,7 @@ require (
 	github.com/go-ldap/ldap/v3 v3.4.14
 	github.com/go-webauthn/webauthn v0.18.2
 	github.com/samba-conductor/ad v0.0.0
+	github.com/samba-conductor/conductor-sync v0.0.0
 	golang.org/x/term v0.46.0
 	modernc.org/sqlite v1.60.1
 	rsc.io/qr v0.2.0

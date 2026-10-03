@@ -9,6 +9,7 @@ import (
 	"github.com/samba-conductor/ad"
 	"github.com/samba-conductor/ad/helper"
 	"github.com/samba-conductor/ad/sambatool"
+	"github.com/samba-conductor/conductor-sync/syncapi"
 	"github.com/samba-conductor/conductor/internal/directory"
 	"github.com/samba-conductor/conductor/internal/store"
 	"github.com/samba-conductor/conductor/internal/totp"
@@ -302,6 +303,10 @@ func (s *Server) adErrorKey(err error) string {
 	}
 	if errors.Is(err, errHelperDisabled) {
 		return "backups.err.helper"
+	}
+	var se *syncapi.Error
+	if errors.As(err, &se) || errors.Is(err, errSyncDisabled) {
+		return "sync.err.failed"
 	}
 	if isNotAllowedOnNonLeaf(err) {
 		return "err.ad.not_empty"

@@ -51,8 +51,10 @@ type Deps struct {
 	Store   *store.Store
 	Backend Backend
 	// MFABox seals TOTP secrets (key from systemd credentials).
-	MFABox  *secret.Box
-	Helper  HelperClient // nil when the helper is disabled
+	MFABox *secret.Box
+	Helper HelperClient // nil when the helper is disabled
+	// Sync is conductor-sync's management API (nil when [sync] is off).
+	Sync    SyncClient
 	Logger  *slog.Logger
 	Version string
 }
@@ -98,6 +100,11 @@ type Server struct {
 	// backupPollErr is the poller's last error (logged on change only).
 	backups       backupCache
 	backupPollErr string
+
+	// sync is conductor-sync's management API (nil when not enabled);
+	// syncStatus caches its status for the dashboard card.
+	sync       SyncClient
+	syncStatus syncCache
 }
 
 // New builds the server.
@@ -113,7 +120,7 @@ func New(d Deps) (*Server, error) {
 		return nil, err
 	}
 	s := &Server{cfg: d.Config, store: d.Store, backend: d.Backend, box: d.MFABox, helper: d.Helper, log: d.Logger,
-		cat: cat, version: d.Version, now: time.Now}
+		cat: cat, version: d.Version, now: time.Now, sync: d.Sync}
 	for _, p := range d.Config.Server.TrustedProxies {
 		pre, err := netip.ParsePrefix(p)
 		if err != nil {
