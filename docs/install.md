@@ -143,3 +143,7 @@ Helpdesk and auditor accounts enroll on their first sign-in
   encrypted domain backups that include conductor's database; keep
   `/etc/conductor/credentials/totp-key` offline with the operator's age key
   (`restore.md`, section 0).
+- Google Workspace sync (optional): install conductor-sync
+  (`../../conductor-sync/docs/usage-p5.md`) with its API socket
+  (`conductor-sync-api.socket`, group `conductor`), then `[sync] enabled =
+  true` in `conductor.toml` and restart conductor (`usage-p5b.md`).

@@ -775,7 +775,7 @@
   "sync.unconfigured.title": "Ainda não configurada",
   "sync.unconfigured.text": "Envie a chave da conta de serviço do Google e defina o administrador em nome do qual a sincronização age. A configuração guia você por escopo, unidades organizacionais e modelos de e-mail.",
   "sync.setup.start": "Iniciar a configuração",
-  "sync.blocked.title": "A execução #{0} parou nos limites de segurança",
+  "sync.blocked.title": "A execução #{0} parou nos limites de segurança.",
   "sync.blocked.text": "Nada foi gravado ({0}). Revise o plano; se a mudança for intencional, aplique com a liberação dos limites.",
   "sync.blocked.review": "Revisar o plano bloqueado",
   "sync.audit.broken": "O log de auditoria da sincronização está quebrado na linha {0}: {1}",

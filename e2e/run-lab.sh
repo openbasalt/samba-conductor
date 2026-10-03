@@ -2,7 +2,7 @@
 # Run the Playwright suite on server-home against conductor on the lab's
 # dc1, once per project (desktop, mobile), each on a freshly reset lab.
 #
-#   e2e/run-lab.sh                    # deploy + snapshot conductor-p3, run both
+#   e2e/run-lab.sh                    # deploy + snapshot conductor-p5b, run both
 #   e2e/run-lab.sh --no-deploy        # reuse the conductor-p3 snapshot
 #   e2e/run-lab.sh --no-deploy desktop
 #   E2E_GREP='administrator|WebAuthn' e2e/run-lab.sh --no-deploy desktop   # a subset
@@ -45,13 +45,16 @@ LAB_HOME="$HOME/conductor-lab"
 E2E="$HOME/samba-conductor/conductor/e2e"
 SSH="ssh -n -i $LAB_HOME/id_ed25519 -o BatchMode=yes -o UserKnownHostsFile=$LAB_HOME/known_hosts -o LogLevel=ERROR debian@10.93.0.10"
 cd "$HOME/samba-conductor/planning/lab"
-[ "$noreset" = 1 ] || ./reset.sh conductor-p3 </dev/null >/dev/null 2>&1
+[ "$noreset" = 1 ] || ./reset.sh conductor-p5b </dev/null >/dev/null 2>&1
 $SSH 'for i in $(seq 90); do ss -ltn | grep -q ":8443 " && exit 0; sleep 1; done; exit 1'
 link="$($SSH 'sudo -u conductor conductor enroll-link --user lab.admin --base-url https://dc1.lab.conductor.test:8443' | tail -n 1)"
 spki="$(openssl x509 -in "$LAB_HOME/tls/conductor-dc1.pem" -pubkey -noout | openssl pkey -pubin -outform der | openssl dgst -sha256 -binary | base64)"
 rm -rf "$E2E/.auth" "$E2E/screenshots/$project" "$E2E/test-results"
 install -d -m 0700 "$E2E/.auth"
 install -m 0644 "$LAB_HOME/ca.pem" "$E2E/.auth/lab-ca.pem"
+# The fake Google's service account key, uploaded by the sync setup test.
+$SSH 'for i in $(seq 60); do sudo test -s /var/lib/conductor-lab-fakegws/sa-key.json && exit 0; sleep 1; done; exit 1'
+(umask 077; $SSH 'sudo cat /var/lib/conductor-lab-fakegws/sa-key.json' >"$E2E/.auth/fake-sa-key.json")
 envf="$(mktemp)"
 trap 'rm -f "$envf"' EXIT
 ( set -a; . "$LAB_HOME/secrets.env"; set +a

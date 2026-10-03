@@ -775,7 +775,7 @@
   "sync.unconfigured.title": "Not configured yet",
   "sync.unconfigured.text": "Upload the Google service account key and set the administrator the sync acts as. The setup walks you through scope, org units and e-mail templates.",
   "sync.setup.start": "Start the setup",
-  "sync.blocked.title": "Run #{0} stopped at the safety limits",
+  "sync.blocked.title": "Run #{0} stopped at the safety limits.",
   "sync.blocked.text": "Nothing was written ({0}). Review the plan; if the change is intended, apply it with the override.",
   "sync.blocked.review": "Review the blocked plan",
   "sync.audit.broken": "The sync audit log is broken at row {0}: {1}",

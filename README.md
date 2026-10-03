@@ -3,10 +3,13 @@
 Web administrator and self-service portal for Samba Active Directory
 (`conductor`), plus the privileged local helper (`conductor-helper`). Part of
 Samba Conductor v2; design in `../planning/docs/architecture.md`, phase specs
-in `../planning/docs/p1-spec.md`, `p2-spec.md` and `p3-spec.md`.
+in `../planning/docs/p1-spec.md`, `p2-spec.md`, `p3-spec.md` and
+`p5b-spec.md`.
 
-Status: **P3 complete** (2026-10-03): encrypted domain backups, restore and
-restore drills (with `../conductor-backup`), on top of P2 (DNS, Group Policy
+Status: **P5b complete** (2026-10-03): the Google Workspace sync section
+(with `../conductor-sync`: [`docs/usage-p5b.md`](docs/usage-p5b.md)), on top
+of P3 (encrypted domain backups, restore and restore drills with
+`../conductor-backup`), P2 (DNS, Group Policy
 links, password policies, lockouts across DCs, account health, bulk
 operations, security keys) and P1. Validated end to end in the two-DC
 server-home lab, desktop and mobile, including a full-forest restore:
@@ -85,6 +88,16 @@ P1: [`docs/usage-p1.md`](docs/usage-p1.md)). Recovery runbook:
   warns when the last good backup is too old, a backup or drill failed, or
   conductor-backup stopped running. Results are recorded in conductor's
   state and audit log.
+- **Google Workspace sync** (P5b, administrators only, `[sync]` on):
+  conductor-sync's settings, key, plans and applies from the browser
+  through its local management API: a setup wizard (service account key,
+  connection test, who is synced by OU and by include/exclude groups, org
+  units by group with priorities and by OU, e-mail templates previewed
+  against real AD users, safety limits), plans grouped by kind with the
+  limits and plan errors, applies bound to the reviewed plan by a typed
+  confirmation and the digest, blocked scheduled runs and their override,
+  history and the settings' version history. Every change is previewed,
+  re-authenticated and audited here and in conductor-sync.
 - **Self-service**: profile, edit of the attributes Samba lets users write
   on themselves (phones, office, address, web page), password change,
   2FA, sessions and "sign out everywhere".
@@ -125,6 +138,7 @@ P1: [`docs/usage-p1.md`](docs/usage-p1.md)). Recovery runbook:
 - [Install (Debian 13 / Ubuntu 26.04)](docs/install.md)
 - [Configuration reference](docs/config.md)
 - [Restore runbook](docs/restore.md)
+- [P5b: the Google Workspace sync section](docs/usage-p5b.md)
 - [P3 lab run (backups, drills, restore exercise)](docs/usage-p3.md), [P2 lab run](docs/usage-p2.md), [P1 lab run](docs/usage-p1.md) and [screenshots](docs/screenshots/)
 
 ## Development
@@ -136,7 +150,8 @@ scripts/lab-deploy.sh [--snapshot]   # build on server-home, install on the lab'
 e2e/run-lab.sh [--no-deploy] [desktop|mobile]   # Playwright suite on server-home
 ```
 
-The module uses `replace github.com/samba-conductor/ad => ../ad` until the
+The module uses `replace github.com/samba-conductor/ad => ../ad` (and
+`../conductor-sync` for the sync API protocol, package `syncapi`) until the
 family has a public home. Layout:
 
 | Path | What |

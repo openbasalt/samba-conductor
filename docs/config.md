@@ -152,6 +152,13 @@ nonce and Subresource Integrity; it makes no requests of its own
 |---|---|---|
 | `samba_tool` | `"/usr/bin/samba-tool"` | samba-tool, run for GPO creation and deletion (they write SYSVOL as well as LDAP) with the signed-in user's own Kerberos ticket, written for the run to a private credential cache in conductor's own `/tmp` (systemd `PrivateTmp`) and removed afterwards. No password is involved. |
 
+## `[sync]`
+
+| Key | Default | Meaning |
+|---|---|---|
+| `enabled` | `false` | Show the "Google Workspace sync" section (administrators only) and drive conductor-sync through its management API. Needs `conductor-sync serve` (conductor-sync's `conductor-sync-api.socket`) on this host. |
+| `socket` | `"/run/conductor-sync/api.sock"` | The API socket (owner conductor-sync, group conductor, 0660; conductor-sync admits only the conductor user, SO_PEERCRED). |
+
 ## Files
 
 | Path | Owner / mode | What |
@@ -164,3 +171,4 @@ nonce and Subresource Integrity; it makes no requests of its own
 | `/run/conductor-helper/helper.sock` | root:conductor 0660 | helper socket |
 | `/etc/conductor/helper.toml` | root:conductor 0640 | helper configuration (backups) |
 | `/run/conductor-helper/backup.sock` | root:conductor-backup 0660 | helper socket for conductor-backup (with backups) |
+| `/run/conductor-sync/api.sock` | conductor-sync:conductor 0660 | conductor-sync's management API (with `[sync]`) |

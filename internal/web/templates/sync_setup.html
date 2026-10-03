@@ -140,8 +140,8 @@
   <p class="hint">{{t "sync.tpl.hint"}}</p>
   <div class="field"><label for="pe">{{t "sync.tpl.primary_email"}}</label><textarea id="pe" name="primary_email" rows="2" required data-e2e="sync-setup-input-primary-email">{{join $s.Mapping.PrimaryEmail "\n"}}</textarea><span class="hint">{{t "sync.tpl.lines_hint"}}</span></div>
   <div class="grid grid-2">
-    <div class="field"><label for="gn">{{t "sync.tpl.given_name"}}</label><textarea id="gn" name="given_name" rows="2" data-e2e="sync-setup-input-given-name">{{join $s.Mapping.GivenName "\n"}}</textarea></div>
-    <div class="field"><label for="fn">{{t "sync.tpl.family_name"}}</label><textarea id="fn" name="family_name" rows="2" data-e2e="sync-setup-input-family-name">{{join $s.Mapping.FamilyName "\n"}}</textarea></div>
+    <div class="field"><label for="gn">{{t "sync.tpl.given_name"}}</label><textarea id="gn" name="given_name" rows="3" data-e2e="sync-setup-input-given-name">{{join $s.Mapping.GivenName "\n"}}</textarea></div>
+    <div class="field"><label for="fn">{{t "sync.tpl.family_name"}}</label><textarea id="fn" name="family_name" rows="3" data-e2e="sync-setup-input-family-name">{{join $s.Mapping.FamilyName "\n"}}</textarea></div>
   </div>
   <h3>{{t "sync.tpl.attributes"}}</h3>
   <div class="grid grid-2">{{range $.D.AttrFields}}<div class="field"><label for="a-{{.}}">{{t (print "sync.tpl.attr." .)}}</label><input id="a-{{.}}" name="attr_{{.}}" type="text" value="{{index $s.Mapping.Attributes .}}" placeholder="{{t (print "sync.tpl.attr_ph." .)}}" data-e2e="sync-setup-input-attr-{{e2e .}}"></div>{{end}}</div>

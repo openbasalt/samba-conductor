@@ -189,7 +189,7 @@ details summary { cursor: pointer; color: var(--muted); }
 [hidden] { display: none !important; }
 .tabs { display: flex; gap: .25rem; overflow-x: auto; border-bottom: 1px solid var(--border); margin-bottom: 1rem; }
 .tabs a { padding: .55rem .75rem; color: var(--muted); text-decoration: none; white-space: nowrap; border-bottom: 2px solid transparent; }
-.tabs a[aria-current="page"] { color: var(--fg); border-bottom-color: var(--accent); }
+.tabs a[aria-current="page"], .tabs a[aria-current="step"] { color: var(--fg); border-bottom-color: var(--accent); }
 input[type=file] { font: inherit; max-width: 100%; }
 input[type=checkbox] { width: 1.15rem; height: 1.15rem; accent-color: var(--accent); }
 details pre { margin-top: .5rem; max-height: 24rem; }
