@@ -16,7 +16,7 @@ cd "$(dirname "${BASH_SOURCE[0]}")/../.."   # the family directory
 LAB_HOST="${LAB_HOST:-server-home}"
 VERSION="$(git -C conductor describe --always --dirty 2>/dev/null || echo dev)"
 
-rsync -a --delete --exclude .git/ --exclude node_modules/ --exclude /conductor/bin/ --exclude /conductor-backup/bin/ --exclude /ACESSO-AMBIENTE-TESTE.md \
+rsync -a --delete --exclude .git/ --exclude node_modules/ --exclude /conductor/bin/ --exclude /conductor-backup/bin/ --exclude /ACESSO-AMBIENTE-TESTE.md --exclude /conductor-devenv-fake-google-key.json \
   --exclude /conductor/e2e/test-results/ --exclude /conductor/e2e/playwright-report/ --exclude /conductor-sync/bin/ --exclude /conductor-files/bin/ ./ "$LAB_HOST:samba-conductor/"
 ssh -o BatchMode=yes "$LAB_HOST" bash -s -- "$VERSION" "${1:-}" <<'REMOTE'
 set -euo pipefail

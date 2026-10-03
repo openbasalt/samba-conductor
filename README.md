@@ -7,9 +7,9 @@ in `../planning/docs/p1-spec.md`, `p2-spec.md`, `p3-spec.md` and
 `p5b-spec.md`.
 
 Status: **P5b complete** (2026-10-03): the Google Workspace sync section
-(with `../conductor-sync`: [`docs/usage-p5b.md`](docs/usage-p5b.md)), on top
+(with [conductor-sync](https://github.com/openbasalt/samba-conductor-sync): [`docs/usage-p5b.md`](docs/usage-p5b.md)), on top
 of P3 (encrypted domain backups, restore and restore drills with
-`../conductor-backup`), P2 (DNS, Group Policy
+[conductor-backup](https://github.com/openbasalt/samba-conductor-backup)), P2 (DNS, Group Policy
 links, password policies, lockouts across DCs, account health, bulk
 operations, security keys) and P1. Validated end to end in the two-DC
 lab, desktop and mobile, including a full-forest restore:

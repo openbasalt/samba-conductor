@@ -1,7 +1,7 @@
 # Restore runbook
 
 How to recover a Samba AD domain managed with Samba Conductor, from the
-encrypted backups `conductor-backup` takes (`../../conductor-backup/README.md`).
+encrypted backups `conductor-backup` takes (<https://github.com/openbasalt/samba-conductor-backup/blob/main/README.md>).
 Read it before you need it, and keep a printed or offline copy with the
 keys below.
 

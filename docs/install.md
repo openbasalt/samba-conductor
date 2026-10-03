@@ -183,11 +183,11 @@ Helpdesk and auditor accounts enroll on their first sign-in
   configuration and the database; `apt purge conductor` also deletes
   `/etc/conductor` (with the TOTP key) and `/var/lib/conductor` (database,
   audit log): back them up first. The `conductor` user is kept.
-- Backups: install conductor-backup (`../../conductor-backup/README.md`):
+- Backups: install conductor-backup (<https://github.com/openbasalt/samba-conductor-backup/blob/main/README.md>):
   encrypted domain backups that include conductor's database; keep
   `/etc/conductor/credentials/totp-key` offline with the operator's age key
   (`restore.md`, section 0).
 - Google Workspace sync (optional): install conductor-sync
-  (`../../conductor-sync/docs/usage-p5.md`) with its API socket
+  (<https://github.com/openbasalt/samba-conductor-sync/blob/main/docs/usage-p5.md>) with its API socket
   (`conductor-sync-api.socket`, group `conductor`), then `[sync] enabled =
   true` in `conductor.toml` and restart conductor (`usage-p5b.md`).

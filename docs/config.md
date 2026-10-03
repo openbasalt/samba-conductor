@@ -99,7 +99,7 @@ What each role may do on the P2 pages:
 The helper's own file (root:conductor 0640, no secrets). Without it, or with
 `[backup] enabled = false`, the backup operations are off and the Backups
 page says so. Set up together with conductor-backup
-(`../../conductor-backup/README.md`). Unknown keys are an error.
+(<https://github.com/openbasalt/samba-conductor-backup/blob/main/README.md>). Unknown keys are an error.
 
 | `[backup]` key | Default | Meaning |
 |---|---|---|
