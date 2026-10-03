@@ -21,12 +21,14 @@ rsync -a --delete --exclude .git/ --exclude node_modules/ --exclude /conductor/b
 ssh -o BatchMode=yes "$LAB_HOST" bash -s -- "$VERSION" "${1:-}" <<'REMOTE'
 set -euo pipefail
 version="$1" snap="${2:-}"
-# The family workspace (go.work at the family root, copied above): the lab
-# runs the local sibling modules, not the versions go.mod pins.
-test -f "$HOME/samba-conductor/go.work" || { echo "lab-deploy: no go.work at the family root (CONTRIBUTING.md)" >&2; exit 1; }
-export GOWORK="$HOME/samba-conductor/go.work" GOTOOLCHAIN=go1.27.0 CGO_ENABLED=0
-cd ~/samba-conductor/conductor
+# A Go workspace over the copied modules (planning/scripts/family-gowork.sh):
+# the lab runs the local sibling modules, not the versions go.mod pins, and
+# the lab host needs no access to the private repositories.
 mkdir -p ~/conductor-build
+(cd ~/samba-conductor && planning/scripts/family-gowork.sh -o ~/conductor-build/go.work \
+  ad conductor conductor-backup conductor-sync conductor-files)
+export GOWORK="$HOME/conductor-build/go.work" GOTOOLCHAIN=go1.27.0 CGO_ENABLED=0
+cd ~/samba-conductor/conductor
 go build -trimpath -ldflags "-s -w -X main.version=$version" -o ~/conductor-build/conductor ./cmd/conductor
 go build -trimpath -ldflags "-s -w -X main.version=$version" -o ~/conductor-build/conductor-helper ./cmd/conductor-helper
 cp deploy/systemd/conductor.service deploy/systemd/conductor-helper.service ~/conductor-build/
