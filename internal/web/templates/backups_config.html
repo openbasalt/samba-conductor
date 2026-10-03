@@ -1,0 +1,23 @@
+{{define "title"}}{{t "backups.config.title"}}{{end}}
+{{define "content"}}{{$f := .D.F}}<div class="card narrow">
+  <h1>{{t "backups.config.title"}}</h1>
+  <p class="hint">{{t "backups.config.intro"}}</p>
+  {{template "error-alert" .D.Error}}
+  <form method="post" action="/admin/backups/config">
+    {{template "csrf" .}}
+    <div class="grid grid-2">
+      <div class="field"><label for="b-time">{{t "backups.config.time"}}</label><input id="b-time" name="time" type="text" inputmode="numeric" value="{{$f.Time}}" required maxlength="5" placeholder="02:30" data-e2e="backupcfg-input-time"><span class="hint">{{t "backups.config.time_hint"}}</span></div>
+      <div class="field"><label for="b-every">{{t "backups.config.every"}}</label><select id="b-every" name="every" data-e2e="backupcfg-select-every">{{range .D.Every}}<option value="{{.}}"{{if eq (print .) $f.Every}} selected{{end}}>{{t "backups.hours" .}}</option>{{end}}</select></div>
+      <div class="field"><label for="b-daily">{{t "backups.config.daily"}}</label><input id="b-daily" name="daily" type="text" inputmode="numeric" value="{{$f.Daily}}" required data-e2e="backupcfg-input-daily"></div>
+      <div class="field"><label for="b-weekly">{{t "backups.config.weekly"}}</label><input id="b-weekly" name="weekly" type="text" inputmode="numeric" value="{{$f.Weekly}}" required data-e2e="backupcfg-input-weekly"></div>
+      <div class="field"><label for="b-monthly">{{t "backups.config.monthly"}}</label><input id="b-monthly" name="monthly" type="text" inputmode="numeric" value="{{$f.Monthly}}" required data-e2e="backupcfg-input-monthly"></div>
+      <div class="field"><label for="b-maxage">{{t "backups.config.max_age"}}</label><input id="b-maxage" name="max_age" type="text" inputmode="numeric" value="{{$f.MaxAge}}" required data-e2e="backupcfg-input-max-age"><span class="hint">{{t "backups.config.max_age_hint"}}</span></div>
+      <div class="field"><label for="b-drill">{{t "backups.config.drill"}}</label><input id="b-drill" name="drill" type="text" inputmode="numeric" value="{{$f.Drill}}" required data-e2e="backupcfg-input-drill"><span class="hint">{{t "backups.config.drill_hint"}}</span></div>
+    </div>
+    <p class="hint">{{t "backups.config.retention_hint"}}</p>
+    <div class="actions">
+      <button class="btn btn-primary" type="submit" data-e2e="backupcfg-btn-preview">{{t "form.preview"}}</button>
+      <a class="btn" href="/admin/backups" data-e2e="backupcfg-link-cancel">{{t "form.cancel"}}</a>
+    </div>
+  </form>
+</div>{{end}}

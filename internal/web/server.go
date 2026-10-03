@@ -93,6 +93,11 @@ type Server struct {
 	// jobs holds bulk jobs in memory; bgJobs tracks running ones.
 	jobs   jobs
 	bgJobs sync.WaitGroup
+
+	// backups caches conductor-backup's status (dashboard banner);
+	// backupPollErr is the poller's last error (logged on change only).
+	backups       backupCache
+	backupPollErr string
 }
 
 // New builds the server.
@@ -200,6 +205,23 @@ func (s *Server) Start(ctx context.Context) error {
 			}
 		}
 	}()
+	if s.helper != nil {
+		// Backup status for the dashboard banner, and backup/drill results
+		// into conductor's state and audit log.
+		go func() {
+			s.pollBackups(ctx)
+			t := time.NewTicker(time.Minute)
+			defer t.Stop()
+			for {
+				select {
+				case <-ctx.Done():
+					return
+				case <-t.C:
+					s.pollBackups(ctx)
+				}
+			}
+		}()
+	}
 	return nil
 }
 

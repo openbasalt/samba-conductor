@@ -155,6 +155,16 @@ func (s *Server) funcs(lang string) template.FuncMap {
 			return int64(s.now().Sub(t) / (24 * time.Hour))
 		},
 		"has": func(m map[string]bool, k string) bool { return m[k] },
+		// Backups page: sizes and durations.
+		"bytes": humanBytes,
+		"dur":   shortDur,
+		"ms":    func(n int64) string { return shortDur(time.Duration(n) * time.Millisecond) },
+		"since": func(t time.Time) string {
+			if t.IsZero() {
+				return "—"
+			}
+			return shortDur(s.now().Sub(t))
+		},
 	}
 }
 

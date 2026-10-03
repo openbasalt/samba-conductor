@@ -114,8 +114,21 @@ export async function shot(page: Page, info: TestInfo, name: string) {
   await page.screenshot({ path: shotPath(info, name), fullPage: true, mask });
 }
 
+// gotoStable navigates, retrying once when Chromium (host network on
+// server-home) reports a host interface change (another Docker stack
+// creating or removing a network) during the navigation.
+export async function gotoStable(page: Page, url: string) {
+  try {
+    return await page.goto(url);
+  } catch (e) {
+    if (!String(e).includes('ERR_NETWORK_CHANGED')) throw e;
+    await page.waitForTimeout(2000);
+    return await page.goto(url);
+  }
+}
+
 export async function signIn(page: Page, user: string, password: string) {
-  await page.goto('/signin');
+  await gotoStable(page, '/signin');
   await page.getByTestId('signin-input-username').fill(user);
   await page.getByTestId('signin-input-password').fill(password);
   await page.getByTestId('signin-btn-submit').click();

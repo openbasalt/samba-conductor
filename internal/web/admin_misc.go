@@ -2,7 +2,6 @@ package web
 
 import (
 	"context"
-	"encoding/json"
 	"net/http"
 	"strings"
 	"time"
@@ -68,6 +67,12 @@ func (s *Server) handleDashboard(rc *reqCtx) {
 		}
 		d := map[string]any{"Stats": stats, "Locked": locked, "Expiring": expiring, "Domain": conn.DNSDomain(),
 			"Level": conn.DomainFunctionality(), "DC": conn.DC().Host}
+		if rc.roles.Has(PermBackupRead) {
+			// The banner uses the poller's cached status (no helper call per view).
+			if st, ok := s.backups.get(); ok {
+				d["BackupAlerts"] = s.backupAlerts(rc, st)
+			}
+		}
 		if rc.roles.Has(PermAuditRead) {
 			recent, _, err := s.store.ListAudit(ctx, store.AuditFilter{}, 0, 10)
 			if err == nil {
@@ -122,26 +127,10 @@ func (s *Server) handleAuditExport(rc *reqCtx) {
 
 // ---- domain (through conductor-helper) ----
 
-// helperCall runs one helper operation as the signed-in user and audits it.
+// helperCall runs one helper operation without parameters as the
+// signed-in user and audits it.
 func (s *Server) helperCall(ctx context.Context, rc *reqCtx, op helper.OpName, out any) error {
-	if s.helper == nil {
-		return errHelperDisabled
-	}
-	rc.sess.mu.Lock()
-	caller := helper.Caller{User: rc.sess.sam, SID: rc.sess.userSID.String(), SessionID: rc.sess.hash[:16], SourceIP: rc.ip}
-	rc.sess.mu.Unlock()
-	req, err := helper.NewRequest(newToken()[:24], op, caller, nil)
-	if err != nil {
-		return err
-	}
-	resp, err := s.helper.Call(ctx, req)
-	detail, _ := json.Marshal(map[string]any{"op": op, "id": req.ID})
-	if err != nil {
-		s.audit(ctx, rc, "helper.call", string(op), string(detail), store.ResultFailed)
-		return err
-	}
-	s.audit(ctx, rc, "helper.call", string(op), string(detail), store.ResultOK)
-	return helper.DecodeResult(resp, out)
+	return s.helperCallWith(ctx, rc, op, nil, out)
 }
 
 type helperErr string

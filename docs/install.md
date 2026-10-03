@@ -139,5 +139,7 @@ Helpdesk and auditor accounts enroll on their first sign-in
 - Restart = everyone signs in again (Kerberos tickets live only in memory).
 - Upgrade: replace the binaries, `systemctl restart conductor-helper
   conductor`. Database migrations are embedded and applied at start.
-- Back up `/var/lib/conductor/conductor.db` and
-  `/etc/conductor/credentials/totp-key` together.
+- Backups: install conductor-backup (`../../conductor-backup/README.md`):
+  encrypted domain backups that include conductor's database; keep
+  `/etc/conductor/credentials/totp-key` offline with the operator's age key
+  (`restore.md`, section 0).

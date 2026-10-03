@@ -1,6 +1,7 @@
 {{define "title"}}{{t "nav.dashboard"}}{{end}}
 {{define "content"}}<h1>{{t "nav.dashboard"}}</h1>
 <p class="muted small" data-e2e="dashboard-text-domain">{{t "dashboard.domain" .D.Domain (level .D.Level) .D.DC}}</p>
+{{if .D.BackupAlerts}}<div class="alert-warn" role="alert" data-e2e="dashboard-alert-backups"><b>{{t "dashboard.backups_banner"}}</b><ul>{{range .D.BackupAlerts}}<li data-e2e="dashboard-alert-backup-{{e2e .Kind}}">{{.Text}}</li>{{end}}</ul><a href="/admin/backups" data-e2e="dashboard-link-backups">{{t "dashboard.backups_link"}}</a></div>{{end}}
 <div class="stats">
   {{range .D.Stats}}<a class="stat" href="{{.Link}}" data-e2e="dashboard-card-{{e2e .Key}}"><b data-e2e="dashboard-text-{{e2e .Key}}">{{.Value}}</b><span>{{.Label}}</span></a>{{end}}
 </div>

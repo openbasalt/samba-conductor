@@ -5,8 +5,13 @@
 // helper protocol, runs the matching samba-tool operation against the local
 // database, and logs every call with its caller.
 //
-// P1 enables read-only operations only: ping, functional levels, FSMO
-// roles and the list of domain controllers.
+// Two peers are admitted, each with its own operation set:
+//   - the conductor user: read-only domain information (P1) and, in P3, the
+//     backup status, "back up now" / "run drill now" requests and backup
+//     policy changes;
+//   - the conductor-backup user (P3, only when backups are configured):
+//     the online domain backup, whose output is an archive encrypted to
+//     the recipients of a root-owned file (see backup.go).
 package helperd
 
 import (
@@ -39,24 +44,73 @@ type Config struct {
 	// MaxConcurrent bounds parallel calls (default 4).
 	MaxConcurrent int
 	Logger        *slog.Logger
+	// Backup enables the backup operations (nil: not configured).
+	Backup *BackupConfig
+	// BackupSocket is the second socket, for conductor-backup only
+	// (mode 0660, group = the conductor-backup user's group), used when
+	// Backup is set.
+	BackupSocket string
+	// Version is reported in backup archives.
+	Version string
 }
 
-// enabled is the subset of the protocol allowlist this version serves.
-var enabled = map[helper.OpName]bool{
-	helper.OpPing:        true,
-	helper.OpDomainLevel: true,
-	helper.OpFSMORoles:   true,
-	helper.OpDCList:      true,
+// peer is who is calling.
+type peer int
+
+const (
+	peerNone peer = iota
+	peerConductor
+	peerBackup
+)
+
+func (p peer) String() string {
+	switch p {
+	case peerConductor:
+		return "conductor"
+	case peerBackup:
+		return "conductor-backup"
+	}
+	return "unknown"
+}
+
+// enabled lists, per peer, the subset of the protocol allowlist this
+// version serves.
+var enabled = map[peer]map[helper.OpName]bool{
+	peerConductor: {
+		helper.OpPing:            true,
+		helper.OpDomainLevel:     true,
+		helper.OpFSMORoles:       true,
+		helper.OpDCList:          true,
+		helper.OpBackupStatus:    true,
+		helper.OpBackupTrigger:   true,
+		helper.OpBackupPolicySet: true,
+	},
+	peerBackup: {
+		helper.OpPing:               true,
+		helper.OpDomainBackupOnline: true,
+	},
+}
+
+// opTimeout bounds one operation.
+func opTimeout(op helper.OpName) time.Duration {
+	if op == helper.OpDomainBackupOnline {
+		return 45 * time.Minute
+	}
+	return 90 * time.Second
 }
 
 // Server is a running helper.
 type Server struct {
-	cfg    Config
-	ln     *net.UnixListener
+	cfg Config
+	ln  *net.UnixListener
+	// bln is the conductor-backup socket (nil without backups).
+	bln    *net.UnixListener
 	sem    chan struct{}
 	runner *sambatool.Runner
 	log    *slog.Logger
 	wg     sync.WaitGroup
+	// backupMu allows one backup at a time.
+	backupMu sync.Mutex
 	// peerCred is replaced in tests.
 	peerCred func(*net.UnixConn) (uid, pid int, err error)
 }
@@ -73,34 +127,55 @@ func Listen(cfg Config) (*Server, error) {
 	if cfg.Logger == nil {
 		cfg.Logger = slog.Default()
 	}
-	if st, err := os.Lstat(cfg.Socket); err == nil {
-		if st.Mode()&os.ModeSocket == 0 {
-			return nil, fmt.Errorf("helperd: %s exists and is not a socket", cfg.Socket)
+	ln, err := listenSocket(cfg.Socket, cfg.SocketGID)
+	if err != nil {
+		return nil, err
+	}
+	var bln *net.UnixListener
+	if cfg.Backup != nil {
+		if !filepath.IsAbs(cfg.BackupSocket) || cfg.BackupSocket == cfg.Socket {
+			_ = ln.Close()
+			return nil, errors.New("helperd: the backup socket path must be absolute and differ from the main socket")
 		}
-		_ = os.Remove(cfg.Socket)
+		if bln, err = listenSocket(cfg.BackupSocket, cfg.Backup.PeerGID); err != nil {
+			_ = ln.Close()
+			return nil, err
+		}
+	}
+	s := &Server{cfg: cfg, ln: ln, bln: bln, sem: make(chan struct{}, cfg.MaxConcurrent), log: cfg.Logger,
+		runner:   &sambatool.Runner{Binary: cfg.SambaTool, Credentials: sambatool.LocalSystem{}, Timeout: time.Minute},
+		peerCred: peerCredentials}
+	return s, nil
+}
+
+// listenSocket creates a socket (replacing a stale one) with mode 0660 and
+// the given group.
+func listenSocket(path string, gid int) (*net.UnixListener, error) {
+	if st, err := os.Lstat(path); err == nil {
+		if st.Mode()&os.ModeSocket == 0 {
+			return nil, fmt.Errorf("helperd: %s exists and is not a socket", path)
+		}
+		_ = os.Remove(path)
 	}
 	// Create the socket with no permissions for others from the start.
 	old := syscall.Umask(0o117)
-	ln, err := net.ListenUnix("unix", &net.UnixAddr{Name: cfg.Socket, Net: "unix"})
+	ln, err := net.ListenUnix("unix", &net.UnixAddr{Name: path, Net: "unix"})
 	syscall.Umask(old)
 	if err != nil {
 		return nil, fmt.Errorf("helperd: %w", err)
 	}
 	ln.SetUnlinkOnClose(true)
 	if os.Geteuid() == 0 {
-		if err := os.Chown(cfg.Socket, 0, cfg.SocketGID); err != nil {
+		if err := os.Chown(path, 0, gid); err != nil {
 			_ = ln.Close()
 			return nil, fmt.Errorf("helperd: chown socket: %w", err)
 		}
 	}
-	if err := os.Chmod(cfg.Socket, 0o660); err != nil {
+	if err := os.Chmod(path, 0o660); err != nil {
 		_ = ln.Close()
 		return nil, err
 	}
-	s := &Server{cfg: cfg, ln: ln, sem: make(chan struct{}, cfg.MaxConcurrent), log: cfg.Logger,
-		runner:   &sambatool.Runner{Binary: cfg.SambaTool, Credentials: sambatool.LocalSystem{}, Timeout: time.Minute},
-		peerCred: peerCredentials}
-	return s, nil
+	return ln, nil
 }
 
 // peerCredentials reads SO_PEERCRED of the connection.
@@ -122,29 +197,54 @@ func peerCredentials(c *net.UnixConn) (int, int, error) {
 	return int(cred.Uid), int(cred.Pid), nil
 }
 
-// Serve accepts connections until ctx ends.
+// Serve accepts connections on both sockets until ctx ends.
 func (s *Server) Serve(ctx context.Context) error {
 	go func() {
 		<-ctx.Done()
 		_ = s.ln.Close()
+		if s.bln != nil {
+			_ = s.bln.Close()
+		}
 	}()
+	errc := make(chan error, 2)
+	go func() { errc <- s.accept(ctx, s.ln, peerConductor) }()
+	if s.bln != nil {
+		go func() { errc <- s.accept(ctx, s.bln, peerBackup) }()
+	}
+	err := <-errc
+	if s.bln != nil {
+		_ = s.ln.Close()
+		_ = s.bln.Close()
+		if e2 := <-errc; err == nil {
+			err = e2
+		}
+	}
+	s.wg.Wait()
+	return err
+}
+
+// accept serves one socket; every connection must come from that socket's
+// peer.
+func (s *Server) accept(ctx context.Context, ln *net.UnixListener, expect peer) error {
 	for {
-		c, err := s.ln.AcceptUnix()
+		c, err := ln.AcceptUnix()
 		if err != nil {
 			if ctx.Err() != nil {
-				s.wg.Wait()
 				return nil
 			}
 			var ne net.Error
 			if errors.As(err, &ne) && ne.Timeout() {
 				continue
 			}
+			if errors.Is(err, net.ErrClosed) {
+				return nil
+			}
 			return err
 		}
 		s.wg.Add(1)
 		go func() {
 			defer s.wg.Done()
-			s.handle(ctx, c)
+			s.handle(ctx, c, expect)
 		}()
 	}
 }
@@ -152,14 +252,23 @@ func (s *Server) Serve(ctx context.Context) error {
 // Addr returns the socket path.
 func (s *Server) Addr() string { return s.cfg.Socket }
 
-func (s *Server) handle(ctx context.Context, c *net.UnixConn) {
+func (s *Server) handle(ctx context.Context, c *net.UnixConn, expect peer) {
 	defer func() { _ = c.Close() }()
 	_ = c.SetDeadline(time.Now().Add(2 * time.Minute))
 	uid, pid, perr := s.peerCred(c)
 	_ = c.SetReadDeadline(time.Now().Add(10 * time.Second))
 	req, err := helper.NewReader(c).ReadRequest()
-	if perr != nil || uid != s.cfg.AllowedUID {
-		// Only the conductor user may use the helper, whatever the socket's
+	who := peerNone
+	switch {
+	case perr != nil:
+	case expect == peerConductor && uid == s.cfg.AllowedUID:
+		who = peerConductor
+	case expect == peerBackup && s.cfg.Backup != nil && uid == s.cfg.Backup.PeerUID:
+		who = peerBackup
+	}
+	if who == peerNone {
+		// Each socket admits only its own peer (the conductor user, or
+		// conductor-backup on the backup socket), whatever the socket's
 		// file permissions say.
 		s.log.Warn("helper: peer refused", "peer_uid", uid, "peer_pid", pid, "err", perr)
 		_ = helper.WriteMessage(c, helper.ErrorResponse(safeID(req.ID), helper.CodeForbidden, "peer not allowed"))
@@ -170,9 +279,11 @@ func (s *Server) handle(ctx context.Context, c *net.UnixConn) {
 		_ = helper.WriteMessage(c, helper.ErrorResponse("unknown", helper.CodeBadRequest, "unreadable request"))
 		return
 	}
+	// The connection lives as long as the operation may take.
+	_ = c.SetDeadline(time.Now().Add(opTimeout(req.Op) + 30*time.Second))
 	start := time.Now()
-	resp := s.dispatch(ctx, req)
-	attrs := []any{"id", req.ID, "op", req.Op, "caller_user", req.Caller.User, "caller_sid", req.Caller.SID,
+	resp := s.dispatch(ctx, who, req)
+	attrs := []any{"id", req.ID, "op", req.Op, "peer", who.String(), "caller_user", req.Caller.User, "caller_sid", req.Caller.SID,
 		"caller_session", req.Caller.SessionID, "caller_ip", req.Caller.SourceIP, "peer_pid", pid,
 		"ok", resp.OK, "duration_ms", time.Since(start).Milliseconds()}
 	if resp.Error != nil {
@@ -183,16 +294,17 @@ func (s *Server) handle(ctx context.Context, c *net.UnixConn) {
 	_ = helper.WriteMessage(c, resp)
 }
 
-func (s *Server) dispatch(ctx context.Context, req helper.Request) helper.Response {
-	if _, err := req.Decode(); err != nil {
+func (s *Server) dispatch(ctx context.Context, who peer, req helper.Request) helper.Response {
+	params, err := req.Decode()
+	if err != nil {
 		var he *helper.Error
 		if errors.As(err, &he) {
 			return helper.ErrorResponse(safeID(req.ID), he.Code, he.Message)
 		}
 		return helper.ErrorResponse(safeID(req.ID), helper.CodeBadRequest, "invalid request")
 	}
-	if !enabled[req.Op] {
-		return helper.ErrorResponse(req.ID, helper.CodeNotAllowed, fmt.Sprintf("operation %q is not enabled in this version", req.Op))
+	if !enabled[who][req.Op] {
+		return helper.ErrorResponse(req.ID, helper.CodeNotAllowed, fmt.Sprintf("operation %q is not enabled for %s", req.Op, who))
 	}
 	select {
 	case s.sem <- struct{}{}:
@@ -200,10 +312,17 @@ func (s *Server) dispatch(ctx context.Context, req helper.Request) helper.Respon
 	case <-ctx.Done():
 		return helper.ErrorResponse(req.ID, helper.CodeUnavailable, "shutting down")
 	}
-	cctx, cancel := context.WithTimeout(ctx, 90*time.Second)
+	cctx, cancel := context.WithTimeout(ctx, opTimeout(req.Op))
 	defer cancel()
-	result, err := s.run(cctx, req.Op)
+	result, err := s.run(cctx, req, params)
 	if err != nil {
+		var he *helper.Error
+		if errors.As(err, &he) {
+			// A typed refusal (not configured, busy, invalid state) is safe
+			// to return as is.
+			s.log.Warn("helper operation refused", "id", req.ID, "op", req.Op, "code", he.Code, "msg", he.Message)
+			return helper.ErrorResponse(req.ID, he.Code, he.Message)
+		}
 		s.log.Error("helper operation failed", "id", req.ID, "op", req.Op, "err", err)
 		// samba-tool output stays in the helper's log, not in the response.
 		return helper.ErrorResponse(req.ID, helper.CodeFailed, "operation failed; see the helper log")
@@ -215,8 +334,16 @@ func (s *Server) dispatch(ctx context.Context, req helper.Request) helper.Respon
 	return resp
 }
 
-func (s *Server) run(ctx context.Context, op helper.OpName) (any, error) {
-	switch op {
+func (s *Server) run(ctx context.Context, req helper.Request, params helper.Params) (any, error) {
+	switch req.Op {
+	case helper.OpDomainBackupOnline:
+		return s.backupOnline(ctx, req)
+	case helper.OpBackupStatus:
+		return s.backupStatus()
+	case helper.OpBackupTrigger:
+		return s.backupTrigger(ctx, req, params.(*helper.BackupTriggerParams))
+	case helper.OpBackupPolicySet:
+		return struct{}{}, s.backupPolicySet(req, params.(*helper.BackupPolicy))
 	case helper.OpPing:
 		return helper.PingResult{Version: helper.ProtocolVersion, Time: time.Now().UTC()}, nil
 	case helper.OpDomainLevel:
@@ -242,7 +369,7 @@ func (s *Server) run(ctx context.Context, op helper.OpName) (any, error) {
 		}
 		return helper.DCListResult{DCs: dns}, nil
 	}
-	return nil, fmt.Errorf("helperd: no handler for %q", op)
+	return nil, fmt.Errorf("helperd: no handler for %q", req.Op)
 }
 
 func safeID(id string) string {

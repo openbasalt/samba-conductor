@@ -152,6 +152,15 @@ func (s *Server) routeTable() []route {
 		{method: "GET", pattern: "/admin/bulk/{id}/passwords.csv", perm: PermUsersHelpdesk, h: s.handleBulkPasswords},
 		{method: "POST", pattern: "/admin/bulk/{id}/passwords/dismiss", perm: PermUsersHelpdesk, h: s.handleBulkPasswords},
 
+		// Backups (conductor-backup through conductor-helper): status for
+		// administrators and auditors; actions and policy for administrators,
+		// each previewed and confirmed with re-authentication.
+		{method: "GET", pattern: "/admin/backups", perm: PermBackupRead, h: s.handleBackups},
+		{method: "GET", pattern: "/admin/backups/config", perm: PermBackupWrite, h: s.handleBackupConfigPage},
+		{method: "POST", pattern: "/admin/backups/config", perm: PermBackupWrite, h: s.handleBackupConfig},
+		{method: "POST", pattern: "/admin/backups/run", perm: PermBackupWrite, h: s.handleBackupRun},
+		{method: "POST", pattern: "/admin/backups/drill", perm: PermBackupWrite, h: s.handleBackupDrill},
+
 		{method: "GET", pattern: "/admin/audit", perm: PermAuditRead, h: s.handleAudit},
 		{method: "GET", pattern: "/admin/audit/export", perm: PermAuditRead, h: s.handleAuditExport},
 		{method: "GET", pattern: "/admin/domain", perm: PermDomainRead, h: s.handleDomain},

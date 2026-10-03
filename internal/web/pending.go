@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/samba-conductor/ad"
+	"github.com/samba-conductor/ad/helper"
 	"github.com/samba-conductor/ad/sambatool"
 	"github.com/samba-conductor/conductor/internal/directory"
 	"github.com/samba-conductor/conductor/internal/store"
@@ -288,6 +289,19 @@ func (s *Server) adErrorKey(err error) string {
 	var te *sambatool.ExitError
 	if errors.As(err, &te) {
 		return "err.tool"
+	}
+	var he *helper.Error
+	if errors.As(err, &he) {
+		switch he.Code {
+		case helper.CodeUnavailable:
+			return "backups.err.busy"
+		case helper.CodeNotAllowed:
+			return "backups.err.not_configured"
+		}
+		return "backups.err.helper"
+	}
+	if errors.Is(err, errHelperDisabled) {
+		return "backups.err.helper"
 	}
 	if isNotAllowedOnNonLeaf(err) {
 		return "err.ad.not_empty"

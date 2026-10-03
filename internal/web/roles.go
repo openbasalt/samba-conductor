@@ -37,12 +37,15 @@ const (
 	PermPolicyWrite Perm = "policy.write" // change them
 	PermHealthRead  Perm = "health.read"  // lockouts across DCs, account health, CSV export
 	PermBulk        Perm = "bulk"         // CSV import (create/update users)
+
+	PermBackupRead  Perm = "backup.read"  // backups page (status, policy, drills)
+	PermBackupWrite Perm = "backup.write" // back up now, run drill now, policy edits
 )
 
 // allPerms lists every privileged permission (navigation, tests).
 var allPerms = []Perm{PermDashboard, PermUsersRead, PermUsersHelpdesk, PermUsersWrite, PermDirRead, PermDirWrite,
 	PermAuditRead, PermDomainRead, PermMFAManage, PermDNSRead, PermDNSWrite, PermGPORead, PermGPOWrite,
-	PermPolicyRead, PermPolicyWrite, PermHealthRead, PermBulk}
+	PermPolicyRead, PermPolicyWrite, PermHealthRead, PermBulk, PermBackupRead, PermBackupWrite}
 
 // privileged reports whether p is beyond self-service.
 func (p Perm) privileged() bool {
@@ -60,7 +63,7 @@ var rolePerms = map[string][]Perm{
 	"admin":    allPerms,
 	"helpdesk": {PermUsersRead, PermUsersHelpdesk, PermHealthRead},
 	"auditor": {PermDashboard, PermUsersRead, PermDirRead, PermAuditRead, PermDomainRead, PermDNSRead, PermGPORead,
-		PermPolicyRead, PermHealthRead},
+		PermPolicyRead, PermHealthRead, PermBackupRead},
 }
 
 // Has reports whether the roles grant p.

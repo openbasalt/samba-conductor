@@ -1,0 +1,72 @@
+{{define "title"}}{{t "nav.backups"}}{{end}}
+{{define "content"}}<h1>{{t "nav.backups"}}</h1>
+<p class="hint">{{t "backups.intro"}}</p>
+{{template "error-alert" .D.Error}}
+{{with .D.S}}{{if not .Configured}}<section class="card" data-e2e="backups-card-unconfigured">
+  <h2>{{t "backups.unconfigured.title"}}</h2>
+  <p>{{t "backups.unconfigured.text"}}</p>
+</section>{{else}}
+{{range $.D.Alerts}}<div class="alert-warn" role="alert" data-e2e="backups-alert-{{e2e .Kind}}">{{.Text}}</div>{{end}}
+<div class="stats">
+  <div class="stat" data-e2e="backups-card-rpo"><b data-e2e="backups-text-rpo">{{if $.D.RPO}}{{$.D.RPO}}{{else}}—{{end}}</b><span>{{t "backups.rpo"}}</span></div>
+  <div class="stat" data-e2e="backups-card-rto"><b data-e2e="backups-text-rto">{{if $.D.LastRTO}}{{$.D.LastRTO}}{{else}}—{{end}}</b><span>{{t "backups.rto"}}</span></div>
+  <div class="stat" data-e2e="backups-card-drill"><b data-e2e="backups-text-drill">{{with $.D.LastDrill}}{{if .Passed}}{{t "backups.drill.passed"}}{{else}}{{t "backups.drill.failed"}}{{end}}{{else}}—{{end}}</b><span>{{t "backups.last_drill"}}</span></div>
+  <div class="stat" data-e2e="backups-card-next"><b data-e2e="backups-text-next">{{time .NextDueAt}}</b><span>{{t "backups.next"}}</span></div>
+</div>
+{{if $.D.CanWrite}}<div class="card row" data-e2e="backups-card-actions">
+  <form method="post" action="/admin/backups/run">{{template "csrf" $}}<button class="btn btn-primary" type="submit" data-e2e="backups-btn-run">{{t "backups.run.button"}}</button></form>
+  <form method="post" action="/admin/backups/drill">{{template "csrf" $}}<button class="btn" type="submit" data-e2e="backups-btn-drill">{{t "backups.drill.button"}}</button></form>
+  <a class="btn" href="/admin/backups/config" data-e2e="backups-link-config">{{t "backups.config.button"}}</a>
+  <span class="small muted">{{t "backups.actions_hint"}}</span>
+</div>{{end}}
+{{if .Pending}}<section class="card" aria-labelledby="b-pending">
+  <h2 id="b-pending">{{t "backups.pending"}}</h2>
+  <ul data-e2e="backups-list-pending">{{range .Pending}}<li data-e2e="backups-pending-{{e2e .Kind}}">{{if eq .Kind "drill"}}{{t "backups.pending.drill"}}{{else}}{{t "backups.pending.backup"}}{{end}} · {{.RequestedBy}} · <span class="muted small">{{time .At}}</span></li>{{end}}</ul>
+</section>{{end}}
+
+<section class="card" aria-labelledby="b-list">
+  <h2 id="b-list">{{t "backups.list"}}</h2>
+  {{if .Backups}}<table class="table" data-e2e="backups-table">
+    <thead><tr><th>{{t "backups.col.backup"}}</th><th>{{t "backups.col.status"}}</th><th>{{t "backups.col.trigger"}}</th><th>{{t "backups.col.size"}}</th><th>{{t "backups.col.users"}}</th><th>{{t "backups.col.destinations"}}</th></tr></thead>
+    <tbody>{{range .Backups}}<tr data-e2e="backups-row-{{e2e .ID}}">
+      <td data-label="{{t "backups.col.backup"}}"><span class="mono small">{{.ID}}</span><br><span class="muted small">{{time .CreatedAt}} · {{ms .DurationMS}}</span></td>
+      <td data-label="{{t "backups.col.status"}}">{{template "backup-status" .Status}}{{if .Error}}<br><span class="small muted" data-e2e="backups-text-error">{{.Error}}</span>{{end}}</td>
+      <td data-label="{{t "backups.col.trigger"}}">{{if eq .Trigger "manual"}}{{t "backups.trigger.manual"}}{{else}}{{t "backups.trigger.scheduled"}}{{end}}{{if .RequestedBy}}<br><span class="small muted">{{.RequestedBy}}</span>{{end}}</td>
+      <td data-label="{{t "backups.col.size"}}">{{if .Size}}{{bytes .Size}}{{else}}—{{end}}</td>
+      <td data-label="{{t "backups.col.users"}}">{{if .Users}}{{.Users}}{{else}}—{{end}}</td>
+      <td data-label="{{t "backups.col.destinations"}}" class="small">{{range .Uploads}}<div>{{.Destination}}: {{template "backup-status" .Status}}{{if not .VerifiedAt.IsZero}} <span class="muted">{{t "backups.verified" (time .VerifiedAt)}}</span>{{end}}</div>{{end}}</td>
+    </tr>{{end}}</tbody>
+  </table>{{else}}<p class="muted" data-e2e="backups-text-none">{{t "backups.none"}}</p>{{end}}
+</section>
+
+<section class="card" aria-labelledby="b-drills">
+  <h2 id="b-drills">{{t "backups.drills"}}</h2>
+  <p class="hint">{{t "backups.drills.intro"}}</p>
+  {{if .Drills}}<table class="table" data-e2e="drills-table">
+    <thead><tr><th>{{t "backups.col.drill"}}</th><th>{{t "backups.col.result"}}</th><th>{{t "backups.col.rto"}}</th><th>{{t "backups.col.checks"}}</th></tr></thead>
+    <tbody>{{range .Drills}}<tr data-e2e="drills-row-{{e2e .ID}}">
+      <td data-label="{{t "backups.col.drill"}}"><span class="small">{{time .StartedAt}}</span><br><span class="muted small">{{t "backups.drill.of" .BackupID .Host}}</span></td>
+      <td data-label="{{t "backups.col.result"}}">{{if .Passed}}<span class="badge badge-ok" data-e2e="drills-badge-passed">{{t "backups.drill.passed"}}</span>{{else}}<span class="badge badge-danger" data-e2e="drills-badge-failed">{{t "backups.drill.failed"}}</span>{{if .Error}}<br><span class="small muted">{{.Error}}</span>{{end}}{{end}}</td>
+      <td data-label="{{t "backups.col.rto"}}">{{if .RTOMS}}{{ms .RTOMS}}{{else}}—{{end}}</td>
+      <td data-label="{{t "backups.col.checks"}}" class="small"><details><summary data-e2e="drills-btn-checks-{{e2e .ID}}">{{t "backups.drill.checks" (len .Checks)}}</summary><ul>{{range .Checks}}<li>{{if .OK}}<span class="badge badge-ok">{{t "backups.check.ok"}}</span>{{else}}<span class="badge badge-danger">{{t "backups.check.fail"}}</span>{{end}} <code>{{.Name}}</code> <span class="muted">{{.Detail}}</span></li>{{end}}</ul></details></td>
+    </tr>{{end}}</tbody>
+  </table>{{else}}<p class="muted" data-e2e="drills-text-none">{{t "backups.drills.none"}}</p>{{end}}
+</section>
+
+<section class="card" aria-labelledby="b-config">
+  <h2 id="b-config">{{t "backups.config"}}</h2>
+  <dl class="props" data-e2e="backups-list-config">
+    <dt>{{t "backups.schedule"}}</dt><dd data-e2e="backups-text-schedule">{{t "backups.schedule.value" .Policy.Schedule.Time .Policy.Schedule.EveryHours}}</dd>
+    <dt>{{t "backups.retention"}}</dt><dd data-e2e="backups-text-retention">{{t "backups.retention.value" .Policy.Retention.Daily .Policy.Retention.Weekly .Policy.Retention.Monthly}}</dd>
+    <dt>{{t "backups.max_age"}}</dt><dd data-e2e="backups-text-max-age">{{t "backups.hours" .Policy.MaxAgeHours}}</dd>
+    <dt>{{t "backups.drill_interval"}}</dt><dd data-e2e="backups-text-drill-interval">{{if .Policy.DrillIntervalDays}}{{t "backups.days" .Policy.DrillIntervalDays}}{{else}}{{t "backups.drill.on_demand"}}{{end}}</dd>
+    <dt>{{t "backups.destinations"}}</dt><dd><ul data-e2e="backups-list-destinations">{{range .Destinations}}<li><b>{{.Name}}</b> ({{.Type}}) <span class="mono small">{{.Location}}</span>{{if .ObjectLockDays}} · {{t "backups.object_lock" .ObjectLockDays}}{{end}}</li>{{else}}<li class="muted">—</li>{{end}}</ul></dd>
+    <dt>{{t "backups.recipients"}}</dt><dd><ul data-e2e="backups-list-recipients">{{range .Recipients}}<li class="mono small">{{.}}</li>{{else}}<li class="muted">—</li>{{end}}</ul><span class="hint">{{t "backups.recipients_hint"}}</span></dd>
+    <dt>{{t "backups.signing_key"}}</dt><dd class="mono small">{{if .SigningKeyID}}{{.SigningKeyID}}{{else}}—{{end}}</dd>
+    <dt>{{t "backups.last_run"}}</dt><dd data-e2e="backups-text-last-run">{{time .LastRunAt}}{{if .Version}} · conductor-backup {{.Version}}{{end}}</dd>
+  </dl>
+  <p class="hint">{{t "backups.config_hint"}}</p>
+</section>
+{{end}}{{end}}{{end}}
+
+{{define "backup-status"}}{{if eq . "ok"}}<span class="badge badge-ok">{{t "backups.status.ok"}}</span>{{else if eq . "partial"}}<span class="badge badge-warn">{{t "backups.status.partial"}}</span>{{else if eq . "pruned"}}<span class="badge">{{t "backups.status.pruned"}}</span>{{else}}<span class="badge badge-danger">{{t "backups.status.failed"}}</span>{{end}}{{end}}

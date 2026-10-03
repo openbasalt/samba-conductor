@@ -91,8 +91,30 @@ What each role may do on the P2 pages:
 
 | Key | Default | Meaning |
 |---|---|---|
-| `enabled` | `true` | Use conductor-helper for the domain page. |
+| `enabled` | `true` | Use conductor-helper for the domain page and the Backups page. |
 | `socket` | `"/run/conductor-helper/helper.sock"` | Its Unix socket. |
+
+## conductor-helper: `/etc/conductor/helper.toml` (optional)
+
+The helper's own file (root:conductor 0640, no secrets). Without it, or with
+`[backup] enabled = false`, the backup operations are off and the Backups
+page says so. Set up together with conductor-backup
+(`../../conductor-backup/README.md`). Unknown keys are an error.
+
+| `[backup]` key | Default | Meaning |
+|---|---|---|
+| `enabled` | `false` | Serve the backup operations and a second socket, `/run/conductor-helper/backup.sock` (root:conductor-backup 0660; the socket directory becomes 0711). |
+| `peer_user` | `"conductor-backup"` | The only user admitted on the backup socket (SO_PEERCRED), and the owner of the archives. |
+| `account` | (required) | AD account samba-tool backs up with: replication rights only (README). |
+| `password_credential` | `"backup-account"` | systemd credential with its password (`LoadCredential=` in the conductor-backup drop-in). `password_file` instead for hosts without systemd. |
+| `server` | `"127.0.0.1"` | DC to back up: this one, over loopback (the helper unit only allows localhost). |
+| `dc` | host name | short name in backup IDs. |
+| `recipients_file` | `"/etc/conductor-backup/recipients.txt"` | age recipients; must be owned and writable by root only (with its directory), or the backup is refused. |
+| `state_dir` | `"/var/lib/conductor-backup"` | conductor-backup's state (must belong to `peer_user`; never followed through symbolic links). |
+| `work_dir` | `"/tmp/conductor-backup"` | where plaintext exists while the archive is built: the unit's private `/tmp` (tmpfs on Debian 13). Shredded after each run. |
+| `conductor_db` | `""` | conductor's database to include (sessions removed); set it to `/var/lib/conductor/conductor.db`. |
+| `extra_files` | `[]` | more host files for the archive (absolute, at most 1 MiB each). |
+| `python`, `samba` | `/usr/bin/python3`, `/usr/sbin/samba` | used to count users/groups and read versions. |
 
 ## `[ui]`
 
@@ -140,3 +162,5 @@ nonce and Subresource Integrity; it makes no requests of its own
 | `/etc/conductor/credentials/totp-key` | root 0600 | TOTP encryption key (systemd credential) |
 | `/var/lib/conductor/conductor.db` | conductor 0600 | state |
 | `/run/conductor-helper/helper.sock` | root:conductor 0660 | helper socket |
+| `/etc/conductor/helper.toml` | root:conductor 0640 | helper configuration (backups) |
+| `/run/conductor-helper/backup.sock` | root:conductor-backup 0660 | helper socket for conductor-backup (with backups) |

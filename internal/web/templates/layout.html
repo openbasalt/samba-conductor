@@ -53,12 +53,13 @@
           <li><a href="/admin/dns" data-e2e="nav-link-dns"{{if active .Path "/admin/dns"}} aria-current="page"{{end}}>{{t "nav.dns"}}</a></li>
         </ul>
       </div>{{end}}
-      {{if or (has .Nav "health.read") (has .Nav "bulk")}}<div class="nav-group" data-e2e="nav-group-operations">
+      {{if or (has .Nav "health.read") (has .Nav "bulk") (has .Nav "backup.read")}}<div class="nav-group" data-e2e="nav-group-operations">
         <h2 class="nav-heading">{{t "nav.group.operations"}}</h2>
         <ul>
           {{if has .Nav "health.read"}}<li><a href="/admin/lockouts" data-e2e="nav-link-lockouts"{{if active .Path "/admin/lockouts"}} aria-current="page"{{end}}>{{t "nav.lockouts"}}</a></li>
           <li><a href="/admin/health" data-e2e="nav-link-health"{{if active .Path "/admin/health"}} aria-current="page"{{end}}>{{t "nav.health"}}</a></li>{{end}}
           {{if has .Nav "bulk"}}<li><a href="/admin/bulk" data-e2e="nav-link-bulk"{{if active .Path "/admin/bulk"}} aria-current="page"{{end}}>{{t "nav.bulk"}}</a></li>{{end}}
+          {{if has .Nav "backup.read"}}<li><a href="/admin/backups" data-e2e="nav-link-backups"{{if active .Path "/admin/backups"}} aria-current="page"{{end}}>{{t "nav.backups"}}</a></li>{{end}}
         </ul>
       </div>{{end}}
       {{if or (has .Nav "audit.read") (has .Nav "domain.read")}}<div class="nav-group" data-e2e="nav-group-audit">
