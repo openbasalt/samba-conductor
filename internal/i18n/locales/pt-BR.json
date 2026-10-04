@@ -1201,6 +1201,7 @@
   "files.check.acl_xattr": "ACLs do Windows (vfs objects = acl_xattr)",
   "files.check.roots": "Raízes de propriedade do root, sem escrita para outros",
   "files.check.smbstatus_json": "Sessões ao vivo (smbstatus --json)",
+  "files.check.samba_tools": "Programas do Samba instalados (net, sharesec, samba-tool, smbcontrol, wbinfo)",
   "files.trust": "Confiança",
   "files.trust.agent_key": "Chave do servidor (fixada)",
   "files.trust.conductor_key": "Chave do conductor",

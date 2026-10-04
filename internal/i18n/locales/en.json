@@ -1201,6 +1201,7 @@
   "files.check.acl_xattr": "Windows ACLs (vfs objects = acl_xattr)",
   "files.check.roots": "Share roots owned by root, not writable by others",
   "files.check.smbstatus_json": "Live sessions (smbstatus --json)",
+  "files.check.samba_tools": "Samba programs installed (net, sharesec, samba-tool, smbcontrol, wbinfo)",
   "files.trust": "Trust",
   "files.trust.agent_key": "Server key (pinned)",
   "files.trust.conductor_key": "Conductor's key",

@@ -39,7 +39,7 @@ repository is published:
 
 ```sh
 curl -fsSLo /tmp/samba-conductor.gpg https://apt.openbasalt.org/samba-conductor/samba-conductor-archive-keyring.gpg
-gpg --show-keys /tmp/samba-conductor.gpg     # compare with the fingerprint published by the project
+gpg --show-keys /tmp/samba-conductor.gpg     # must be 3601734842BD4E482D19DE4AE4EED5ECA395B302 (OpenBasalt release key)
 sudo install -m 0644 /tmp/samba-conductor.gpg /usr/share/keyrings/samba-conductor-archive-keyring.gpg
 printf 'Types: deb\nURIs: https://apt.openbasalt.org/samba-conductor\nSuites: stable\nComponents: main\nSigned-By: /usr/share/keyrings/samba-conductor-archive-keyring.gpg\n' |
   sudo tee /etc/apt/sources.list.d/samba-conductor.sources

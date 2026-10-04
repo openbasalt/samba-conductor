@@ -33,11 +33,20 @@ On **Fedora**, or before the repository carries Samba Conductor, install the
 RPMs of a release after checking them against its signed `SHA256SUMS`:
 
 ```sh
+curl -fsSLO https://obpkg.org/keys/openbasalt-release-key.asc
+gpg --show-keys openbasalt-release-key.asc   # must be 3601734842BD4E482D19DE4AE4EED5ECA395B302
+gpg --import openbasalt-release-key.asc
+gpg --verify SHA256SUMS.asc SHA256SUMS && sha256sum -c --ignore-missing SHA256SUMS
 sudo dnf install ./conductor-<version>-1.x86_64.rpm ./conductor-selinux-<version>-1.noarch.rpm
 ```
 
+The `basalt-tools` repository signs every RPM and its metadata with the
+same OpenBasalt release key (packages subkey
+`302461D26520E077D07FFCA9AA27C62C36CCFC4B`); Basalt OS ships the key in
+`basalt-release`.
+
 `conductor-selinux` comes with `conductor` wherever the targeted policy is
-installed (`Requires: (conductor-selinux if selinux-policy-targeted)`); it
+installed (`Requires: (conductor-selinux = <version>-<release> if selinux-policy-targeted)`, so they are upgraded together); it
 needs `selinux-policy-targeted` at least as new as the policy it was built
 against, which dnf updates with it.
 

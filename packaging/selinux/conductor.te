@@ -79,6 +79,9 @@ corenet_tcp_connect_kerberos_password_port(conductor_t)
 corenet_tcp_connect_epmap_port(conductor_t)
 corenet_tcp_connect_smbd_port(conductor_t)
 corenet_tcp_connect_all_ephemeral_ports(conductor_t)
+# Samba's RPC server listens on dynamic ports from 49152; Fedora types
+# 49152-49216 virt_migration_port_t.
+corenet_tcp_connect_virt_migration_port(conductor_t)
 # conductor-files agents (TCP 7443 by default; on the domain controller the
 # port has no type of its own).
 corenet_tcp_connect_unreserved_ports(conductor_t)
@@ -102,10 +105,17 @@ files_pid_filetrans(conductor_helper_t, conductor_helper_var_run_t, { dir sock_f
 manage_dirs_pattern(conductor_helper_t, conductor_helper_tmp_t, conductor_helper_tmp_t)
 manage_files_pattern(conductor_helper_t, conductor_helper_tmp_t, conductor_helper_tmp_t)
 files_tmp_filetrans(conductor_helper_t, conductor_helper_tmp_t, { file dir })
+# samba-tool's backup copy in the private /tmp: its ldb/tdb files are
+# mapped, and the temporary Samba context creates messaging sockets there.
+allow conductor_helper_t conductor_helper_tmp_t:file map;
+manage_sock_files_pattern(conductor_helper_t, conductor_helper_tmp_t, conductor_helper_tmp_t)
 
-# The conductor database, read for the state snapshot in a backup.
-read_files_pattern(conductor_helper_t, conductor_var_lib_t, conductor_var_lib_t)
+# The conductor database, read for the state snapshot in a backup. A
+# read-only SQLite connection in WAL mode still opens the -wal and -shm
+# files for writing (read marks) and maps the -shm index.
+rw_files_pattern(conductor_helper_t, conductor_var_lib_t, conductor_var_lib_t)
 list_dirs_pattern(conductor_helper_t, conductor_var_lib_t, conductor_var_lib_t)
+allow conductor_helper_t conductor_var_lib_t:file map;
 
 # samba-tool as root on the local Samba database (/var/lib/samba,
 # /var/cache/samba, /run/samba), as the unit's ReadWritePaths= allow. The
@@ -124,6 +134,9 @@ corenet_tcp_connect_kerberos_port(conductor_helper_t)
 corenet_tcp_connect_epmap_port(conductor_helper_t)
 corenet_tcp_connect_smbd_port(conductor_helper_t)
 corenet_tcp_connect_all_ephemeral_ports(conductor_helper_t)
+# Samba's RPC server listens on dynamic ports from 49152; Fedora types
+# 49152-49216 virt_migration_port_t.
+corenet_tcp_connect_virt_migration_port(conductor_helper_t)
 
 ########################################
 #
@@ -136,6 +149,17 @@ gen_require(`
 ')
 list_dirs_pattern(init_t, conductor_cred_t, conductor_cred_t)
 read_files_pattern(init_t, conductor_cred_t, conductor_cred_t)
+
+# systemd removes the unit's private /tmp (PrivateTmp=) when the service
+# stops, with whatever the service left in it.
+list_dirs_pattern(init_t, conductor_tmp_t, conductor_tmp_t)
+delete_dirs_pattern(init_t, conductor_tmp_t, conductor_tmp_t)
+delete_files_pattern(init_t, conductor_tmp_t, conductor_tmp_t)
+delete_sock_files_pattern(init_t, conductor_tmp_t, conductor_tmp_t)
+list_dirs_pattern(init_t, conductor_helper_tmp_t, conductor_helper_tmp_t)
+delete_dirs_pattern(init_t, conductor_helper_tmp_t, conductor_helper_tmp_t)
+delete_files_pattern(init_t, conductor_helper_tmp_t, conductor_helper_tmp_t)
+delete_sock_files_pattern(init_t, conductor_helper_tmp_t, conductor_helper_tmp_t)
 
 ########################################
 #

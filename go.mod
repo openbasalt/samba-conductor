@@ -12,7 +12,7 @@ require (
 	github.com/fxamacker/cbor/v2 v2.9.4
 	github.com/go-ldap/ldap/v3 v3.4.14
 	github.com/go-webauthn/webauthn v0.18.2
-	github.com/openbasalt/samba-conductor-ad v0.0.0-20261003144929-e3e142131ee5
+	github.com/openbasalt/samba-conductor-ad v0.0.0-20261004043531-75ce88dcaaea
 	github.com/openbasalt/samba-conductor-files v0.0.0-20261003144929-7e45179686c3
 	github.com/openbasalt/samba-conductor-sync v0.0.0-20261003150556-218c13b8e10a
 	golang.org/x/term v0.46.0
