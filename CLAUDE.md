@@ -1,7 +1,7 @@
 # Samba Conductor v2: guidelines
 
 Go rewrite of Samba Conductor (v1 = Meteor/MongoDB, `edimarlnx/samba-conductor`,
-to be archived). Web admin + self-service for Samba AD,
+archived). Web admin + self-service for Samba AD,
 plus separate optional components: OIDC provider, provisioning sync
 (Google Workspace first), encrypted domain backup. Design: [architecture.md](https://github.com/openbasalt/samba-conductor-docs/blob/main/architecture.md).
 
