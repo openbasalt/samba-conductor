@@ -1,18 +1,18 @@
 # P1 lab run
 
 Transcript of `e2e/run-lab.sh` against the lab
-(`../../planning/docs/lab.md`), run on 2026-10-02 from commit `1eef13d`. No
+([testing.md](https://github.com/openbasalt/samba-conductor-docs/blob/main/testing.md)), run on 2026-10-02 from commit `1eef13d`. No
 secrets appear: passwords reach the Playwright container only through a
 temporary 0600 env file on the lab host, the tests never log them, and this
 transcript was checked against the lab's secrets file before committing.
 Screenshots mask TOTP secrets, QR codes and recovery codes (the lab's 2FA
 enrollments are destroyed by the next `reset.sh` anyway).
 
-What happens (spec `planning/docs/p1-spec.md` §4):
+What happens (spec [design.md](design.md) §4):
 
 1. `scripts/lab-deploy.sh --snapshot`: rsync to the lab host, build both
    binaries there (CGO off), reset the lab to `seeded`, install on dc1 with
-   `planning/lab/conductor-install.sh` exactly as [install.md](install.md)
+   `lab/conductor-install.sh` exactly as [install.md](install.md)
    describes (system user, directories, units, `conductor setup
    --non-interactive`: CA pinned, Helpdesk/Auditors resolved to SIDs, TOTP
    key generated), start both units, snapshot both DCs as `conductor-p1`.

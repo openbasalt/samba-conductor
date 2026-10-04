@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
+# Maintainer lab tooling: it needs the family checkout with the lab
+# scripts (planning/lab), which are not published; the lab is described in
+# https://github.com/openbasalt/samba-conductor-docs/blob/main/testing.md
 # Build conductor, conductor-helper, conductor-backup, conductor-sync (with
 # the lab's fake Directory API) and conductor-files on the lab host and
 # install them in the lab (planning/lab/conductor-install.sh, which follows
@@ -10,10 +13,10 @@
 #                                         # (planning/lab/p2b-snapshot.sh: dc1, dc2 and fs1)
 #   scripts/lab-deploy.sh --snapshot-p5b  # rebuild conductor-p5b from conductor-p3 (p5b-snapshot.sh)
 #   scripts/lab-deploy.sh --snapshot-p3   # rebuild conductor-p3 from "seeded" (p3-snapshot.sh)
-#   LAB_HOST=server-home (default)
+#   LAB_HOST=<ssh destination> (required)
 set -euo pipefail
 cd "$(dirname "${BASH_SOURCE[0]}")/../.."   # the family directory
-LAB_HOST="${LAB_HOST:-server-home}"
+LAB_HOST="${LAB_HOST:?set LAB_HOST to the SSH destination of the lab host}"
 VERSION="$(git -C conductor describe --always --dirty 2>/dev/null || echo dev)"
 
 rsync -a --delete --exclude .git/ --exclude node_modules/ --exclude /conductor/bin/ --exclude /conductor-backup/bin/ --exclude /ACESSO-AMBIENTE-TESTE.md --exclude /conductor-devenv-fake-google-key.json \

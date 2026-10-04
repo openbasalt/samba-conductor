@@ -1,16 +1,16 @@
 # Installing conductor on Basalt OS / Fedora
 
-Installation on a Samba AD domain controller running **Basalt OS** (Fedora
-44 based, SELinux enforcing) or **Fedora 44**, from the RPM packages. The
+Installation on a Samba AD domain controller running Basalt OS (Fedora
+44 based, SELinux enforcing) or Fedora 44, from the RPM packages. The
 steps are the ones `docs/install.md` describes for Debian and Ubuntu; this
-page lists what differs. The Basalt OS package lab
-(`../planning/lab/basaltlab/`) runs exactly these steps, with SELinux
+page lists what differs. The Basalt OS package lab (see
+[testing.md](https://github.com/openbasalt/samba-conductor-docs/blob/main/testing.md)) runs exactly these steps, with SELinux
 enforcing, and checks that the audit log holds no denial.
 
 ## Requirements
 
 - Fedora's Samba AD DC (`samba-dc`, `samba-dc-provision`) ≥ 4.19, functional
-  level 2016. Fedora builds the DC with the **MIT Kerberos KDC** (Debian and
+  level 2016. Fedora builds the DC with the MIT Kerberos KDC (Debian and
   Ubuntu use Heimdal); see "MIT Kerberos" below for what that means here.
 - LDAPS with a certificate whose SANs include the DC host name, issued by a
   CA you can pin (as on Debian).
@@ -22,14 +22,14 @@ enforcing, and checks that the audit log holds no denial.
 
 ## 0. Install the package
 
-On **Basalt OS** the `basalt-tools` repository is configured by default
+On Basalt OS the `basalt-tools` repository is configured by default
 (metadata only; nothing is installed unless chosen):
 
 ```sh
 sudo dnf install conductor
 ```
 
-On **Fedora**, or before the repository carries Samba Conductor, install the
+On Fedora, or before the repository carries Samba Conductor, install the
 RPMs of a release after checking them against its signed `SHA256SUMS`:
 
 ```sh
@@ -56,8 +56,8 @@ units (`/usr/lib/systemd/system`), man pages, `/etc/conductor/helper.toml`
 `conductor` user, and owns `/etc/conductor` (root:conductor 0750) with
 `tls/` (0750) and `credentials/` (root 0700), and `/var/lib/conductor`
 (conductor 0700). Licenses are in `/usr/share/licenses/conductor`
-(`LICENSE`, `NOTICE`, `THIRD-PARTY-LICENSES`). **Nothing is enabled or
-started**: the units get the distribution's preset, which disables them.
+(`LICENSE`, `NOTICE`, `THIRD-PARTY-LICENSES`). Nothing is enabled or
+started: the units get the distribution's preset, which disables them.
 
 ## 1. Firewall
 
@@ -113,7 +113,7 @@ lab (Samba 4.24, krb5 1.22): sign-in (AS exchange with the user's password),
 LDAPS binds with the user's service ticket (GSSAPI with channel bindings),
 password changes through kpasswd (self-service and expired passwords),
 `samba-tool` with the user's credential cache (GPO creation and deletion)
-and conductor-helper's root operations. See `planning/docs/packaging.md`,
+and conductor-helper's root operations. See [packaging.md](https://github.com/openbasalt/samba-conductor-docs/blob/main/packaging.md),
 "MIT Kerberos (Fedora's samba-dc)", for the results and known differences.
 
 ## Operating

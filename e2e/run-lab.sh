@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
+# Maintainer lab tooling: it needs the family checkout with the lab
+# scripts (planning/lab), which are not published; the lab is described in
+# https://github.com/openbasalt/samba-conductor-docs/blob/main/testing.md
 # Run the Playwright suite on the lab host against conductor on the lab's
 # dc1, once per project (desktop, mobile), each on a freshly reset lab.
 #
@@ -23,7 +26,7 @@
 # container).
 set -euo pipefail
 cd "$(dirname "${BASH_SOURCE[0]}")/.."
-LAB_HOST="${LAB_HOST:-server-home}"
+LAB_HOST="${LAB_HOST:?set LAB_HOST to the SSH destination of the lab host}"
 deploy=1
 projects=()
 for a in "$@"; do

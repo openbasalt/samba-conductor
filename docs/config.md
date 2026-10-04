@@ -2,7 +2,7 @@
 
 `/etc/conductor/conductor.toml` (TOML). `conductor setup` writes it;
 [`../conductor.toml.example`](../conductor.toml.example) is a commented
-template. **Unknown keys are an error** and conductor refuses to start on
+template. Unknown keys are an error and conductor refuses to start on
 any invalid value, so a typo never silently falls back to a default.
 
 ## `[server]`
@@ -10,7 +10,7 @@ any invalid value, so a typo never silently falls back to a default.
 | Key | Default | Meaning |
 |---|---|---|
 | `listen` | `":8443"` | Address to listen on (ignored when systemd passes a socket). |
-| `tls_cert`, `tls_key` | — | Built-in TLS (TLS 1.2+). Both or neither. |
+| `tls_cert`, `tls_key` | none | Built-in TLS (TLS 1.2+). Both or neither. |
 | `behind_proxy` | `false` | Plain HTTP for a TLS reverse proxy on the same host. Only with a loopback `listen` address; never together with `tls_*`. Without TLS and without this, conductor refuses to start. |
 | `trusted_proxies` | `[]` | CIDRs whose `X-Forwarded-For` is believed (rate limits and audit use the client address). Only with `behind_proxy`. |
 
@@ -41,7 +41,7 @@ Values must be SIDs (`setup` resolves names). Membership is always checked
 by SID, never by name or DN. Accounts that belong to the administrator
 groups or to the well-known privileged groups (Domain/Enterprise/Schema
 Admins, Domain Controllers, Administrators, Account/Server/Print/Backup
-Operators) are **protected**: helpdesk cannot act on them, and
+Operators) are protected: helpdesk cannot act on them, and
 administrators re-authenticate (password + TOTP or a security key) to
 change them or the membership of those groups.
 
@@ -49,12 +49,12 @@ What each role may do on the P2 pages:
 
 | Page | admin | helpdesk | auditor |
 |---|---|---|---|
-| DNS zones and records | read, write | — | read |
-| Group Policy (GPOs, links, inheritance) | read, write | — | read |
-| Password policy, PSOs, effective policy | read, write | — | read |
+| DNS zones and records | read, write | none | read |
+| Group Policy (GPOs, links, inheritance) | read, write | none | read |
+| Password policy, PSOs, effective policy | read, write | none | read |
 | Lockouts (all DCs), account health, CSV export | read | read | read |
-| Actions on selected accounts | all | unlock, enable/disable, reset password | — |
-| Bulk CSV import | yes | — | — |
+| Actions on selected accounts | all | unlock, enable/disable, reset password | none |
+| Bulk CSV import | yes | none | none |
 
 ## `[mfa]`
 

@@ -8,7 +8,7 @@ by OU), the e-mail templates (previewed against real AD users), the safety
 limits, then plans, applies, blocked runs and their override, and the
 history.
 
-Spec: `../../planning/docs/p5b-spec.md`. conductor-sync side (scope and
+Spec: [design.md](design.md). conductor-sync side (scope and
 placement by group, the management API, the key at rest):
 `../../conductor-sync/docs/usage-p5.md` §13, `mapping.md` and
 `decisions.md` 28-37.
@@ -28,7 +28,7 @@ browser --HTTPS--> conductor (user conductor) --Unix socket--> conductor-sync se
   only) and writes every change to its own hash-chained audit log with that
   administrator (`conductor:<user>@<ip>`); conductor audits the same actions
   in its log.
-- **Administrators only** (`sync.read`, `sync.write`; auditors and helpdesk
+- Administrators only (`sync.read`, `sync.write`; auditors and helpdesk
   see nothing). Every change asks for the password and a fresh second factor
   on a preview page: the key, saving the settings, the mode switch, an
   apply, an override, "run now". Generating a plan reads AD and Google only
@@ -84,16 +84,16 @@ manual apply (`usage-p5.md` §6).
 
 ## Connection settings and secrets (P5c)
 
-Owner decision 2026-10-03: the settings that were file-only in P5b are
+Since 2026-10-03 the settings that were file-only in P5b are
 edited on Google Workspace sync > Settings > Connection. conductor-sync side:
 `../../conductor-sync/docs/usage-p5.md` §14 and `decisions.md` 38-43.
 
-- **Active Directory**: realm, DCs, preferred DCs, DNS servers, the bind
+- Active Directory: realm, DCs, preferred DCs, DNS servers, the bind
   account and the authentication (Kerberos or simple bind over TLS), the
   domain CA pinned for LDAPS (pasted or uploaded PEM, shown as subject,
   expiry and SHA-256; "use the host's CA file" goes back to the file).
-  **Google**: admin subject, customer, requests per second, retries,
-  timeout. **Alerts**: the webhook URL.
+  Google: admin subject, customer, requests per second, retries,
+  timeout. Alerts: the webhook URL.
 - Edits are a draft in the session (shown with every changed setting).
   "Test connection" signs in to AD and reads the admin subject on Google
   with exactly the draft; "Review and save" is refused until a test of the
@@ -102,7 +102,7 @@ edited on Google Workspace sync > Settings > Connection. conductor-sync side:
   and warns that AD settings decide where the bind credentials go; saving
   needs the password and a fresh second factor. conductor-sync signs in to
   AD again before it stores an AD change.
-- **Secrets** (AD bind password, Google service account key, webhook HMAC
+- Secrets (AD bind password, Google service account key, webhook HMAC
   secret): a table with the state only (configured or not, stored encrypted
   by conductor-sync or from the credential file named in the configuration,
   when and by whom), "Replace" and, for a stored one, "Remove" (with a
@@ -111,11 +111,11 @@ edited on Google Workspace sync > Settings > Connection. conductor-sync side:
   before it is stored. A new bind account and its password can also be
   saved together from the AD card. Values are never shown, logged or
   audited: previews and audit lines name the secret only.
-- **Ownership marker**: its own card, a warning (accounts marked with the
+- Ownership marker: its own card, a warning (accounts marked with the
   current value are orphaned), the typed confirmation
   `change marker to <new marker>`, then the preview with the warning and
   re-authentication. conductor-sync checks the typed text too.
-- **Rollback**: from the history; the page lists what changes back and
+- Rollback: from the history; the page lists what changes back and
   says that secrets are not versioned.
 - Administrators only (`sync.read` / `sync.write`); auditors and helpdesk
   get 403 on every page and action. No new script source; the forms work
@@ -142,7 +142,7 @@ Screenshots (`docs/screenshots/{desktop,mobile}/`): `19-sync-connection`,
 
 ## Lab run (2026-10-03)
 
-In the lab (`../../planning/docs/lab.md`, snapshot
+In the lab ([testing.md](https://github.com/openbasalt/samba-conductor-docs/blob/main/testing.md), snapshot
 `conductor-p5b`: two Samba 4.22 DCs, 2,517 users; conductor-sync on dc1
 behind its socket-activated API; the fake Google Directory API on dc1's
 loopback, no real Google involved). `e2e/run-lab.sh` runs the whole
@@ -150,7 +150,7 @@ Playwright suite on a freshly reset lab per project: **42 passed, 1 skipped
 (the opt-in missed-schedule check), desktop and mobile**, the audit chain
 verified after each project. `tests/17-sync.spec.ts`, as `lab.admin`:
 
-1. **Setup**: the fake's key uploaded (the preview names its e-mail and key
+1. Setup: the fake's key uploaded (the preview names its e-mail and key
    ID; the page never contains the key) with re-authentication; admin
    subject and domain; connection test (AD: dc1 as `svc-conductor-sync`;
    Google: token issued, admin subject found); scope = members of `All
@@ -160,19 +160,19 @@ verified after each project. `tests/17-sync.spec.ts`, as `lab.admin`:
    `user0004@lab.example.com` in `/Finance` "group Finance (priority 10)";
    review lists the changed settings; saved with re-authentication; the
    settings page shows version 1 by `conductor:lab.admin`.
-2. **First apply**: mode switched to apply (re-authentication); "Generate
+2. First apply: mode switched to apply (re-authentication); "Generate
    plan" (about 11 s for 2,499 users): 2,499 creates, `max_creates`
    exceeded, the groups table with names and members; a wrong typed
    confirmation (`apply …` instead of `override …`) is refused; the right
    one plus re-authentication starts the job; 2,499 accounts created in
    about 52 s; run page "Applied", 0 failed.
-3. **Blocked run and override**: `Support` excluded (a new settings
+3. Blocked run and override: `Support` excluded (a new settings
    version); "Run now" with the scheduled rules: blocked (500 suspensions >
    10, 20 % touched > 10 %, 20 % scope shrinkage > 10 %), nothing written;
    the overview and the dashboard show it; the override (typed
    confirmation, re-authentication) suspends the 500 accounts in about
    10 s; the history filter shows the one blocked run.
-4. **Access**: auditors and helpdesk get 403 on every sync page and action
+4. Access: auditors and helpdesk get 403 on every sync page and action
    and no navigation entry.
 
 conductor-sync's own log after a run (dc1):
@@ -207,5 +207,5 @@ Screenshots (`docs/screenshots/{desktop,mobile}/`): `17-sync-unconfigured`,
 | ![Plan beyond the limits](screenshots/desktop/17-sync-plan.png) | ![Blocked run on the overview](screenshots/desktop/17-sync-overview-blocked.png) |
 | ![Preview with real users](screenshots/desktop/17-sync-setup-preview.png) | ![Setup on a phone](screenshots/mobile/17-sync-setup-mapping.png) |
 
-Persistent test environment: `../../planning/devenv/README.md` (the `sync`
-container with the fake Google; the owner's access doc says how to use it).
+A persistent test environment runs the `sync` container against a fake
+Google Directory API.

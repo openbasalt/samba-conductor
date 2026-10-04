@@ -7,7 +7,7 @@
 addFilter(r"statically-linked-binary /usr/bin/conductor")
 # Not position independent: the Go linker's default executable mode, the
 # same binaries as the .deb (building them with -buildmode=pie is an open
-# decision, planning/docs/packaging.md).
+# decision, https://github.com/openbasalt/samba-conductor-docs/blob/main/packaging.md).
 addFilter(r"position-independent-executable-suggested /usr/bin/conductor")
 # The "conductor" system user and group come from the package's own
 # sysusers.d entry (created in %pre); Fedora's registry of standard users

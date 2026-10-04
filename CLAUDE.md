@@ -1,9 +1,9 @@
-# Samba Conductor v2 — Guidelines
+# Samba Conductor v2: guidelines
 
 Go rewrite of Samba Conductor (v1 = Meteor/MongoDB, `edimarlnx/samba-conductor`,
 to be archived). Web admin + self-service for Samba AD,
 plus separate optional components: OIDC provider, provisioning sync
-(Google Workspace first), encrypted domain backup. Design: `../planning/docs/architecture.md`.
+(Google Workspace first), encrypted domain backup. Design: [architecture.md](https://github.com/openbasalt/samba-conductor-docs/blob/main/architecture.md).
 
 - Security first: AD operations with the signed-in user's own identity
   (Kerberos/LDAPS); root only in `conductor-helper` (typed allowlist, no argv
@@ -11,7 +11,7 @@ plus separate optional components: OIDC provider, provisioning sync
   SID re-checked on AD; every change previewed and audited (hash chain).
 - No MongoDB. Local state in SQLite; AD is the source of truth.
 - Native systemd services on the DC VM (sandboxed units); Docker optional.
-- Kept separate from tui-tools by owner decision; the AD layer is the `ad`
+- Kept separate from tui-tools by design; the AD layer is the `ad`
   module (`github.com/openbasalt/samba-conductor-ad`), shared with `tui-dc`
   later. Sibling modules are pinned in go.mod; the family go.work overrides
   them locally (CONTRIBUTING.md).

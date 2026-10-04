@@ -1,6 +1,6 @@
 # P3 lab run: encrypted backups, restore drills, a full-forest restore
 
-Run on 2026-10-03 in the lab (`../../planning/docs/lab.md`):
+Run on 2026-10-03 in the lab ([testing.md](https://github.com/openbasalt/samba-conductor-docs/blob/main/testing.md)):
 two Samba 4.22 DCs on Debian 13 (`lab.conductor.test`, 2,517 users, P2
 seed), conductor and conductor-helper on dc1, conductor-backup on dc1, a
 drill host VM on its own network, MinIO and mailpit in containers. Builds
@@ -8,18 +8,18 @@ from the committed code of `ad`, `conductor` and `conductor-backup`. No
 secret appears below; every value that is one stayed in
 `~/conductor-lab/` on the lab host.
 
-Spec: `../../planning/docs/p3-spec.md`. Choices: `../../planning/docs/decisions.md` (P3).
+Spec: [design.md](design.md). Choices: [design.md](design.md) (P3).
 
 ## 1. Setting it up
 
 ```sh
-scripts/lab-deploy.sh --snapshot      # build on the lab host, planning/lab/p3-snapshot.sh
+scripts/lab-deploy.sh --snapshot      # build on the lab host, lab/p3-snapshot.sh
 ```
 
 `p3-snapshot.sh` follows the READMEs: `backup-infra.sh` (drill network,
 MinIO and mailpit with TLS from the lab CA, the bucket and two
 least-privilege S3 users, the lab's age keys), `drill-up.sh` (the drill
-VM; it **cannot reach dc1:389** and can reach MinIO, both checked),
+VM; it cannot reach dc1:389 and can reach MinIO, both checked),
 `reset.sh seeded`, conductor's install, `remote/seed-p3.sh` (the backup
 account with only the three replication rights on the five naming
 contexts, and the drill's probe account), `backup-install.sh` (each host
@@ -83,7 +83,7 @@ afterwards. The DC's next run read the signed report; conductor's poller
 recorded it (`backup_results`) and audited it (`backup.drill_result`,
 actor `drill:drill`). Later drills in the same session measured 15-17 s.
 
-## 3. Failure tests (`planning/lab/backup-failure-tests.sh`)
+## 3. Failure tests (`lab/backup-failure-tests.sh`)
 
 ```
 [lab] wrong key: restore with an identity that is not a recipient
@@ -142,7 +142,7 @@ conductor also flags conductor-backup itself when it has not run for more
 than 2 h 15 min, and the drill host alerts on its own when the newest backup
 in the bucket is too old.
 
-## 4. Full-forest restore exercise (`planning/lab/restore-exercise.sh`)
+## 4. Full-forest restore exercise (`lab/restore-exercise.sh`)
 
 From `conductor-p3`: a marker user `restore.marker` is created and a
 backup requested (`conductor-backup request backup --wait`); the facts are

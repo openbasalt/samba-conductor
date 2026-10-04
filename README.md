@@ -2,19 +2,23 @@
 
 Web administrator and self-service portal for Samba Active Directory
 (`conductor`), plus the privileged local helper (`conductor-helper`). Part of
-Samba Conductor v2; design in `../planning/docs/architecture.md`, phase specs
-in `../planning/docs/p1-spec.md`, `p2-spec.md`, `p3-spec.md` and
-`p5b-spec.md`.
+Samba Conductor v2. Design: [docs/design.md](docs/design.md) and the
+family's [architecture.md](https://github.com/openbasalt/samba-conductor-docs/blob/main/architecture.md). The other
+repositories: [samba-conductor-docs](https://github.com/openbasalt/samba-conductor-docs).
 
-Status: **P5b complete** (2026-10-03): the Google Workspace sync section
-(with [conductor-sync](https://github.com/openbasalt/samba-conductor-sync): [`docs/usage-p5b.md`](docs/usage-p5b.md)), on top
-of P3 (encrypted domain backups, restore and restore drills with
-[conductor-backup](https://github.com/openbasalt/samba-conductor-backup)), P2 (DNS, Group Policy
-links, password policies, lockouts across DCs, account health, bulk
-operations, security keys) and P1. Validated end to end in the two-DC
-lab, desktop and mobile, including a full-forest restore:
-[`docs/usage-p3.md`](docs/usage-p3.md) (P2: [`docs/usage-p2.md`](docs/usage-p2.md),
-P1: [`docs/usage-p1.md`](docs/usage-p1.md)). Recovery runbook:
+Status: pre-release, no tagged version yet. Users, groups, OUs, computers,
+self-service, DNS, Group Policy links, password policies, lockouts across
+DCs, account health, bulk operations, security keys, encrypted domain
+backups with restore drills
+([conductor-backup](https://github.com/openbasalt/samba-conductor-backup)),
+file servers
+([conductor-files](https://github.com/openbasalt/samba-conductor-files)) and
+the Google Workspace sync section
+([conductor-sync](https://github.com/openbasalt/samba-conductor-sync)).
+Validated end to end in a two-DC lab, desktop and mobile, including a
+full-forest restore: lab runs in [`docs/usage-p3.md`](docs/usage-p3.md),
+[`docs/usage-p2.md`](docs/usage-p2.md), [`docs/usage-p1.md`](docs/usage-p1.md)
+and [`docs/usage-p5b.md`](docs/usage-p5b.md). Recovery runbook:
 [`docs/restore.md`](docs/restore.md).
 
 | | |
@@ -25,20 +29,20 @@ P1: [`docs/usage-p1.md`](docs/usage-p1.md)). Recovery runbook:
 
 ## What it does
 
-- **Sign-in with the user's own AD account**: Kerberos through the `ad`
+- Sign-in with the user's own AD account: Kerberos through the `ad`
   library (LDAP simple bind only when configured). The ticket stays in
   memory for the session; no service account is used for anything the user
   does, so AD's own ACLs apply to every read and write.
-- **Every bind sub-code handled**: an expired or must-change password (which
+- Every bind sub-code handled: an expired or must-change password (which
   AD proves right) leads to a change page that asks for the old password
   again; locked, disabled and expired accounts get a clear message;
   everything else is "wrong username or password".
-- **2FA (TOTP + recovery codes)**: mandatory for administrators (and by
+- 2FA (TOTP + recovery codes): mandatory for administrators (and by
   default for helpdesk and auditors), `off` / `optional` / `required` for
   everyone else. Administrators without 2FA enroll only through a one-time
   link, so a stolen administrator password is not enough to register a
   device.
-- **Roles by AD group SID**, re-checked against AD (tokenGroups) on every
+- Roles by AD group SID, re-checked against AD (tokenGroups) on every
   privileged request, cached at most 60 s:
 
   | Role | Group (configurable) | May |
@@ -48,38 +52,38 @@ P1: [`docs/usage-p1.md`](docs/usage-p1.md)). Recovery runbook:
   | auditor | e.g. `Auditors` | read-only admin views, audit log, domain info |
   | everyone | | self-service |
 
-- **Administration**: dashboard; users (server-side sorted search and
+- Administration: dashboard; users (server-side sorted search and
   pagination, create, edit, enable/disable, unlock, reset password, move,
   delete, group membership, 2FA reset and enrollment links); groups
   (members with paging, nesting, create, delete, add/remove members); OUs
   (tree, create, rename, move, delete when empty); computers (enable/
   disable, move, delete; domain controllers protected).
-- **Preview before every write**: the exact LDAP changes (passwords
+- Preview before every write: the exact LDAP changes (passwords
   redacted) are shown and applied only after confirmation; changes to
   administrator accounts and privileged groups need password + TOTP again.
-- **DNS** (P2): AD-integrated zones and records (A, AAAA, CNAME, MX, TXT,
+- DNS: AD-integrated zones and records (A, AAAA, CNAME, MX, TXT,
   SRV, PTR, NS) over LDAP with the user's own credentials, paging and
   search, zone create/delete (forward and reverse); the AD zones and the
   records AD manages (locators, DC records, apex SOA/NS) are read-only, with
   DCs discovered from the directory, never configured by name.
-- **Group Policy** (P2): GPOs and where they are linked; link, unlink,
+- Group Policy: GPOs and where they are linked; link, unlink,
   enable/disable, enforce, link order, block inheritance; GPO create/delete
   through samba-tool with the user's Kerberos ticket. Settings inside a GPO
   stay with RSAT/GPMC.
-- **Password policy** (P2): domain policy (warns when lockout is off),
+- Password policy: domain policy (warns when lockout is off),
   fine-grained policies (PSOs) and their targets, the effective policy of a
   user.
-- **Lockouts and account health** (P2): lockout state and bad-password
+- Lockouts and account health: lockout state and bad-password
   counters from every DC, expiring/expired passwords, never signed in,
   stale, disabled, CSV export, actions on selected accounts.
-- **Bulk** (P2): CSV import (create, update) with a strict template, every
+- Bulk: CSV import (create, update) with a strict template, every
   row validated before anything is written, the full preview, a background
   apply with a per-row audit and report, retry of failed rows; generated
   passwords shown once and downloadable.
-- **Security keys** (P2): WebAuthn keys and platform authenticators next to
+- Security keys: WebAuthn keys and platform authenticators next to
   TOTP (register, name, remove; sign-in and re-authentication); optionally
   mandatory for administrators.
-- **Backups** (P3): the Backups page (administrators; auditors read-only)
+- Backups: the Backups page (administrators; auditors read-only)
   shows conductor-backup's encrypted backups per destination with their
   verification, the restore drills with their checks and measured restore
   time, RPO and RTO, the policy, destinations and recipients'
@@ -88,7 +92,7 @@ P1: [`docs/usage-p1.md`](docs/usage-p1.md)). Recovery runbook:
   warns when the last good backup is too old, a backup or drill failed, or
   conductor-backup stopped running. Results are recorded in conductor's
   state and audit log.
-- **Google Workspace sync** (P5b, administrators only, `[sync]` on):
+- Google Workspace sync (administrators only, `[sync]` on):
   conductor-sync's settings, key, plans and applies from the browser
   through its local management API: a setup wizard (service account key,
   connection test, who is synced by OU and by include/exclude groups, org
@@ -98,12 +102,12 @@ P1: [`docs/usage-p1.md`](docs/usage-p1.md)). Recovery runbook:
   confirmation and the digest, blocked scheduled runs and their override,
   history and the settings' version history. Every change is previewed,
   re-authenticated and audited here and in conductor-sync.
-- **Self-service**: profile, edit of the attributes Samba lets users write
+- Self-service: profile, edit of the attributes Samba lets users write
   on themselves (phones, office, address, web page), password change,
   2FA, sessions and "sign out everywhere".
-- **Audit log**: append-only SQLite table, hash-chained; viewer with
+- Audit log: append-only SQLite table, hash-chained; viewer with
   filters, JSON lines export, `conductor audit verify`.
-- **conductor-helper**: the only root process, on a Unix socket only the
+- conductor-helper: the only root process, on a Unix socket only the
   `conductor` user may use (SO_PEERCRED): read-only domain information
   (functional levels, FSMO roles, DCs) and, with backups configured
   (`/etc/conductor/helper.toml`), the backup status, requests and policy;
@@ -137,11 +141,11 @@ P1: [`docs/usage-p1.md`](docs/usage-p1.md)). Recovery runbook:
 
 - [Install (Debian 13 / Ubuntu 26.04)](docs/install.md)
 - [Install on Basalt OS / Fedora (RPM, SELinux)](docs/install-fedora.md)
-- Packaging, releases, CI: `../planning/docs/packaging.md`; package files in [`packaging/`](packaging/)
+- Packaging, releases, CI: [packaging.md](https://github.com/openbasalt/samba-conductor-docs/blob/main/packaging.md); package files in [`packaging/`](packaging/)
 - [Configuration reference](docs/config.md)
 - [Restore runbook](docs/restore.md)
-- [P5b: the Google Workspace sync section](docs/usage-p5b.md)
-- [P3 lab run (backups, drills, restore exercise)](docs/usage-p3.md), [P2 lab run](docs/usage-p2.md), [P1 lab run](docs/usage-p1.md) and [screenshots](docs/screenshots/)
+- [Design](docs/design.md)
+- Lab runs: [Google Workspace sync section](docs/usage-p5b.md), [backups, drills, restore exercise](docs/usage-p3.md), [DNS, Group Policy, policies, bulk](docs/usage-p2.md), [core administration and self-service](docs/usage-p1.md) and [screenshots](docs/screenshots/)
 
 ## Development
 

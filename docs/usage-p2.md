@@ -1,7 +1,7 @@
 # P2 lab run
 
 Transcript of `e2e/run-lab.sh` against the lab
-(`../../planning/docs/lab.md`), run on 2026-10-02 from commit `b766779`. No
+([testing.md](https://github.com/openbasalt/samba-conductor-docs/blob/main/testing.md)), run on 2026-10-02 from commit `b766779`. No
 secrets appear: passwords reach the Playwright container only through a
 temporary 0600 env file on the lab host, the tests never log them, and this
 transcript was checked against the lab's secrets file before committing.
@@ -9,14 +9,14 @@ Screenshots mask TOTP secrets, QR codes and recovery codes; the generated
 passwords shown in `11-job-passwords` and `12-bulk-result` belong to
 throwaway lab accounts that the next `reset.sh` destroys.
 
-What happens (spec `planning/docs/p2-spec.md` §7):
+What happens (spec [design.md](design.md) §7):
 
 1. `scripts/lab-deploy.sh --snapshot`: rsync to the lab host, build both
    binaries there, reset the lab to `seeded` (the P2 seed: DNS zones
    `apps.conductor.test` and `0.93.10.in-addr.arpa`, four lab GPOs with
    links and a blocked OU, the 20-day PSO `lab-staff-20d`, accounts
    expiring soon, `stale.user`), install on dc1 with
-   `planning/lab/conductor-install.sh` (`conductor setup` now also writes
+   `lab/conductor-install.sh` (`conductor setup` now also writes
    `[webauthn] rp_id = "dc1.lab.conductor.test"`), snapshot both DCs as
    `conductor-p2` (`conductor-p1` is kept as it was).
 2. Per project (`desktop` 1366×900, `mobile` Pixel 7): `reset.sh
@@ -158,7 +158,7 @@ Results (2026-10-02, full deploy): desktop 34 passed (18.9 min), mobile 34
 passed (19.3 min), nothing failed or skipped; `conductor audit verify` on dc1
 after each project reports the chain intact (lines in the transcript).
 The unlock of a selected account is written on every DC (see
-`planning/docs/decisions.md`): the lockouts test asserts the per-DC report
+[design.md](design.md)): the lockouts test asserts the per-DC report
 (`dc1...: applied`, `dc2...: applied`) and then that the lockouts page no
 longer lists the account, with no waiting. The navigation is the grouped
 sidebar (a native `<details>` "Menu" on phones); `03-dashboard` shows it.

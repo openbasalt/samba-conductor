@@ -1,14 +1,14 @@
 # P2b: File servers (shares on domain-member servers)
 
 conductor's "File servers" section shares folders on the network from
-Samba **domain-member file servers**: an administrator picks a folder below
+Samba domain-member file servers: an administrator picks a folder below
 the server's share roots, the AD groups that get read, modify or full
 access, a few options, reviews the exact change the server will make and
 confirms it with the second factor. Domain controllers never host these
 shares.
 
-Spec: `../../planning/docs/p2b-spec.md`; decisions:
-`../../planning/docs/decisions.md` (P2b). The agent on each file server:
+Spec: [design.md](design.md); decisions:
+[design.md](design.md) (P2b). The agent on each file server:
 `../../conductor-files` (README, `docs/install.md`, `docs/usage-p2b.md`).
 
 ## How it works
@@ -22,23 +22,23 @@ browser --HTTPS--> conductor (DC VM, user conductor) --TLS 1.3, both keys pinned
 - conductor never writes to a file server itself. The agent offers typed
   operations only (status, folders below the roots, shares, plan, apply,
   remove, sessions) and validates everything again.
-- **Trust**: no CA. conductor's key lives in `files.key_dir`
+- Trust: no CA. conductor's key lives in `files.key_dir`
   (`/var/lib/conductor/files`), each agent's in its state directory. A
   server is enrolled with a one-time code made on it
   (`conductor-files enroll-code` → `cfe1.<token>.<agent key>`): conductor
   pins the agent's key from the code, the agent pins conductor's key when
   the token matches. Unknown keys fail the TLS handshake on both sides.
-- **Roles**: `files.read` (administrators and auditors: servers, shares,
+- Roles: `files.read` (administrators and auditors: servers, shares,
   permissions, sessions) and `files.write` (administrators: enroll, remove,
   create, edit, remove shares). Helpdesk sees nothing. Every write asks for
   the password and a fresh second factor on the preview page.
-- **Plan, then apply**: the wizard asks the agent for the plan of the
+- Plan, then apply: the wizard asks the agent for the plan of the
   draft; the preview shows the share and folder permissions as before/after
   lists (groups by name and SID), the registry section and the commands in
   order, and the text kept in the audit log (with the plan digest). The
   apply is bound to that digest: if the share or its folder changed in
   between, the agent refuses and asks for a new review.
-- **Audit**: conductor logs `files.enroll`, `files.remove_server`,
+- Audit: conductor logs `files.enroll`, `files.remove_server`,
   `files.share_create`, `files.share_update`, `files.share_remove` with the
   exact preview; the agent logs the same operations, with the AD user,
   conductor's key, the digest and the commands run, in its own hash-chained
@@ -61,14 +61,14 @@ browser --HTTPS--> conductor (DC VM, user conductor) --TLS 1.3, both keys pinned
    then `systemctl restart conductor`. conductor generates its key pair on
    first start and logs its fingerprint; the File servers page shows it too.
 3. On the file server, as root: `conductor-files enroll-code`.
-4. In conductor: **File servers → Add a file server**: the server's address
-   and the code, **Review**, then confirm with password and second factor.
+4. In conductor: File servers → Add a file server: the server's address
+   and the code, Review, then confirm with password and second factor.
    The server page then shows the prerequisites (all must be OK), both
    keys and the shares.
 
 ## Using it
 
-- **New share** (server page): three steps, kept as a draft in the session
+- New share (server page): three steps, kept as a draft in the session
   until applied or discarded.
   1. *Folder*: name (letters, digits, `.`, `_`, `-`; a trailing `$` hides it
      from network lists), description, and a folder: browse the roots and
@@ -82,17 +82,17 @@ browser --HTTPS--> conductor (DC VM, user conductor) --TLS 1.3, both keys pinned
   3. *Options*: listed on the network (default on), hide from people
      without access (access-based enumeration), recycle bin (deleted files
      go to `.recycle/<user>`), previous versions (only when the server has a
-     `[shadow_copies]` profile). **Review the change** shows the plan.
-- **Edit** (share page, shares created by conductor only): access and
+     `[shadow_copies]` profile). Review the change shows the plan.
+- Edit (share page, shares created by conductor only): access and
   options, or another existing folder; the name cannot change. Existing
   files keep their own permissions (the preview warns), but the share
   permissions apply to everyone at the next connection, so removing a group
   takes effect at once.
-- **Remove share**: the share and its share permissions go; the folder and
+- Remove share: the share and its share permissions go; the folder and
   its files stay.
-- **Sessions** (server page tab): who is connected, from where, protocol,
+- Sessions (server page tab): who is connected, from where, protocol,
   signing and encryption; connections per share; open files.
-- **Remove this server**: the agent drops conductor's key, conductor
+- Remove this server: the agent drops conductor's key, conductor
   forgets the server. If the server cannot be reached, conductor forgets it
   anyway and the message gives the `conductor-files trust remove <pin>` to
   run on it.
@@ -100,7 +100,7 @@ browser --HTTPS--> conductor (DC VM, user conductor) --TLS 1.3, both keys pinned
 
 ## Verified in the lab (2026-10-03)
 
-Lab snapshot `conductor-p2b` (dc1, dc2 and fs1, `../../planning/docs/lab.md`);
+Lab snapshot `conductor-p2b` (dc1, dc2 and fs1, [testing.md](https://github.com/openbasalt/samba-conductor-docs/blob/main/testing.md));
 Playwright `e2e/tests/18-files.spec.ts`, desktop and mobile, each on a fresh
 reset, with SMB checks run by smbclient from dc2 against fs1:
 

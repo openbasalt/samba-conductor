@@ -4,11 +4,10 @@ Basalt OS and Fedora (RPM packages, SELinux): `install-fedora.md`.
 
 Installation on a Samba AD domain controller with systemd, from the Debian
 package (recommended) or from source. Ubuntu 24.04 (Samba 4.19) is best
-effort. The lab install script (`../planning/lab/remote/install-conductor.sh`)
-runs the from-source steps; the package lab (`../planning/lab/pkglab/`)
-runs the package steps.
+effort. The integration lab runs the from-source steps and the package lab runs
+the package steps ([testing.md](https://github.com/openbasalt/samba-conductor-docs/blob/main/testing.md)).
 
-conductor normally runs **on a DC** (the helper needs the local Samba
+conductor normally runs on a DC (the helper needs the local Samba
 database); it reaches AD over LDAPS and Kerberos like any client.
 
 ## Requirements
@@ -16,7 +15,7 @@ database); it reaches AD over LDAPS and Kerberos like any client.
 - Samba AD DC ≥ 4.19 (Debian 13 ships 4.22), functional level 2016.
 - LDAPS on the DCs with a certificate whose SANs include the DC host name,
   issued by a CA you can pin (Samba's self-generated certificate has no SAN
-  and Go refuses it). See `../planning/docs/lab.md` for an example CA.
+  and Go refuses it). See [testing.md](https://github.com/openbasalt/samba-conductor-docs/blob/main/testing.md) for an example CA.
 - Time in sync (chrony with `ntp_signd`).
 - Samba 4.19 (Ubuntu 24.04, best effort) refuses Kerberos (GSSAPI) binds
   over LDAPS that carry TLS channel bindings but no SASL signing ("Strong
@@ -51,8 +50,8 @@ The package contains `conductor` and `conductor-helper` (`/usr/bin`), their
 units (`/usr/lib/systemd/system`), man pages and
 `/etc/conductor/helper.toml` (a conffile, backups off). It creates the
 `conductor` system user, `/etc/conductor` (root:conductor 0750) with `tls/`
-(0750) and `credentials/` (root 0700), and `/var/lib/conductor`. **It does
-not enable or start anything.** Skip steps 1 and 3 and continue with step 2.
+(0750) and `credentials/` (root 0700), and `/var/lib/conductor`. It does
+not enable or start anything. Skip steps 1 and 3 and continue with step 2.
 
 ## 1. System user and directories (source install only)
 
@@ -111,22 +110,22 @@ Interactive; flags exist for every question (`conductor setup -h`). It:
 
 1. detects the realm from `/etc/samba/smb.conf` and the preferred DC (this
    host);
-2. **pins the domain CA**: `--ca-file` with the CA that signed the DCs'
+2. pins the domain CA: `--ca-file` with the CA that signed the DCs'
    LDAPS certificates, or reads the chain from the DC and asks you to
    confirm its SHA-256 fingerprint (`--ca-fingerprint` for unattended
    runs). It is written to `/etc/conductor/domain-ca.pem`;
 3. signs in once with a domain account you name (`--admin-user`; the
    password is asked, or read from stdin with `--non-interactive`, and not
-   stored) to **resolve the role groups by name to SIDs**: administrators
+   stored) to resolve the role groups by name to SIDs: administrators
    default to Domain Admins (RID 512), plus optional helpdesk and auditor
    groups;
 4. generates the TOTP key `/etc/conductor/credentials/totp-key` (0600,
-   root). **Back it up**: without it every 2FA enrollment is lost;
+   root). Back it up: without it every 2FA enrollment is lost;
 5. writes `/etc/conductor/conductor.toml` (root:conductor 0640) after
    validating it; security keys (WebAuthn) are enabled for the host name of
    `--public-url` (or `--webauthn-rp-id NAME`), off without either;
-6. optionally (`--first-admin NAME`) issues the **first administrator's
-   2FA enrollment link**, created as the `conductor` user so the database
+6. optionally (`--first-admin NAME`) issues the first administrator's
+   2FA enrollment link, created as the `conductor` user so the database
    stays owned by it.
 
 Example (unattended, the lab's values):
