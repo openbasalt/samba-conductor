@@ -136,6 +136,7 @@ P1: [`docs/usage-p1.md`](docs/usage-p1.md)). Recovery runbook:
 ## Documentation
 
 - [Install (Debian 13 / Ubuntu 26.04)](docs/install.md)
+- [Install on Basalt OS / Fedora (RPM, SELinux)](docs/install-fedora.md)
 - Packaging, releases, CI: `../planning/docs/packaging.md`; package files in [`packaging/`](packaging/)
 - [Configuration reference](docs/config.md)
 - [Restore runbook](docs/restore.md)

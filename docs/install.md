@@ -1,5 +1,7 @@
 # Installing conductor (Debian 13 / Ubuntu 26.04)
 
+Basalt OS and Fedora (RPM packages, SELinux): `install-fedora.md`.
+
 Installation on a Samba AD domain controller with systemd, from the Debian
 package (recommended) or from source. Ubuntu 24.04 (Samba 4.19) is best
 effort. The lab install script (`../planning/lab/remote/install-conductor.sh`)

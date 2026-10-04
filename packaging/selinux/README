@@ -1,0 +1,41 @@
+conductor-selinux: SELinux policy for conductor and conductor-helper
+====================================================================
+
+The module "conductor" (targeted policy, priority 200) confines:
+
+  conductor_t         /usr/bin/conductor (conductor.service, user conductor)
+  conductor_helper_t  /usr/bin/conductor-helper (conductor-helper.service, root)
+
+File types:
+
+  conductor_conf_t            /etc/conductor (conductor.toml, helper.toml, tls/)
+  conductor_cred_t            /etc/conductor/credentials (read by systemd only)
+  conductor_var_lib_t         /var/lib/conductor (database, audit log)
+  conductor_helper_var_run_t  /run/conductor-helper (helper.sock, backup.sock)
+  conductor_tmp_t, conductor_helper_tmp_t   files in the units' private /tmp
+
+conductor listens on http_port_t (8443 by default) and connects to the
+domain controllers (LDAP/LDAPS, Kerberos, kpasswd, the RPC endpoint mapper
+and its dynamic ports) and to conductor-files agents (TCP 7443 by
+default, an unreserved port on the domain controller). Another listen
+port needs its type:
+
+  semanage port -a -t http_port_t -p tcp 9444
+
+conductor-helper runs samba-tool as root on the local Samba database
+(/var/lib/samba, /var/cache/samba, /run/samba) and, with backups enabled,
+writes conductor-backup's spool (rules in the conductor_backup module).
+
+Troubleshooting: denials are in the audit log
+
+  ausearch -m AVC,USER_AVC -ts recent -c conductor
+  ausearch -m AVC,USER_AVC -ts recent -c conductor-helpe
+
+To check whether SELinux is the cause, make one domain permissive (the
+rest of the system stays enforcing), then revert:
+
+  semanage permissive -a conductor_t
+  semanage permissive -d conductor_t
+
+Please report denials seen in normal use: the policy is meant to need no
+local changes.

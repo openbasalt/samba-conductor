@@ -1,0 +1,12 @@
+# File contexts of the conductor policy module (conductor-selinux).
+/usr/bin/conductor			--	gen_context(system_u:object_r:conductor_exec_t,s0)
+/usr/bin/conductor-helper		--	gen_context(system_u:object_r:conductor_helper_exec_t,s0)
+/usr/local/bin/conductor		--	gen_context(system_u:object_r:conductor_exec_t,s0)
+/usr/local/bin/conductor-helper		--	gen_context(system_u:object_r:conductor_helper_exec_t,s0)
+
+/etc/conductor(/.*)?				gen_context(system_u:object_r:conductor_conf_t,s0)
+/etc/conductor/credentials(/.*)?		gen_context(system_u:object_r:conductor_cred_t,s0)
+
+/var/lib/conductor(/.*)?			gen_context(system_u:object_r:conductor_var_lib_t,s0)
+
+/run/conductor-helper(/.*)?			gen_context(system_u:object_r:conductor_helper_var_run_t,s0)

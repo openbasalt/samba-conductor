@@ -4,7 +4,8 @@
 [Unit]
 Description=Samba Conductor privileged helper
 Documentation=https://github.com/openbasalt/samba-conductor/blob/main/docs/install.md
-After=samba-ad-dc.service
+# The AD DC: samba-ad-dc on Debian and Ubuntu, samba on Fedora and Basalt OS.
+After=samba-ad-dc.service samba.service
 Before=conductor.service
 
 [Service]
@@ -21,7 +22,9 @@ UMask=0077
 NoNewPrivileges=yes
 CapabilityBoundingSet=CAP_CHOWN CAP_FOWNER CAP_DAC_OVERRIDE CAP_DAC_READ_SEARCH
 ProtectSystem=strict
-ReadWritePaths=/var/lib/samba /var/cache/samba /run/samba
+# "-": Fedora and Basalt OS have no /var/cache/samba (nor, before Samba
+# starts, /run/samba); a missing path is skipped, not an error.
+ReadWritePaths=/var/lib/samba -/var/cache/samba -/run/samba
 ProtectHome=yes
 PrivateTmp=yes
 PrivateDevices=yes

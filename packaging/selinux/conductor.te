@@ -1,0 +1,159 @@
+policy_module(conductor, 1.0.0)
+
+# SELinux policy of Samba Conductor's web administrator (conductor_t, the
+# unprivileged "conductor" user) and its privileged helper
+# (conductor_helper_t, root). It adds a mandatory layer under the systemd
+# sandbox of each unit (deploy/systemd/*.service): the same paths, sockets
+# and ports, nothing more.
+
+########################################
+#
+# Declarations
+#
+
+type conductor_t;
+type conductor_exec_t;
+init_daemon_domain(conductor_t, conductor_exec_t)
+
+type conductor_helper_t;
+type conductor_helper_exec_t;
+init_daemon_domain(conductor_helper_t, conductor_helper_exec_t)
+
+# /etc/conductor: conductor.toml, helper.toml, TLS certificate and key.
+type conductor_conf_t;
+files_config_file(conductor_conf_t)
+
+# /etc/conductor/credentials: the TOTP key. Only systemd reads it
+# (LoadCredential=); the services get a copy in $CREDENTIALS_DIRECTORY.
+type conductor_cred_t;
+files_type(conductor_cred_t)
+
+# /var/lib/conductor: the SQLite database and the audit log.
+type conductor_var_lib_t;
+files_type(conductor_var_lib_t)
+
+# /run/conductor-helper: helper.sock (conductor) and backup.sock
+# (conductor-backup).
+type conductor_helper_var_run_t;
+files_pid_file(conductor_helper_var_run_t)
+
+# Files in the units' private /tmp: Kerberos credential caches handed to
+# samba-tool (conductor), the plaintext of a backup while it is encrypted
+# (helper).
+type conductor_tmp_t;
+files_tmp_file(conductor_tmp_t)
+
+type conductor_helper_tmp_t;
+files_tmp_file(conductor_helper_tmp_t)
+
+########################################
+#
+# conductor (web administrator, no capabilities)
+#
+
+conductor_common(conductor_t)
+
+allow conductor_t self:tcp_socket { accept listen create_stream_socket_perms };
+allow conductor_t self:udp_socket create_socket_perms;
+
+manage_dirs_pattern(conductor_t, conductor_var_lib_t, conductor_var_lib_t)
+manage_files_pattern(conductor_t, conductor_var_lib_t, conductor_var_lib_t)
+
+manage_dirs_pattern(conductor_t, conductor_tmp_t, conductor_tmp_t)
+manage_files_pattern(conductor_t, conductor_tmp_t, conductor_tmp_t)
+files_tmp_filetrans(conductor_t, conductor_tmp_t, { file dir })
+
+# The helper (typed samba-tool operations that need root).
+stream_connect_pattern(conductor_t, conductor_helper_var_run_t, conductor_helper_var_run_t, conductor_helper_t)
+files_search_pids(conductor_t)
+
+# HTTPS (8443 by default; another port: semanage port -a -t http_port_t).
+corenet_tcp_bind_generic_node(conductor_t)
+corenet_tcp_bind_http_port(conductor_t)
+
+# The domain controllers with the signed-in user's identity: LDAP(S),
+# Kerberos, kpasswd; samba-tool's DNS and GPO operations over RPC.
+corenet_tcp_connect_ldap_port(conductor_t)
+corenet_tcp_connect_kerberos_port(conductor_t)
+corenet_tcp_connect_kerberos_password_port(conductor_t)
+corenet_tcp_connect_epmap_port(conductor_t)
+corenet_tcp_connect_smbd_port(conductor_t)
+corenet_tcp_connect_all_ephemeral_ports(conductor_t)
+# conductor-files agents (TCP 7443 by default; on the domain controller the
+# port has no type of its own).
+corenet_tcp_connect_unreserved_ports(conductor_t)
+
+########################################
+#
+# conductor-helper (root, CAP_CHOWN/FOWNER/DAC_OVERRIDE/DAC_READ_SEARCH)
+#
+
+conductor_common(conductor_helper_t)
+
+allow conductor_helper_t self:capability { chown fowner dac_override dac_read_search };
+allow conductor_helper_t self:tcp_socket create_stream_socket_perms;
+allow conductor_helper_t self:udp_socket create_socket_perms;
+allow conductor_helper_t self:unix_stream_socket { listen accept };
+
+manage_dirs_pattern(conductor_helper_t, conductor_helper_var_run_t, conductor_helper_var_run_t)
+manage_sock_files_pattern(conductor_helper_t, conductor_helper_var_run_t, conductor_helper_var_run_t)
+files_pid_filetrans(conductor_helper_t, conductor_helper_var_run_t, { dir sock_file })
+
+manage_dirs_pattern(conductor_helper_t, conductor_helper_tmp_t, conductor_helper_tmp_t)
+manage_files_pattern(conductor_helper_t, conductor_helper_tmp_t, conductor_helper_tmp_t)
+files_tmp_filetrans(conductor_helper_t, conductor_helper_tmp_t, { file dir })
+
+# The conductor database, read for the state snapshot in a backup.
+read_files_pattern(conductor_helper_t, conductor_var_lib_t, conductor_var_lib_t)
+list_dirs_pattern(conductor_helper_t, conductor_var_lib_t, conductor_var_lib_t)
+
+# samba-tool as root on the local Samba database (/var/lib/samba,
+# /var/cache/samba, /run/samba), as the unit's ReadWritePaths= allow. The
+# Samba AD DC itself (/usr/sbin/samba) runs unconfined on Fedora: its
+# sockets and messages are reached in unconfined_service_t.
+samba_manage_var_dirs(conductor_helper_t)
+samba_manage_var_files(conductor_helper_t)
+samba_manage_var_sock_files(conductor_helper_t)
+samba_read_secrets(conductor_helper_t)
+unconfined_server_stream_connectto(conductor_helper_t)
+unconfined_server_dgram_send(conductor_helper_t)
+
+# Online backups over loopback (LDAP and DRS RPC to this DC).
+corenet_tcp_connect_ldap_port(conductor_helper_t)
+corenet_tcp_connect_kerberos_port(conductor_helper_t)
+corenet_tcp_connect_epmap_port(conductor_helper_t)
+corenet_tcp_connect_smbd_port(conductor_helper_t)
+corenet_tcp_connect_all_ephemeral_ports(conductor_helper_t)
+
+########################################
+#
+# systemd (init_t) reads the credentials for LoadCredential=; nothing else
+# in the policy may.
+#
+
+gen_require(`
+	type init_t;
+')
+list_dirs_pattern(init_t, conductor_cred_t, conductor_cred_t)
+read_files_pattern(init_t, conductor_cred_t, conductor_cred_t)
+
+########################################
+#
+# Started by systemd: the units set NoNewPrivileges=yes, and the services
+# read their credentials from $CREDENTIALS_DIRECTORY (/run/credentials/<unit>,
+# which systemd labels init_var_run_t).
+#
+
+init_nnp_daemon_domain(conductor_t)
+init_nnp_daemon_domain(conductor_helper_t)
+
+gen_require(`
+	type init_var_run_t;
+')
+allow conductor_t init_var_run_t:dir search_dir_perms;
+allow conductor_t init_var_run_t:file read_file_perms;
+allow conductor_helper_t init_var_run_t:dir search_dir_perms;
+allow conductor_helper_t init_var_run_t:file read_file_perms;
+
+# SQLite in WAL mode maps its shared-memory index (<db>-shm).
+allow conductor_t conductor_var_lib_t:file map;

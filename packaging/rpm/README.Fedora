@@ -1,0 +1,35 @@
+conductor for Fedora and Basalt OS
+==================================
+
+Installing the package creates the "conductor" system user (sysusers.d),
+/etc/conductor (root:conductor 0750) with tls/ (root:conductor 0750) and
+credentials/ (root 0700), and /var/lib/conductor (conductor 0700). It does
+not enable or start anything (the distribution's preset disables the
+units). Where the targeted SELinux policy is installed, conductor-selinux
+comes with it: conductor runs in conductor_t, conductor-helper in
+conductor_helper_t.
+
+On the domain controller (Fedora's samba-dc):
+
+  1. Put the web certificate in /etc/conductor/tls/ (cert.pem 0644,
+     key.pem 0640 root:conductor), or plan for a reverse proxy.
+  2. sudo conductor setup        (interactive; "conductor setup -h")
+  3. sudo systemctl enable --now conductor-helper conductor
+  4. sudo firewall-cmd --permanent --add-port=8443/tcp && sudo firewall-cmd --reload
+
+/etc/conductor/conductor.toml is written by "conductor setup" and is not
+managed by the package; /etc/conductor/helper.toml is a %config(noreplace)
+file (an edited copy is kept on upgrade, the new one lands beside it as
+helper.toml.rpmnew).
+
+Another listen port than 8443 needs its SELinux port type:
+  sudo semanage port -a -t http_port_t -p tcp <port>
+
+Upgrades restart the services that are running. "dnf remove conductor"
+stops and disables the units and removes the packaged files; it keeps what
+was created after installation: conductor.toml, the TOTP key in
+credentials/, the TLS files, /var/lib/conductor (database and audit log)
+and the system user. Delete them by hand when the data is no longer needed
+(back up the TOTP key and the database first, see docs/restore.md).
+
+Full guide: https://github.com/openbasalt/samba-conductor/blob/main/docs/install-fedora.md

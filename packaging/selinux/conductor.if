@@ -1,0 +1,138 @@
+## <summary>Samba Conductor: web administrator for Samba AD and its privileged helper.</summary>
+
+########################################
+## <summary>
+##	Execute conductor in the conductor domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed to transition.
+##	</summary>
+## </param>
+#
+interface(`conductor_domtrans',`
+	gen_require(`
+		type conductor_t, conductor_exec_t;
+	')
+
+	corecmd_search_bin($1)
+	domtrans_pattern($1, conductor_exec_t, conductor_t)
+')
+
+########################################
+## <summary>
+##	Connect to the conductor-helper sockets (backup.sock): the
+##	conductor-backup service asks the helper for backups this way.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`conductor_helper_stream_connect',`
+	gen_require(`
+		type conductor_helper_t, conductor_helper_var_run_t;
+	')
+
+	files_search_pids($1)
+	stream_connect_pattern($1, conductor_helper_var_run_t, conductor_helper_var_run_t, conductor_helper_t)
+')
+
+########################################
+## <summary>
+##	Read the conductor configuration (/etc/conductor).
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`conductor_read_config',`
+	gen_require(`
+		type conductor_conf_t;
+	')
+
+	files_search_etc($1)
+	read_files_pattern($1, conductor_conf_t, conductor_conf_t)
+	list_dirs_pattern($1, conductor_conf_t, conductor_conf_t)
+')
+
+########################################
+## <summary>
+##	Read the conductor state (/var/lib/conductor), e.g. the database for
+##	a backup snapshot.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`conductor_read_lib_files',`
+	gen_require(`
+		type conductor_var_lib_t;
+	')
+
+	files_search_var_lib($1)
+	read_files_pattern($1, conductor_var_lib_t, conductor_var_lib_t)
+	list_dirs_pattern($1, conductor_var_lib_t, conductor_var_lib_t)
+')
+
+########################################
+## <summary>
+##	Rules common to the conductor domains: a Go program that runs
+##	samba-tool (Python) and reads the conductor configuration.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain the rules apply to.
+##	</summary>
+## </param>
+#
+template(`conductor_common',`
+	gen_require(`
+		type conductor_conf_t;
+	')
+
+	allow $1 self:process { getsched setsched signal_perms getcap };
+	allow $1 self:fifo_file rw_fifo_file_perms;
+	allow $1 self:unix_stream_socket create_stream_socket_perms;
+	allow $1 self:unix_dgram_socket create_socket_perms;
+	allow $1 self:netlink_route_socket r_netlink_socket_perms;
+
+	kernel_read_system_state($1)
+	kernel_read_kernel_sysctls($1)
+	kernel_read_net_sysctls($1)
+
+	dev_read_sysfs($1)
+	dev_read_urand($1)
+	dev_read_rand($1)
+
+	fs_getattr_all_fs($1)
+	fs_search_cgroup_dirs($1)
+	fs_read_cgroup_files($1)
+
+	corecmd_exec_bin($1)
+	corecmd_read_bin_symlinks($1)
+
+	files_read_etc_files($1)
+	files_read_usr_files($1)
+	files_search_var_lib($1)
+
+	auth_use_nsswitch($1)
+	miscfiles_read_localization($1)
+	miscfiles_read_generic_certs($1)
+	kerberos_read_config($1)
+	sysnet_dns_name_resolve($1)
+
+	logging_send_syslog_msg($1)
+
+	samba_read_config($1)
+	samba_search_var($1)
+
+	read_files_pattern($1, conductor_conf_t, conductor_conf_t)
+	list_dirs_pattern($1, conductor_conf_t, conductor_conf_t)
+	read_lnk_files_pattern($1, conductor_conf_t, conductor_conf_t)
+')

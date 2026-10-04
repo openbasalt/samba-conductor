@@ -4,7 +4,7 @@
 [Unit]
 Description=Samba Conductor (web admin and self-service)
 Documentation=https://github.com/openbasalt/samba-conductor/blob/main/docs/install.md
-After=network-online.target samba-ad-dc.service conductor-helper.service
+After=network-online.target samba-ad-dc.service samba.service conductor-helper.service
 Wants=network-online.target
 
 [Service]
