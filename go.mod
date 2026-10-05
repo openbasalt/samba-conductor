@@ -14,6 +14,7 @@ require (
 	github.com/go-webauthn/webauthn v0.18.2
 	github.com/openbasalt/samba-conductor-ad v0.0.0-20261004043531-75ce88dcaaea
 	github.com/openbasalt/samba-conductor-files v0.0.0-20261003144929-7e45179686c3
+	github.com/openbasalt/samba-conductor-idp v0.0.0-20261005023601-b210811f8b24
 	github.com/openbasalt/samba-conductor-sync v0.0.0-20261003150556-218c13b8e10a
 	golang.org/x/term v0.46.0
 	modernc.org/sqlite v1.60.1
