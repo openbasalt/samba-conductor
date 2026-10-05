@@ -6,7 +6,7 @@
   {{template "error-alert" .D.Error}}
   {{with .D.Files}}{{template "files-plan" .}}{{end}}
   <h2>{{t "confirm.preview"}}</h2>
-  <p class="hint">{{if .D.Files}}{{t "files.plan.preview_hint"}}{{else}}{{t "confirm.preview_hint"}}{{end}}</p>
+  <p class="hint">{{if .D.PreviewHint}}{{.D.PreviewHint}}{{else if .D.Files}}{{t "files.plan.preview_hint"}}{{else if .D.LDAP}}{{t "confirm.preview_hint"}}{{else}}{{t "confirm.preview_hint_action"}}{{end}}</p>
   <pre data-e2e="confirm-text-preview">{{.D.Preview}}</pre>
   <form method="post" action="/confirm/{{.D.ID}}" autocomplete="off">
     {{template "csrf" .}}

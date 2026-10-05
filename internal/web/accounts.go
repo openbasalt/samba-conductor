@@ -207,7 +207,7 @@ func (s *Server) accountAction(rc *reqCtx, activate bool) {
 		"account: " + a.Address, "password: " + pwLine, "# " + rc.T("accounts.preview_note")}, "\n")
 	p := &pendingOp{perm: PermSelf, action: action, target: a.Target + ":" + a.Address, reauth: !fresh,
 		title: title, summary: summary, warning: rc.T("accounts.warn_once"), preview: preview, back: back,
-		reauthKey: "accounts.reauth"}
+		reauthKey: "accounts.reauth", previewHint: rc.T("accounts.preview_hint", a.Title)}
 	if mode == syncapi.PasswordChosen {
 		p.warning = ""
 	}

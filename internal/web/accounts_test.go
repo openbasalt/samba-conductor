@@ -1,12 +1,14 @@
 package web
 
 import (
+	"context"
 	"net/http"
 	"net/url"
 	"strings"
 	"testing"
 	"time"
 
+	ad "github.com/openbasalt/samba-conductor-ad"
 	"github.com/openbasalt/samba-conductor-sync/syncapi"
 )
 
@@ -219,5 +221,46 @@ func TestAccountsRefusals(t *testing.T) {
 	}
 	if w := h.do("POST", "/me/accounts/google/activate", tok, url.Values{"mode": {"other"}}); w.Code != http.StatusBadRequest {
 		t.Fatalf("bad mode: %d", w.Code)
+	}
+}
+
+// TestAccountsConfirmHint: the confirmation of a connected-account action
+// says the change goes to the target through conductor-sync (named as
+// conductor-sync reports it), not that LDAP writes go to the DC; real LDAP
+// writes keep the LDAP hint and other actions get a neutral one.
+func TestAccountsConfirmHint(t *testing.T) {
+	h, fs, tok := accountsHarness(t)
+	// The display name comes from conductor-sync, nothing is hardcoded.
+	fs.account.Title = "Example Directory"
+	loc := h.do("POST", "/me/accounts/google/activate", tok, url.Values{"mode": {"generate"}}).Header().Get("Location")
+	cp := h.do("GET", loc, tok, nil).Body.String()
+	if !strings.Contains(cp, "This sends the change to Example Directory through the sync service") || strings.Contains(cp, "LDAP writes are sent") {
+		t.Fatalf("activation hint: %s", cp)
+	}
+	fs.account.State, fs.account.CanActivate, fs.account.CanSetPassword = syncapi.AccountActive, false, true
+	loc = h.do("POST", "/me/accounts/google/password", tok, url.Values{"mode": {"generate"}}, withHeader("Accept-Language", "pt-BR")).Header().Get("Location")
+	cp = h.do("GET", loc, tok, nil, withHeader("Accept-Language", "pt-BR")).Body.String()
+	if !strings.Contains(cp, "Isto envia a alteração para Example Directory pelo serviço de sincronização") || strings.Contains(cp, "gravações LDAP são enviadas") {
+		t.Fatalf("password hint (pt-BR): %s", cp)
+	}
+	// An LDAP write keeps the LDAP hint; a non-LDAP action without its own
+	// hint gets the neutral one.
+	sess := h.s.sess.byID[hashToken(tok)]
+	op, err := ad.UnlockUser("CN=x,OU=People,DC=lab,DC=test")
+	if err != nil {
+		t.Fatal(err)
+	}
+	sess.mu.Lock()
+	sess.pending["ldapop0000000000000000"] = &pendingOp{id: "ldapop0000000000000000", created: h.now, perm: PermSelf, op: op,
+		preview: op.Preview().String(), back: "/"}
+	sess.pending["runop00000000000000000"] = &pendingOp{id: "runop00000000000000000", created: h.now, perm: PermSelf,
+		run: func(context.Context, *reqCtx) error { return nil }, preview: "x", back: "/"}
+	sess.mu.Unlock()
+	if cp := h.do("GET", "/confirm/ldapop0000000000000000", tok, nil).Body.String(); !strings.Contains(cp, "These LDAP writes are sent") {
+		t.Fatalf("LDAP hint lost: %s", cp)
+	}
+	if cp := h.do("GET", "/confirm/runop00000000000000000", tok, nil).Body.String(); strings.Contains(cp, "LDAP") ||
+		!strings.Contains(cp, "This is the change conductor carries out") {
+		t.Fatalf("neutral hint: %s", cp)
 	}
 }

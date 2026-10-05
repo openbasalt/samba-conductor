@@ -48,6 +48,10 @@ type pendingOp struct {
 	// reauthKey replaces the default re-authentication note (a message
 	// key; only shown when a code is allowed).
 	reauthKey string
+	// previewHint is the translated sentence above the preview that says
+	// where the change goes. Empty means the default: the LDAP hint for an
+	// LDAP write, a neutral one for any other action.
+	previewHint string
 }
 
 // propose stores a pending operation and sends the browser to its preview.
@@ -111,7 +115,8 @@ func (s *Server) confirmAllowed(rc *reqCtx, p *pendingOp) bool {
 
 func (s *Server) confirmData(p *pendingOp, errMsg string) map[string]any {
 	return map[string]any{"ID": p.id, "Title": p.title, "Summary": p.summary, "Warning": p.warning,
-		"Preview": p.preview, "Reauth": p.reauth, "Back": p.back, "Error": errMsg, "Target": p.target, "Files": p.files}
+		"Preview": p.preview, "Reauth": p.reauth, "Back": p.back, "Error": errMsg, "Target": p.target, "Files": p.files,
+		"PreviewHint": p.previewHint, "LDAP": p.op != nil}
 }
 
 // confirmPageData adds what the re-authentication form needs.
