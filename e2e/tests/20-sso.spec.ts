@@ -180,9 +180,9 @@ test.describe.serial('single sign-on (conductor-idp)', () => {
     await page.getByTestId('sso-select-nameid-source').selectOption('username');
     await page.getByTestId('sso-input-sp-attributes').fill('uid=username\nmail=email\nmemberOf=groups');
     await pickGroup(page, 'Engineering');
-    await page.getByTestId('sso-input-preview-user').fill('user0011');
+    await page.getByTestId('sso-input-preview-user').fill('user0016');
     await page.getByTestId('sso-btn-preview').click();
-    await expect(page.getByTestId('sso-preview-nameid')).toHaveText('user0011');
+    await expect(page.getByTestId('sso-preview-nameid')).toHaveText('user0016');
     await shot(page, info, '20-sso-sp-form');
     await page.getByTestId('sso-btn-review').click();
     await expect(page.getByTestId('confirm-text-preview')).toContainText(`single_logout: ${SP}/saml/slo`);
@@ -195,11 +195,11 @@ test.describe.serial('single sign-on (conductor-idp)', () => {
     const u = await ctx.newPage();
     await u.goto(`${SP}/`);
     await expect(u.getByTestId('signin-input-username')).toBeVisible();
-    await u.getByTestId('signin-input-username').fill('user0011');
+    await u.getByTestId('signin-input-username').fill('user0016');
     await u.getByTestId('signin-input-password').fill(env.userPassword);
     await u.getByTestId('signin-btn-submit').click();
     await u.getByTestId('saml-btn-continue').click();
-    await expect(u.getByTestId('sp-text-nameid')).toHaveText('user0011');
+    await expect(u.getByTestId('sp-text-nameid')).toHaveText('user0016');
     // Single logout started at the SP (signed HTTP-Redirect request): the
     // IdP ends its session without asking and answers the SP.
     await u.getByTestId('sp-link-logout').click();
