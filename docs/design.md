@@ -224,6 +224,13 @@ and the AD access layer in the
   through its local management API. An apply requires typing a
   confirmation containing the start of the plan digest plus a fresh second
   factor.
+  For a company whose AD starts empty while its people use Google, an
+  import creates the AD users and groups once from the Google directory:
+  conductor-sync reads Google with its read-only scopes
+  ([import-from-google.md](https://github.com/openbasalt/samba-conductor-sync/blob/main/docs/import-from-google.md)),
+  conductor writes AD as a bulk job (mail = the Google address, a random
+  password nobody sees, change at next logon), and the sync then adopts
+  the Google accounts by address.
 
 - Single sign-on (administrators only): the applications, signing keys,
   settings and activity of
@@ -257,6 +264,12 @@ and the AD access layer in the
 - Port 8443 by default: no capability needed to bind it.
 - Two helper sockets rather than adding conductor-backup to the conductor
   group, which would let it read conductor's TLS key.
+- Import from Google split by privilege (2026-10-05): conductor-sync, which
+  can write Google, only reads it for the import; conductor, which already
+  writes AD with the administrator's identity and audits it, creates the
+  objects. New accounts are enabled by default: with a password nobody
+  knows they are as unusable as disabled ones, and only an enabled AD user
+  adopts its Google account; disabled is an option per import.
 - Policy editable from the web, destinations and recipients not: a
   compromised web process must not be able to redirect future backups to
   a new key or bucket.

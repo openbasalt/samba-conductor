@@ -80,6 +80,7 @@ manual apply (`usage-p5.md` §6).
 | Settings (`/admin/sync/config`) | the settings in force, a summary of the connection and the secrets, the host settings (file only), the version history (who, when, comment, each changed setting) with "Roll back to this version", and a TOML export |
 | Settings > Connection (`/admin/sync/config/connection`, P5c) | how conductor-sync reaches AD and Google, the alert webhook, the secrets (write only) and the ownership marker; see below |
 | Rollback (`/admin/sync/config/rollback?version=N`, P5c) | what restoring version N changes, the typed confirmation when it changes the marker; saved as a new version with re-authentication |
+| Import from Google (`/admin/sync/import`) | a one-time import of Google accounts and groups into AD; see "Import from Google Workspace" below |
 | Dashboard | a card with the last run, the mode, the next run and any blocked run |
 
 ## Connection settings and secrets (P5c)
@@ -139,6 +140,53 @@ Screenshots (`docs/screenshots/{desktop,mobile}/`): `19-sync-connection`,
 | | |
 |---|---|
 | ![Connection settings](screenshots/desktop/19-sync-secrets.png) | ![Tested draft on a phone](screenshots/mobile/19-sync-connection-test.png) |
+
+## Import from Google Workspace
+
+For a company whose AD starts empty while its people already use Google
+Workspace, Google Workspace sync > Import from Google
+(`/admin/sync/import`, administrators only) creates the AD users and,
+optionally, groups once from the Google directory, so that the sync then
+adopts each existing Google account by address. Full reference, including
+what conductor-sync reads and the logon name rules:
+`../../conductor-sync/docs/import-from-google.md`.
+
+1. The page compares the choices with the sync settings and warns when the
+   import would not be picked up: `policy.adopt` is not `email`, the
+   first e-mail template does not use `{mail}`, the users' OU is not below
+   a user base, the groups' OU is not below a group base, or the scope uses
+   include groups.
+2. Filters (Google side): org units (with or without the ones below),
+   membership of Google groups, suspended accounts and administrators
+   (left out by default), groups (all or a list, by default only groups with
+   an imported member), the most users to read. AD side: the OU for users
+   and the OU for groups (pickers), the logon name fallback template,
+   enabled (default) or disabled accounts, and the most objects created in
+   one run (50 by default).
+3. "Read from Google" asks conductor-sync for the import plan (a read with
+   the read-only scopes; audited in both logs as `sync.import.read` and
+   `api.import.plan`) and lists the users, groups, what was left out and why,
+   and the org units and groups found.
+4. "Prepare the AD changes" reads Google again and builds a bulk job
+   (`import-google`): one row per user and group, and a last row per group
+   with nested groups. Every row shows its LDIF; conflicts are rows without
+   changes and with the reason (address already in AD, no free logon name,
+   a privileged group, the run's limit). Nothing is written yet.
+5. Applying the job needs the password and a fresh second factor; rows run
+   in the background with the administrator's credentials and each one is
+   audited (`bulk.import-google`). Generated passwords are never shown or
+   downloadable: each new user must change the password at next logon, and
+   the administrator sets an initial one when onboarding the person
+   (Users > the account > Reset password).
+6. Running the import again creates only what is missing; nothing is ever
+   deleted, and conductor never talks to Google.
+
+The lab test `internal/web/sync_import_lab_test.go` (build tag `lab`) runs
+the whole flow against a real Samba AD and a real `conductor-sync serve`
+whose Google is the fake Directory API: a limited first run, the rest in a
+second run, and a third run with nothing to do; then conductor-sync's plan
+shows only adoptions without field changes, and its apply writes only the
+ownership marks.
 
 ## Lab run (2026-10-03)
 

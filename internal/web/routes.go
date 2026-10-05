@@ -190,6 +190,10 @@ func (s *Server) routeTable() []route {
 		{method: "POST", pattern: "/admin/sync/setup/safety", perm: PermSyncWrite, h: s.handleSyncSetupSafety},
 		{method: "POST", pattern: "/admin/sync/setup/save", perm: PermSyncWrite, h: s.handleSyncSetupSave},
 		{method: "POST", pattern: "/admin/sync/setup/discard", perm: PermSyncWrite, h: s.handleSyncSetupDiscard},
+		// Import from Google Workspace (a one-time read of Google through
+		// conductor-sync, then a bulk job that creates the AD objects).
+		{method: "GET", pattern: "/admin/sync/import", perm: PermSyncWrite, h: s.handleSyncImport},
+		{method: "POST", pattern: "/admin/sync/import", perm: PermSyncWrite, h: s.handleSyncImportPost},
 
 		// File servers (conductor-files agents): status, shares and
 		// sessions for administrators and auditors; enrollment, removal

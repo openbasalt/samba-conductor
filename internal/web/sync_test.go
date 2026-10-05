@@ -38,6 +38,8 @@ type fakeSync struct {
 	testPW     string
 	adTestFail bool
 	versions   map[int64]syncapi.Settings
+	// importPlan answers import.plan.
+	importPlan syncapi.ImportPlan
 }
 
 func newFakeSync(now time.Time) *fakeSync {
@@ -137,6 +139,8 @@ func (f *fakeSync) Call(_ context.Context, req syncapi.Request) (syncapi.Respons
 	case syncapi.OpSecretRemove:
 		f.removed = append(f.removed, p.(*syncapi.SecretRemoveParams).Name)
 		out = syncapi.SecretInfo{Name: p.(*syncapi.SecretRemoveParams).Name}
+	case syncapi.OpImportPlan:
+		out = f.importPlan
 	case syncapi.OpMappingPreview:
 		out = syncapi.PreviewResult{Users: []syncapi.PreviewUser{{Account: "jdoe", InScope: true, Email: "jdoe@example.com", OrgUnit: "/", Placement: "default"}}}
 	default:

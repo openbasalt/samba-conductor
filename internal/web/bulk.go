@@ -40,6 +40,9 @@ type bulkRow struct {
 	Preview string
 	Status  string
 	Error   string
+	// Note says why a row without operations is skipped (an import
+	// conflict, a limit); empty means "no change".
+	Note string
 	// password generated for the row (create, reset), memory only.
 	password string
 }
@@ -117,7 +120,11 @@ func (j *jobs) get(id string) *bulkJob {
 
 // newPassword generates a random password that satisfies AD complexity
 // (upper, lower, digit and symbol; 20 characters).
-func newPassword() string {
+func newPassword() string { return newPasswordLen(20) }
+
+// newPasswordLen generates a random password of n characters (n >= 4)
+// with an upper-case letter, a lower-case letter, a digit and a symbol.
+func newPasswordLen(n int) string {
 	const (
 		upper  = "ABCDEFGHJKLMNPQRSTUVWXYZ"
 		lower  = "abcdefghijkmnopqrstuvwxyz"
@@ -133,7 +140,7 @@ func newPassword() string {
 	}
 	all := upper + lower + digits + symb
 	b := []byte{pick(upper), pick(lower), pick(digits), pick(symb)}
-	for len(b) < 20 {
+	for len(b) < n {
 		b = append(b, pick(all))
 	}
 	for i := len(b) - 1; i > 0; i-- {
@@ -163,6 +170,8 @@ func (s *Server) builderFor(kind string) (jobBuilder, Perm) {
 		return s.buildImportCreate, PermBulk
 	case kind == "import-update":
 		return s.buildImportUpdate, PermBulk
+	case kind == importKind:
+		return s.buildImportGoogle, PermBulk
 	case strings.HasPrefix(kind, "selected-"):
 		action := strings.TrimPrefix(kind, "selected-")
 		return func(ctx context.Context, rc *reqCtx, conn *ad.Conn, inputs []map[string]string) ([]*bulkRow, []rowError, bool, error) {
@@ -234,7 +243,11 @@ func (s *Server) createJob(rc *reqCtx, kind, title string, inputs []map[string]s
 	}
 	for _, r := range rows {
 		if r.Status == store.RowSkipped {
-			_ = s.store.SetBulkRowResult(rc.ctx(), job.ID, r.No, store.RowSkipped, "no change")
+			note := r.Note
+			if note == "" {
+				note = "no change"
+			}
+			_ = s.store.SetBulkRowResult(rc.ctx(), job.ID, r.No, store.RowSkipped, note)
 		}
 	}
 	s.jobs.put(job, s.now())

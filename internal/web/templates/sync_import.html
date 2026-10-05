@@ -1,0 +1,94 @@
+{{define "title"}}{{t "import.title"}}{{end}}
+{{define "content"}}<h1>{{t "import.title"}}</h1>
+{{if .D.Disabled}}<section class="card" data-e2e="import-card-disabled"><h2>{{t "sync.disabled.title"}}</h2><p>{{t "sync.disabled.text"}}</p></section>
+{{else}}{{template "sync-subnav" (dict "Path" .Path)}}
+<p class="hint">{{t "import.intro"}}</p>
+{{template "error-alert" .D.Error}}
+{{with .D.DirError}}<div class="alert-warn" role="alert" data-e2e="import-alert-dir-error">{{.}}</div>{{end}}
+{{range .D.Warnings}}<div class="alert-warn" role="alert" data-e2e="import-alert-warning">{{.}}</div>{{end}}
+{{$f := .D.F}}
+<form method="post" action="/admin/sync/import" autocomplete="off" data-e2e="import-form">
+  {{template "csrf" .}}
+  <div class="grid grid-2">
+  <section class="card" aria-labelledby="imp-google">
+    <h2 id="imp-google">{{t "import.google"}}</h2>
+    <div class="field"><label for="org_units">{{t "import.org_units"}}</label><textarea id="org_units" name="org_units" rows="3" data-e2e="import-input-org-units">{{$f.OrgUnits}}</textarea><span class="hint">{{t "import.org_units_hint"}}</span></div>
+    <div class="check"><input id="sub_org_units" name="sub_org_units" type="checkbox" value="1"{{if $f.SubOrgUnits}} checked{{end}} data-e2e="import-check-sub-org-units"><label for="sub_org_units">{{t "import.sub_org_units"}}</label></div>
+    <div class="field"><label for="member_of">{{t "import.member_of"}}</label><textarea id="member_of" name="member_of" rows="2" data-e2e="import-input-member-of">{{$f.MemberOf}}</textarea><span class="hint">{{t "import.member_of_hint"}}</span></div>
+    <div class="check"><input id="include_suspended" name="include_suspended" type="checkbox" value="1"{{if $f.Suspended}} checked{{end}} data-e2e="import-check-suspended"><label for="include_suspended">{{t "import.include_suspended"}}</label></div>
+    <div class="check"><input id="include_admins" name="include_admins" type="checkbox" value="1"{{if $f.Admins}} checked{{end}} data-e2e="import-check-admins"><label for="include_admins">{{t "import.include_admins"}}</label></div>
+    <div class="field"><label for="max_users">{{t "import.max_users"}}</label><input id="max_users" name="max_users" type="text" inputmode="numeric" value="{{$f.MaxUsers}}" required data-e2e="import-input-max-users"><span class="hint">{{t "import.max_users_hint" .D.MaxRows}}</span></div>
+    <div class="check"><input id="groups" name="groups" type="checkbox" value="1"{{if $f.Groups}} checked{{end}} data-e2e="import-check-groups"><label for="groups">{{t "import.groups"}}</label></div>
+    <div class="field"><label for="group_emails">{{t "import.group_emails"}}</label><textarea id="group_emails" name="group_emails" rows="2" data-e2e="import-input-group-emails">{{$f.GroupEmails}}</textarea><span class="hint">{{t "import.group_emails_hint"}}</span></div>
+    <div class="check"><input id="skip_empty_groups" name="skip_empty_groups" type="checkbox" value="1"{{if $f.SkipEmptyGroups}} checked{{end}} data-e2e="import-check-skip-empty"><label for="skip_empty_groups">{{t "import.skip_empty_groups"}}</label></div>
+  </section>
+  <section class="card" aria-labelledby="imp-ad">
+    <h2 id="imp-ad">{{t "import.ad"}}</h2>
+    <div class="field"><label for="user_ou">{{t "import.user_ou"}}</label><select id="user_ou" name="user_ou" required data-e2e="import-select-user-ou">
+      {{range .D.OUs}}<option value="{{.DN}}"{{if eq .DN $f.UserOU}} selected{{end}}>{{.Label}}</option>{{end}}
+    </select><span class="hint">{{t "import.user_ou_hint"}}</span></div>
+    <div class="field"><label for="group_ou">{{t "import.group_ou"}}</label><select id="group_ou" name="group_ou" data-e2e="import-select-group-ou">
+      {{range .D.OUs}}<option value="{{.DN}}"{{if eq .DN $f.GroupOU}} selected{{end}}>{{.Label}}</option>{{end}}
+    </select><span class="hint">{{t "import.group_ou_hint"}}</span></div>
+    <div class="field"><label for="fallback">{{t "import.fallback"}}</label><input id="fallback" name="fallback" type="text" autocapitalize="none" spellcheck="false" value="{{$f.Fallback}}" required data-e2e="import-input-fallback"><span class="hint">{{t "import.fallback_hint"}}</span></div>
+    <div class="field"><label for="enabled">{{t "import.accounts"}}</label><select id="enabled" name="enabled" data-e2e="import-select-enabled">
+      <option value="1"{{if $f.Enabled}} selected{{end}}>{{t "import.accounts.enabled"}}</option>
+      <option value="0"{{if not $f.Enabled}} selected{{end}}>{{t "import.accounts.disabled"}}</option>
+    </select><span class="hint">{{t "import.accounts_hint"}}</span></div>
+    <div class="field"><label for="max_run">{{t "import.max_run"}}</label><input id="max_run" name="max_run" type="text" inputmode="numeric" value="{{$f.MaxRun}}" required data-e2e="import-input-max-run"><span class="hint">{{t "import.max_run_hint"}}</span></div>
+  </section>
+  </div>
+  <div class="actions">
+    <button class="btn{{if not .D.Plan}} btn-primary{{end}}" type="submit" name="step" value="read" data-e2e="import-btn-read">{{t "import.read"}}</button>
+    {{if .D.Plan}}<button class="btn btn-primary" type="submit" name="step" value="build" data-e2e="import-btn-build">{{t "import.build"}}</button>{{end}}
+  </div>
+  {{if .D.Plan}}<p class="hint">{{t "import.build_hint"}}</p>{{end}}
+</form>
+
+{{with .D.Plan}}
+<div class="stats" data-e2e="import-stats">
+  <div class="stat"><b data-e2e="import-text-users">{{len .Users}}</b><span>{{t "import.stat.users" .UsersRead}}</span></div>
+  <div class="stat"><b data-e2e="import-text-groups">{{len .Groups}}</b><span>{{t "import.stat.groups" .GroupsRead}}</span></div>
+  {{range $k, $v := .SkippedCounts}}<div class="stat"><b data-e2e="import-text-skipped-{{e2e $k}}">{{$v}}</b><span>{{t (print "import.skip." $k)}}</span></div>{{end}}
+</div>
+<section class="card" aria-labelledby="imp-users">
+  <h2 id="imp-users">{{t "import.users"}}</h2>
+  {{if $.D.Users}}<table class="table" data-e2e="import-table-users">
+    <thead><tr><th>{{t "attr.mail"}}</th><th>{{t "import.name"}}</th><th>{{t "import.google_ou"}}</th><th>{{t "import.notes"}}</th></tr></thead>
+    <tbody>{{range $.D.Users}}<tr data-e2e="import-row-user-{{e2e .Email}}">
+      <td data-label="{{t "attr.mail"}}" class="mono small">{{.Email}}</td>
+      <td data-label="{{t "import.name"}}">{{.GivenName}} {{.FamilyName}}{{with .Title}} <span class="muted small">· {{.}}</span>{{end}}</td>
+      <td data-label="{{t "import.google_ou"}}" class="mono small">{{.OrgUnit}}</td>
+      <td data-label="{{t "import.notes"}}">{{if .Suspended}}<span class="badge badge-warn">{{t "import.badge.suspended"}}</span> {{end}}{{if .Admin}}<span class="badge badge-warn">{{t "import.badge.admin"}}</span> {{end}}{{range .Warnings}}<span class="badge badge-danger" data-e2e="import-badge-warning">{{t (print "import.uwarn." .)}}</span> {{end}}{{with .Aliases}}<span class="muted small">{{t "import.aliases" (join . ", ")}}</span>{{end}}</td>
+    </tr>{{end}}</tbody>
+  </table>{{with $.D.MoreUsers}}<p class="muted small">{{t "import.more" .}}</p>{{end}}
+  {{else}}<p class="muted" data-e2e="import-text-no-users">{{t "list.empty"}}</p>{{end}}
+</section>
+{{if $.D.F.Groups}}<section class="card" aria-labelledby="imp-groups">
+  <h2 id="imp-groups">{{t "import.groups_heading"}}</h2>
+  {{if $.D.Groups}}<table class="table" data-e2e="import-table-groups">
+    <thead><tr><th>{{t "attr.mail"}}</th><th>{{t "import.name"}}</th><th>{{t "import.members"}}</th><th>{{t "import.notes"}}</th></tr></thead>
+    <tbody>{{range $.D.Groups}}<tr data-e2e="import-row-group-{{e2e .Email}}">
+      <td data-label="{{t "attr.mail"}}" class="mono small">{{.Email}}</td>
+      <td data-label="{{t "import.name"}}">{{.Name}}{{with .Description}} <span class="muted small">· {{.}}</span>{{end}}</td>
+      <td data-label="{{t "import.members"}}">{{t "import.members_n" (len .Users) (len .Groups) .LeftOut}}</td>
+      <td data-label="{{t "import.notes"}}">{{range .Warnings}}<span class="badge badge-danger">{{t (print "import.uwarn." .)}}</span> {{end}}</td>
+    </tr>{{end}}</tbody>
+  </table>{{with $.D.MoreGroups}}<p class="muted small">{{t "import.more" .}}</p>{{end}}
+  {{else}}<p class="muted">{{t "list.empty"}}</p>{{end}}
+</section>{{end}}
+{{if .Skipped}}<section class="card" aria-labelledby="imp-skipped">
+  <h2 id="imp-skipped">{{t "import.skipped"}}</h2>
+  <details><summary>{{t "import.skipped_show" (len .Skipped)}}</summary>
+  <ul class="tree" data-e2e="import-list-skipped">{{range .Skipped}}<li><span class="mono small">{{.Email}}</span> <span class="muted small">{{t (print "import.skip." .Reason)}}</span></li>{{end}}</ul>
+  </details>
+</section>{{end}}
+<section class="card" aria-labelledby="imp-filters">
+  <h2 id="imp-filters">{{t "import.available"}}</h2>
+  <details><summary>{{t "import.available_ous" (len .OrgUnits)}}</summary>
+  <ul class="tree" data-e2e="import-list-org-units">{{range .OrgUnits}}<li><span class="mono small">{{.Path}}</span> <span class="muted small">{{t "import.n_users" .Users}}</span></li>{{end}}</ul></details>
+  {{if .AllGroups}}<details><summary>{{t "import.available_groups" (len .AllGroups)}}</summary>
+  <ul class="tree" data-e2e="import-list-groups">{{range .AllGroups}}<li><span class="mono small">{{.Email}}</span> {{.Name}} <span class="muted small">{{t "import.n_members" .Members}}</span></li>{{end}}</ul></details>{{end}}
+</section>
+{{end}}
+{{end}}{{end}}

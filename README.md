@@ -104,6 +104,9 @@ full-forest restore: lab runs in [`docs/usage-p3.md`](docs/usage-p3.md),
   confirmation and the digest, blocked scheduled runs and their override,
   history and the settings' version history. Every change is previewed,
   re-authenticated and audited here and in conductor-sync.
+  A one-time "Import from Google" creates the AD users and groups of a
+  company that already uses Google Workspace (read-only on Google, a
+  previewed bulk job on AD), so the sync then adopts the existing accounts.
 - Single sign-on (administrators only, `[idp]` on): conductor-idp's
   OpenID Connect clients and SAML service providers (guided presets for
   Google Workspace, Grafana, Nextcloud and GitLab, SAML metadata import,
