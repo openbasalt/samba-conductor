@@ -68,8 +68,8 @@ github.com/openbasalt/samba-conductor-ad v0.0.0-20261005165108-3dc32c3dd473 h1:h
 github.com/openbasalt/samba-conductor-ad v0.0.0-20261005165108-3dc32c3dd473/go.mod h1:K8mQOVdFN5VkPFZ/LKwLdBiCdh+Qa+7QjqLIi1rktb0=
 github.com/openbasalt/samba-conductor-files v0.0.0-20261003144929-7e45179686c3 h1:cm4ABbHUHSDRIheendirxT6EY6X7XFYPL/pNSXCEG5A=
 github.com/openbasalt/samba-conductor-files v0.0.0-20261003144929-7e45179686c3/go.mod h1:aHfDJwzMOBERsnjN7e9EvR9Q+jYaEE8EPraEvN1Kvi8=
-github.com/openbasalt/samba-conductor-idp v0.0.0-20261005031356-9f2fa543c876 h1:MBUQDXfsrQtOuBmOrTHIV1/XpOTVQVQhuAv7lYvjGzw=
-github.com/openbasalt/samba-conductor-idp v0.0.0-20261005031356-9f2fa543c876/go.mod h1:HwdpZ/yr8ynk++tHDT+GN8QkI/q+1mnNgayTvZ2ZJCg=
+github.com/openbasalt/samba-conductor-idp v0.0.0-20261005202055-42549bfaace9 h1:RGMJtIoKRpPPBa0oMdiD0vX+srQF9LGITcrAhOkX1uc=
+github.com/openbasalt/samba-conductor-idp v0.0.0-20261005202055-42549bfaace9/go.mod h1:HwdpZ/yr8ynk++tHDT+GN8QkI/q+1mnNgayTvZ2ZJCg=
 github.com/openbasalt/samba-conductor-sync v0.0.0-20261005175505-d66356c382d9 h1:50HdlItUzGjl0fUmFRdoFzAa1pMH7cKJrbNePnjaQog=
 github.com/openbasalt/samba-conductor-sync v0.0.0-20261005175505-d66356c382d9/go.mod h1:nQZB8bqhgXZ0mZ03SlevB9qmJK7LLWjVSUu2v4PuJAA=
 github.com/philhofer/fwd v1.2.0 h1:e6DnBTl7vGY+Gz322/ASL4Gyp1FspeMvx1RNDoToZuM=
