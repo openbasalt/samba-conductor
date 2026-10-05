@@ -76,6 +76,16 @@ func (s *Server) syncErrT(t func(string, ...any) string, err error) string {
 	case errors.Is(err, errSyncDisabled):
 		return t("sync.err.disabled")
 	case errors.As(err, &e):
+		// A self-service refusal carries its reason code as the only
+		// detail; a rate limit needs no detail.
+		if e.Code == syncapi.CodeForbidden && len(e.Details) == 1 {
+			if msg := t("accounts.reason." + e.Details[0]); !strings.HasPrefix(msg, "[") {
+				return msg
+			}
+		}
+		if e.Code == syncapi.CodeRateLimited {
+			return t("sync.err.rate_limited")
+		}
 		msg := t("sync.err." + string(e.Code))
 		if strings.HasPrefix(msg, "[") {
 			msg = t("sync.err.failed")

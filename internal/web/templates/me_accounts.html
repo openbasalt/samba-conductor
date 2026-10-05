@@ -1,0 +1,48 @@
+{{define "title"}}{{t "accounts.title"}}{{end}}
+{{define "content"}}<h1>{{t "accounts.title"}}</h1>
+<p class="hint">{{t "accounts.intro"}}</p>
+{{template "error-alert" .D.Error}}
+{{if .D.Disabled}}<div class="alert-info" data-e2e="accounts-text-disabled">{{t "accounts.disabled"}}</div>{{else}}
+{{if not .D.MFA}}<div class="alert-warn" role="alert" data-e2e="accounts-text-mfa-needed">{{t "accounts.mfa_needed"}} <a href="/me/security" data-e2e="accounts-link-security">{{t "nav.security"}}</a></div>{{end}}
+{{range .D.Targets}}{{$id := e2e .Target}}
+<section class="card" aria-labelledby="acct-{{$id}}" data-e2e="accounts-card-{{$id}}">
+  <h2 id="acct-{{$id}}">{{.Title}}</h2>
+  <dl class="props">
+    <dt>{{t "accounts.state"}}</dt>
+    <dd><span class="badge{{if eq .State "active"}} badge-ok{{else if or (eq .State "suspended") (eq .State "not-eligible")}} badge-danger{{else}} badge-warn{{end}}" data-e2e="accounts-badge-state-{{$id}}">{{t (print "accounts.state." .State)}}</span>{{if .ReasonText}}<br><span class="small muted" data-e2e="accounts-text-reason-{{$id}}">{{.ReasonText}}</span>{{end}}</dd>
+    {{if .Address}}<dt>{{t "accounts.address"}}</dt><dd class="mono" data-e2e="accounts-text-address-{{$id}}">{{.Address}}</dd>{{end}}
+    {{if .Origin}}<dt>{{t "accounts.origin"}}</dt><dd data-e2e="accounts-text-origin-{{$id}}">{{t (print "accounts.origin." .Origin)}}</dd>{{end}}
+  </dl>
+  {{if and $.D.MFA (or .CanActivate .CanSetPassword)}}
+    {{if eq .ActionsLeft 0}}<div class="alert-warn" role="status" data-e2e="accounts-text-limit-{{$id}}">{{t "accounts.limit"}}</div>{{else}}
+    {{$act := "password"}}{{if .CanActivate}}{{$act = "activate"}}{{end}}
+    <h3>{{if .CanActivate}}{{t "accounts.activate"}}{{else}}{{t "accounts.reset"}}{{end}}</h3>
+    <p class="hint">{{if .CanActivate}}{{t "accounts.activate_hint" .Title}}{{else}}{{t "accounts.reset_hint" .Title}}{{end}}</p>
+    <form method="post" action="/me/accounts/{{.Target}}/{{$act}}" class="actions">
+      {{template "csrf" $}}<input type="hidden" name="mode" value="generate">
+      <button class="btn btn-primary" type="submit" data-e2e="accounts-btn-{{$act}}-{{$id}}">{{if .CanActivate}}{{t "accounts.activate_generate"}}{{else}}{{t "accounts.reset_generate"}}{{end}}</button>
+    </form>
+    {{if .ChosenPassword}}<details data-e2e="accounts-details-chosen-{{$id}}">
+      <summary>{{t "accounts.choose"}}</summary>
+      <form method="post" action="/me/accounts/{{.Target}}/{{$act}}" autocomplete="off">
+        {{template "csrf" $}}<input type="hidden" name="mode" value="chosen">
+        <div class="field">
+          <label for="pw-{{$id}}">{{t "accounts.new_password"}}</label>
+          <input id="pw-{{$id}}" name="password" type="password" autocomplete="new-password" required minlength="{{.Rules.MinLength}}"{{if .Rules.MaxLength}} maxlength="{{.Rules.MaxLength}}"{{end}} data-e2e="accounts-input-password-{{$id}}">
+          <span class="hint" data-e2e="accounts-text-rules-{{$id}}">{{t "accounts.rules" .Rules.MinLength .Rules.MaxLength}}{{if .Rules.PrintableASCII}} {{t "accounts.rules_ascii"}}{{end}}</span>
+        </div>
+        <div class="field">
+          <label for="pwc-{{$id}}">{{t "password.confirm"}}</label>
+          <input id="pwc-{{$id}}" name="confirm" type="password" autocomplete="new-password" required data-e2e="accounts-input-confirm-{{$id}}">
+        </div>
+        <div class="actions"><button class="btn" type="submit" data-e2e="accounts-btn-{{$act}}-chosen-{{$id}}">{{t "accounts.use_chosen"}}</button></div>
+      </form>
+    </details>{{end}}
+    <p class="small muted" data-e2e="accounts-text-left-{{$id}}">{{t "accounts.left" .ActionsLeft}}{{if not $.D.Fresh}} {{t "accounts.stepup_hint"}}{{end}}</p>
+    {{end}}
+  {{end}}
+  {{if .ActivateText}}<p class="hint" data-e2e="accounts-text-activate-reason-{{$id}}">{{.ActivateText}}</p>{{end}}
+  {{if .PasswordText}}<p class="hint" data-e2e="accounts-text-password-reason-{{$id}}">{{t "accounts.password_not_here"}} {{.PasswordText}}</p>{{end}}
+</section>
+{{else}}{{if not .D.Error}}<p class="muted" data-e2e="accounts-text-none">{{t "accounts.none"}}</p>{{end}}{{end}}
+{{end}}{{end}}

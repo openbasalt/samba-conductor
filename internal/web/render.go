@@ -125,6 +125,8 @@ func (s *Server) funcs(lang string) template.FuncMap {
 			return path == prefix || (prefix != "/admin" && strings.HasPrefix(path, prefix+"/"))
 		},
 		// inSecurity: the pages of the Security entry of the sidebar.
+		// inAccounts: the pages of the Connected accounts entry.
+		"inAccounts": func(path string) bool { return path == "/me/accounts" || strings.HasPrefix(path, "/me/accounts/") },
 		"inSecurity": func(path string) bool {
 			for _, p := range []string{"/me/security", "/me/2fa", "/me/recovery-codes"} {
 				if path == p || strings.HasPrefix(path, p+"/") {
@@ -238,6 +240,9 @@ func (rc *reqCtx) render(status int, page string, d map[string]any) {
 			pd.Nav["admin"] = rc.roles.Privileged()
 			// The sync section appears only where it is enabled.
 			pd.Nav["sync"] = rc.s.sync != nil && rc.roles.Has(PermSyncRead)
+			// Connected accounts: every signed-in user, when the sync is
+			// enabled.
+			pd.Nav["accounts"] = rc.s.sync != nil
 			// So does the File servers section.
 			pd.Nav["files"] = rc.s.files != nil && rc.roles.Has(PermFilesRead)
 			// And the Single sign-on section (conductor-idp).

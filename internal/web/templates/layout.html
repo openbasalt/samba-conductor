@@ -93,8 +93,9 @@
       </div>{{end}}
       <div class="nav-group nav-foot" data-e2e="nav-group-account">
         <ul>
-          <li><a href="/me" data-e2e="nav-link-me"{{if and (active .Path "/me") (not (inSecurity .Path))}} aria-current="page"{{end}}>{{t "nav.me"}}</a></li>
+          <li><a href="/me" data-e2e="nav-link-me"{{if and (active .Path "/me") (not (inSecurity .Path)) (not (inAccounts .Path))}} aria-current="page"{{end}}>{{t "nav.me"}}</a></li>
           <li><a href="/me/security" data-e2e="nav-link-security"{{if inSecurity .Path}} aria-current="page"{{end}}>{{t "nav.security"}}</a></li>
+          {{if has .Nav "accounts"}}<li><a href="/me/accounts" data-e2e="nav-link-accounts"{{if inAccounts .Path}} aria-current="page"{{end}}>{{t "nav.accounts"}}</a></li>{{end}}
           <li><form method="post" action="/signout">{{template "csrf" .}}<button type="submit" data-e2e="nav-btn-signout">{{t "nav.signout"}}</button></form></li>
         </ul>
       </div>

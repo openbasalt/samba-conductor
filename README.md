@@ -121,7 +121,10 @@ full-forest restore: lab runs in [`docs/usage-p3.md`](docs/usage-p3.md),
   and its policy to conductor-idp on a local socket.
 - Self-service: profile, edit of the attributes Samba lets users write
   on themselves (phones, office, address, web page), password change,
-  2FA, sessions and "sign out everywhere".
+  2FA, sessions and "sign out everywhere". With the sync on, "Connected
+  accounts": the user's own account on each target conductor-sync
+  provisions to, activated on demand and given a new password (generated
+  and shown once, or typed), with a recent second factor; never stored.
 - Audit log: append-only SQLite table, hash-chained; viewer with
   filters, JSON lines export, `conductor audit verify`.
 - conductor-helper: the only root process, on a Unix socket only the

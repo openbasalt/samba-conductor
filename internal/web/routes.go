@@ -40,6 +40,14 @@ func (s *Server) routeTable() []route {
 		{method: "POST", pattern: "/me/2fa/keys/register", perm: PermSelf, h: s.handleKeyRegister},
 		{method: "GET", pattern: "/me/2fa/keys/{id}/remove", perm: PermSelf, h: s.handleKeyRemovePage, script: true},
 		{method: "POST", pattern: "/me/2fa/keys/{id}/remove", perm: PermSelf, h: s.handleKeyRemove},
+		// Connected accounts (conductor-sync's targets): the user's own
+		// accounts only; actions are confirmed, with a step-up when the
+		// second factor is not recent. The page that shows a generated
+		// password once may run the script (its copy button).
+		{method: "GET", pattern: "/me/accounts", perm: PermSelf, h: s.handleAccounts},
+		{method: "POST", pattern: "/me/accounts/{target}/activate", perm: PermSelf, h: s.handleAccountActivate},
+		{method: "POST", pattern: "/me/accounts/{target}/password", perm: PermSelf, h: s.handleAccountPassword},
+		{method: "GET", pattern: "/me/accounts/secret/{ref}", perm: PermSelf, h: s.handleAccountSecret, script: true},
 
 		// Previews awaiting confirmation; each operation re-checks its own
 		// permission (pendingOp.perm) before showing or applying.

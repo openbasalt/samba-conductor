@@ -188,6 +188,51 @@ second run, and a third run with nothing to do; then conductor-sync's plan
 shows only adoptions without field changes, and its apply writes only the
 ownership marks.
 
+## Connected accounts (self-service)
+
+With the sync section enabled, every signed-in user has "Connected
+accounts" in the sidebar (`/me/accounts`, also linked from My account): their
+own account on each target conductor-sync provisions to. Reference,
+including the policy and the safety rules:
+`../../conductor-sync/docs/self-service.md`.
+
+1. The page shows, per target, the state (not activated, active,
+   suspended, waiting for the next sync, not available with the reason),
+   the address, whether the sync created the account or adopted it, and
+   the actions allowed now: Activate (with `self_service.activation =
+   "self-service"`) or New password (accounts the sync created, or adopted
+   ones when the policy allows it; never target administrators). A typed
+   password is offered only with `chosen_password = "allow"`, with the
+   target's rules next to the field.
+2. Actions need a session that passed a second factor; without one the page
+   points to Security. Every action goes through a confirmation page that
+   says what will happen (no secret in it); when the last second factor is
+   older than five minutes it asks for the password and a code or a
+   security key again.
+3. A generated password is shown once, on its own page (not cached, the
+   only other page allowed the script, for its copy button), with a "write
+   it down now, it is not stored" warning; opening the link again says it
+   is gone. A typed password is never shown again.
+4. conductor audits `self.account_activate`, `self.account_password` and
+   `self.account_password_shown` (no password); conductor-sync audits its
+   side and journals each activation as a run (`activate`, trigger
+   self-service, never applicable from the runs page). Too many actions in
+   an hour (3 per user and 30 per target by default) are refused with a
+   plain message.
+
+The lab test `internal/web/accounts_lab_test.go` (build tag `lab`) runs it
+with real Kerberos sign-ins of regular users against a real Samba AD and a
+real `conductor-sync serve` whose Google is the fake Directory API: a user
+outside the sync's base sees "not available"; a user activates (the
+password shown is the account's, no change required at next sign-in) and
+then sets a new one (the old one stops working); a user whose address
+already exists in Google is offered nothing until the next run adopts the
+account, and then cannot reset it (adopted). Only the activation's create
+and the reset's patch (`password` and `changePasswordAtNextLogin` only)
+carried a password, and no file of conductor-sync's state, logs or request
+log contains one. Run of 2026-10-05: passed (activation of one user in a
+base of about 210 in 1.3 s, reset in 0.1 s).
+
 ## Lab run (2026-10-03)
 
 In the lab ([testing.md](https://github.com/openbasalt/samba-conductor-docs/blob/main/testing.md), snapshot

@@ -15,6 +15,7 @@
   <div class="actions">
     <a class="btn" href="/me/password" data-e2e="me-link-password">{{t "me.change_password"}}</a>
     <a class="btn" href="/me/security" data-e2e="me-link-security">{{t "me.security"}}</a>
+    {{if has .Nav "accounts"}}<a class="btn" href="/me/accounts" data-e2e="me-link-accounts">{{t "nav.accounts"}}</a>{{end}}
   </div>
 </section>
 <section class="card" aria-labelledby="me-contact">

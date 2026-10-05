@@ -355,7 +355,7 @@ func (s *Server) handleEnrollKey(rc *reqCtx) {
 	}
 	sess.mu.Lock()
 	sess.enrollLink, sess.enrollKeyOnly = "", false
-	sess.mfaVerified, sess.keyOK = true, true
+	sess.mfaVerified, sess.keyOK, sess.mfaAt = true, true, s.now()
 	if len(codes) > 0 {
 		sess.newRecoveryCodes = codes
 	}

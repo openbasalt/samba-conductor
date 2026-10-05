@@ -361,7 +361,7 @@ func (s *Server) secondFactorDone(rc *reqCtx, detail string) {
 	ctx := rc.ctx()
 	sess := rc.sess
 	sess.mu.Lock()
-	sess.mfaVerified = true
+	sess.mfaVerified, sess.mfaAt = true, s.now()
 	roles, keyOK := sess.roles, sess.keyOK
 	userSID := sess.userSID.String()
 	sess.mu.Unlock()
@@ -599,7 +599,7 @@ func (s *Server) completeEnrollment(ctx context.Context, rc *reqCtx) ([]string, 
 	clear(sess.enrollSecret)
 	sess.enrollSecret = nil
 	sess.enrollLink = ""
-	sess.mfaVerified = true
+	sess.mfaVerified, sess.mfaAt = true, s.now()
 	sess.newRecoveryCodes = codes
 	sess.mu.Unlock()
 	detail := "totp enrolled"

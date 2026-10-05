@@ -17,7 +17,7 @@
     <td data-label="{{t "sync.col.status"}}">{{template "sync-status" .Status}}{{if .Violations}}<br><span class="small muted">{{t "sync.violations" (len .Violations)}}</span>{{end}}</td>
     <td data-label="{{t "sync.col.trigger"}}">{{t (print "sync.trigger." .Trigger)}}<br><span class="small muted">{{.Actor}}</span></td>
     <td data-label="{{t "sync.col.changes"}}" class="small">{{range $k, $v := .Counts}}<span class="badge">{{t (print "sync.kind." $k)}} {{$v}}</span> {{else}}<span class="muted">{{t "sync.no_changes"}}</span>{{end}}</td>
-    <td data-label="{{t "sync.col.result"}}" class="small">{{if eq .Action "apply"}}{{t "sync.done_failed" .OpsDone .OpsFailed}}{{end}}{{if .Error}}<br><span class="muted">{{.Error}}</span>{{end}}</td>
+    <td data-label="{{t "sync.col.result"}}" class="small">{{if or (eq .Action "apply") (eq .Action "activate")}}{{t "sync.done_failed" .OpsDone .OpsFailed}}{{end}}{{if .Error}}<br><span class="muted">{{.Error}}</span>{{end}}</td>
   </tr>{{end}}</tbody>
 </table>
 {{template "pager" .}}

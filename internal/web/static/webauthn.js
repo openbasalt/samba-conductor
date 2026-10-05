@@ -1,10 +1,13 @@
 // Samba Conductor: the only script of the application. It is loaded only
 // by the second-factor pages (sign-in 2FA, enrollment, security keys,
-// re-authentication), with a per-response CSP nonce and Subresource
-// Integrity. It makes no network request of its own: it reads the
-// ceremony options the server rendered into the form (data-options),
-// calls the browser's WebAuthn API, writes the result into the form's
-// hidden "response" field and submits the form like any other.
+// re-authentication) and the page that shows a generated password once,
+// with a per-response CSP nonce and Subresource Integrity. It makes no
+// network request of its own: it reads the ceremony options the server
+// rendered into the form (data-options), calls the browser's WebAuthn API,
+// writes the result into the form's hidden "response" field and submits
+// the form like any other. On the password page it only shows a copy
+// button (data-copy names the field; hidden without the script) that puts
+// the field's value on the clipboard.
 (function () {
   'use strict';
 
@@ -111,7 +114,26 @@
     });
   }
 
+  function setupCopy(btn) {
+    var field = document.getElementById(btn.getAttribute('data-copy'));
+    if (!field || !navigator.clipboard) {
+      return;
+    }
+    btn.hidden = false;
+    btn.addEventListener('click', function () {
+      navigator.clipboard.writeText(field.value).then(function () {
+        btn.textContent = btn.getAttribute('data-copied');
+      }, function () {
+        field.select();
+      });
+    });
+  }
+
   document.addEventListener('DOMContentLoaded', function () {
+    var copies = document.querySelectorAll('button[data-copy]');
+    for (var c = 0; c < copies.length; c++) {
+      setupCopy(copies[c]);
+    }
     var forms = document.querySelectorAll('form[data-webauthn]');
     for (var i = 0; i < forms.length; i++) {
       (function (form) {

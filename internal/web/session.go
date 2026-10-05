@@ -73,9 +73,14 @@ type Session struct {
 	userAgent   string
 
 	mfaVerified bool
-	roles       Roles
-	rolesAt     time.Time
-	groupSIDs   []sid.SID
+	// mfaAt is when this session last passed a second factor (the sign-in,
+	// an enrollment or a re-authentication): the self-service actions on
+	// connected accounts ask for a new one when it is older than a few
+	// minutes.
+	mfaAt     time.Time
+	roles     Roles
+	rolesAt   time.Time
+	groupSIDs []sid.SID
 
 	// enrollment in progress (secret not yet stored)
 	enrollSecret []byte
@@ -108,6 +113,9 @@ type Session struct {
 	// ssoSecrets are client secrets returned by conductor-idp, kept until
 	// shown once (by a random reference in the URL).
 	ssoSecrets map[string]ssoSecret
+	// accountSecrets are generated passwords of connected accounts, kept in
+	// memory only until shown once (by a random reference in the URL).
+	accountSecrets map[string]accountSecret
 }
 
 type flash struct {

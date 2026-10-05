@@ -195,6 +195,7 @@ func (s *Server) reauthenticate(ctx context.Context, rc *reqCtx) string {
 	sess.mu.Lock()
 	old := sess.cred
 	sess.cred = cred
+	sess.mfaAt = s.now()
 	sess.mu.Unlock()
 	if old != nil {
 		old.Close()

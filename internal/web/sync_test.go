@@ -40,6 +40,12 @@ type fakeSync struct {
 	versions   map[int64]syncapi.Settings
 	// importPlan answers import.plan.
 	importPlan syncapi.ImportPlan
+	// account answers account.status; action answers account.activate and
+	// account.set_password (the password a test expects back); chosen is
+	// the last password received in a request.
+	account syncapi.TargetAccount
+	action  syncapi.AccountActionResult
+	chosen  string
 }
 
 func newFakeSync(now time.Time) *fakeSync {
@@ -141,6 +147,14 @@ func (f *fakeSync) Call(_ context.Context, req syncapi.Request) (syncapi.Respons
 		out = syncapi.SecretInfo{Name: p.(*syncapi.SecretRemoveParams).Name}
 	case syncapi.OpImportPlan:
 		out = f.importPlan
+	case syncapi.OpAccountStatus:
+		out = syncapi.AccountStatus{Targets: []syncapi.TargetAccount{f.account}}
+	case syncapi.OpAccountActivate:
+		f.chosen = p.(*syncapi.AccountActivateParams).Password
+		out = f.action
+	case syncapi.OpAccountSetPassword:
+		f.chosen = p.(*syncapi.AccountSetPasswordParams).Password
+		out = f.action
 	case syncapi.OpMappingPreview:
 		out = syncapi.PreviewResult{Users: []syncapi.PreviewUser{{Account: "jdoe", InScope: true, Email: "jdoe@example.com", OrgUnit: "/", Placement: "default"}}}
 	default:
