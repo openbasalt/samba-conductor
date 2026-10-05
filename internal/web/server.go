@@ -16,6 +16,7 @@ import (
 	"net/http"
 	"net/netip"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/go-webauthn/webauthn/webauthn"
@@ -122,6 +123,18 @@ type Server struct {
 	// through the 2FA socket; mfaPeerCred replaces SO_PEERCRED in tests.
 	idpCeremonies idpCeremonies
 	mfaPeerCred   func(*net.UnixConn) (int, error)
+
+	// brand is the current level 1 branding; tmplBuiltin are the pages
+	// without template overrides (the fallback when one fails);
+	// overridden lists the partials replaced by the template directory,
+	// customCSS its custom.css; allowed are the origins branded pages may
+	// load images and fonts from.
+	brand       atomic.Pointer[brandState]
+	tmplBuiltin map[string]map[string]*template.Template
+	overridden  []string
+	customCSS   []byte
+	customTag   string
+	allowed     []string
 }
 
 // New builds the server.
@@ -166,9 +179,26 @@ func New(d Deps) (*Server, error) {
 	}
 	sum := sha256.Sum256(js)
 	s.scriptSRI = "sha256-" + base64.StdEncoding.EncodeToString(sum[:])
-	if s.tmpl, err = s.loadTemplates(); err != nil {
+	s.allowed = d.Config.AllowedOrigins()
+	if s.tmplBuiltin, err = s.loadTemplates(nil); err != nil {
 		return nil, err
 	}
+	s.tmpl = s.tmplBuiltin
+	if d.Config.Branding.TemplatesDir != "" {
+		res := s.loadOverrides()
+		s.overridden, s.customCSS = res.Overridden, res.CustomCSS
+		if s.customCSS != nil {
+			s.customTag = tag(s.customCSS)
+		}
+		if len(s.overridden) > 0 {
+			if s.tmpl, err = s.loadTemplates(res.Bodies); err != nil {
+				return nil, err
+			}
+		}
+	}
+	lctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	s.loadBranding(lctx)
+	cancel()
 	s.routes = s.routeTable()
 	s.buildMux()
 	return s, nil
@@ -181,6 +211,7 @@ func (s *Server) buildMux() {
 		s.mux.Handle(rt.method+" "+rt.pattern, s.wrap(rt))
 	}
 	s.mux.Handle("GET /static/", s.staticHandler())
+	s.brandRoutes()
 	s.mux.Handle("/", s.wrap(route{method: "", pattern: "/", perm: PermPublic, h: s.notFound}))
 }
 

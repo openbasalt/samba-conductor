@@ -18,6 +18,7 @@ import (
 
 	"github.com/BurntSushi/toml"
 	"github.com/openbasalt/samba-conductor-ad/sid"
+	"github.com/openbasalt/samba-conductor-idp/branding"
 )
 
 // DefaultPath is where conductor looks for its configuration.
@@ -47,6 +48,28 @@ type Config struct {
 	Sync      Sync      `toml:"sync"`
 	Files     Files     `toml:"files"`
 	IDP       IDP       `toml:"idp"`
+	Branding  Branding  `toml:"branding"`
+}
+
+// Branding configures the level 2 branding of the self-service pages:
+// template overrides read from a directory. The level 1 branding (logo,
+// colors, texts) is edited in the admin UI (Settings > Branding) and kept
+// in the database.
+type Branding struct {
+	// TemplatesDir holds overrides of the self-service partials
+	// (header.html, footer.html, self-home.html) and an optional
+	// custom.css; empty: none. Suggested: /etc/conductor/templates.
+	TemplatesDir string `toml:"templates_dir"`
+	// AllowedOrigins may serve images and fonts to the branded pages
+	// ("https://host[:port]"), added to the CSP's img-src and font-src
+	// there only. Empty: this origin only.
+	AllowedOrigins []string `toml:"allowed_origins"`
+}
+
+// AllowedOrigins returns the normalized branding.allowed_origins.
+func (c *Config) AllowedOrigins() []string {
+	o, _ := branding.ParseOrigins(c.Branding.AllowedOrigins)
+	return o
 }
 
 // IDP connects conductor with conductor-idp. Two independent parts, both
@@ -401,6 +424,12 @@ func (c *Config) Validate() error {
 				bad("idp.mfa_allowed_users: %q is not allowed", u)
 			}
 		}
+	}
+	if c.Branding.TemplatesDir != "" && !filepath.IsAbs(c.Branding.TemplatesDir) {
+		bad("branding.templates_dir must be an absolute path")
+	}
+	if _, err := branding.ParseOrigins(c.Branding.AllowedOrigins); err != nil {
+		bad("branding.allowed_origins: %v", err)
 	}
 	if c.Bulk.MaxRows < 1 || c.Bulk.MaxRows > 100000 {
 		bad("bulk.max_rows must be 1-100000")

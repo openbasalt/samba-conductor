@@ -186,6 +186,13 @@ nonce and Subresource Integrity; it makes no requests of its own
 | `key_dir` | `"/var/lib/conductor/files"` | conductor's client key pair for the agents (`tls-key.pem` 0600, `tls-cert.pem`), generated on first start; the directory is created 0700. The agents pin this key at enrollment: replacing it means enrolling every file server again. |
 | `name` | the host name | How conductor's key is labelled on the agents (`conductor-files trust list`). |
 
+## `[branding]`
+
+| Key | Default | Meaning |
+|---|---|---|
+| `templates_dir` | `""` | Directory of template overrides of the self-service pages (`header.html`, `footer.html`, `self-home.html`, an optional `custom.css`), read at startup; empty: none. Suggested: `/etc/conductor/templates`. Check it with `conductor templates check` ([branding.md](branding.md)). The organization name, logos, colors and texts are not here: they are edited in Settings > Branding. |
+| `allowed_origins` | `[]` | Origins (`https://host[:port]`) the branded pages may load images and fonts from, added to `img-src` and `font-src` of those pages only. |
+
 ## Files
 
 | Path | Owner / mode | What |
@@ -197,6 +204,7 @@ nonce and Subresource Integrity; it makes no requests of its own
 | `/var/lib/conductor/conductor.db` | conductor 0600 | state |
 | `/run/conductor-helper/helper.sock` | root:conductor 0660 | helper socket |
 | `/etc/conductor/helper.toml` | root:conductor 0640 | helper configuration (backups) |
+| `/etc/conductor/templates/` | root:conductor 0750 | template overrides (optional, `[branding] templates_dir`) |
 | `/run/conductor-helper/backup.sock` | root:conductor-backup 0660 | helper socket for conductor-backup (with backups) |
 | `/run/conductor-sync/api.sock` | conductor-sync:conductor 0660 | conductor-sync's management API (with `[sync]`) |
 | `/var/lib/conductor/files/` | conductor 0700 | conductor's key pair for the conductor-files agents (with `[files]`) |

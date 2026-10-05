@@ -206,3 +206,49 @@ ul.diff .diff-del { background: var(--danger-soft); text-decoration: line-throug
 ul.diff .diff-del .diff-mark { color: var(--danger); }
 ul.folders li { align-items: center; }
 ul.diff .grow { flex: 1 1 auto; }
+
+/* Branding: the generated /branding/theme.css sets the custom properties
+   (--accent, --brand-accent...) and the background image; these rules
+   place the branded blocks. Text from the branding keeps its line breaks. */
+.brand img.logo { height: 32px; width: auto; max-width: 11rem; object-fit: contain; }
+.brand .logo-dark { display: none; }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .brand .logo-light { display: none; }
+  :root:not([data-theme="light"]) .brand .logo-dark { display: block; }
+}
+:root[data-theme="dark"] .brand .logo-light { display: none; }
+:root[data-theme="dark"] .brand .logo-dark { display: block; }
+.topbar.branded { border-bottom: 3px solid var(--brand-accent, var(--border)); }
+.brand-notice { background: var(--brand-accent, var(--warn-soft)); color: var(--brand-accent-fg, var(--warn)); border-radius: var(--radius);
+  padding: .65rem .9rem; margin-bottom: 1rem; font-weight: 600; white-space: pre-line; overflow-wrap: anywhere; }
+.brand-text { white-space: pre-line; overflow-wrap: anywhere; }
+.brand-footer { max-width: 40rem; margin: 0 auto .75rem; display: grid; gap: .35rem; }
+.brand-footer p { margin: 0; }
+.brand-links, .brand-support { display: flex; flex-wrap: wrap; justify-content: center; gap: .25rem 1rem; }
+.brand-help { margin-top: 1rem; padding-top: .75rem; border-top: 1px solid var(--border); }
+.brand-help .row { gap: .25rem 1rem; }
+body.brand-bg { background-color: var(--bg); }
+body.brand-bg footer, body.brand-bg .topbar { background: var(--surface); }
+body.brand-bg .card { box-shadow: 0 8px 30px rgb(0 0 0 / 25%); }
+
+/* Settings > Branding: image thumbnails and the preview cards (light and
+   dark, styled by /admin/branding/preview.css). */
+.slot-thumb { display: block; max-width: 12rem; max-height: 4rem; object-fit: contain; padding: 4px; border: 1px solid var(--border);
+  border-radius: 6px; background: repeating-conic-gradient(#d5dbe1 0 25%, #ffffff 0 50%) 50% / 12px 12px; }
+.preview-grid { display: grid; gap: 1rem; margin-bottom: 1rem; }
+@media (min-width: 900px) { .preview-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.brand-preview { background: var(--bg); color: var(--fg); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+.brand-preview a { color: var(--accent); }
+.brand-preview .preview-label { padding: .35rem 1rem; font-size: .75rem; font-weight: 650; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+.brand-preview .topbar { background: var(--surface); }
+.brand-preview .brand { color: var(--fg); }
+.brand-preview .preview-body { padding: 1rem; }
+.brand-preview .preview-card { max-width: 22rem; margin: 0 auto; background: var(--surface); }
+.brand-preview .preview-title { margin-top: 0; font-size: 1.2rem; }
+.brand-preview .preview-input { display: block; min-height: 40px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); }
+.brand-preview .preview-footer { padding: .75rem 1rem; border-top: 1px solid var(--border); background: var(--surface); color: var(--muted); font-size: .85rem; text-align: center; display: grid; gap: .25rem; }
+.brand-preview .preview-footer p { margin: 0; }
+.brand-preview:not(.preview-dark) .brand .logo-light { display: block; }
+.brand-preview:not(.preview-dark) .brand .logo-dark { display: none; }
+.brand-preview.preview-dark .brand .logo-light { display: none; }
+.brand-preview.preview-dark .brand .logo-dark { display: block; }

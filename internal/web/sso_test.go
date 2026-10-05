@@ -31,6 +31,9 @@ type fakeIDP struct {
 	rotated  []idpapi.KeysRotateParams
 	fail     map[idpapi.Op]*idpapi.Error
 	n        int
+	// branding is what branding.update stored; brandingAssets its images.
+	branding       idpapi.BrandingView
+	brandingAssets []idpapi.BrandingAsset
 }
 
 func newFakeIDP() *fakeIDP {
@@ -146,6 +149,13 @@ func (f *fakeIDP) Call(_ context.Context, req idpapi.Request) (idpapi.Response, 
 		f.settings.Version++
 		f.settings.Settings = q.Settings
 		out = f.settings
+	case idpapi.OpBrandingGet:
+		out = f.branding
+	case idpapi.OpBrandingUpdate:
+		q := p.(*idpapi.BrandingUpdateParams)
+		f.branding = idpapi.BrandingView{Version: q.Version, Branding: q.Branding, UpdatedBy: "conductor", UpdatedAt: time.Now().UTC()}
+		f.brandingAssets = q.Assets
+		out = f.branding
 	case idpapi.OpActivity:
 		out = idpapi.Activity{SignIns: 5, Failures: 2, Lockouts: 1, Apps: []idpapi.AppActivity{{Kind: "oidc", ID: "cidp_x", Name: "Grafana", SignIns: 4, Users: 2}},
 			Recent: []idpapi.AuditEvent{{ID: 3, Action: "signin.failure", Actor: "bob", Result: "denied"}}}

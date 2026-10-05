@@ -261,3 +261,46 @@ func TestBulkJobs(t *testing.T) {
 		t.Fatal("missing job")
 	}
 }
+
+func TestBrandingVersions(t *testing.T) {
+	ctx := context.Background()
+	s, err := Open(ctx, filepath.Join(t.TempDir(), "b.db"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = s.Close() }()
+	if _, err := s.CurrentBranding(ctx); err != ErrNotFound {
+		t.Fatalf("empty: %v", err)
+	}
+	img := BrandingAsset{SHA256: strings.Repeat("a", 64), ContentType: "image/png", Data: []byte("png")}
+	v, err := s.SaveBranding(ctx, 0, `{"org_name":"One"}`, []string{img.SHA256}, []BrandingAsset{img}, "admin", 0)
+	if err != nil || v != 1 {
+		t.Fatalf("save: %d %v", v, err)
+	}
+	if _, err := s.SaveBranding(ctx, 0, `{}`, nil, nil, "admin", 0); err != ErrStale {
+		t.Fatalf("stale: %v", err)
+	}
+	if _, err := s.SaveBranding(ctx, 1, `{}`, []string{strings.Repeat("b", 64)}, nil, "admin", 0); err == nil {
+		t.Fatal("a version referencing an unknown image was saved")
+	}
+	// The image stays while a kept version uses it, then goes.
+	for i := int64(1); i <= KeepBrandingVersions; i++ {
+		if _, err := s.SaveBranding(ctx, i, `{}`, nil, nil, "admin", 0); err != nil {
+			t.Fatal(err)
+		}
+		_, aerr := s.BrandingAssets(ctx, []string{img.SHA256})
+		if i < KeepBrandingVersions && aerr != nil {
+			t.Fatalf("image dropped early at %d", i)
+		}
+		if i == KeepBrandingVersions && aerr != ErrNotFound {
+			t.Fatalf("image kept after its version was pruned: %v", aerr)
+		}
+	}
+	vs, _ := s.BrandingVersions(ctx)
+	if len(vs) != KeepBrandingVersions || vs[0].Version != KeepBrandingVersions+1 {
+		t.Fatalf("history %d, newest %d", len(vs), vs[0].Version)
+	}
+	if _, err := s.GetBrandingVersion(ctx, 1); err != ErrNotFound {
+		t.Fatal("version 1 not pruned")
+	}
+}

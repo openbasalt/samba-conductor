@@ -16,6 +16,7 @@ import (
 
 	ad "github.com/openbasalt/samba-conductor-ad"
 	"github.com/openbasalt/samba-conductor-ad/escape"
+	"github.com/openbasalt/samba-conductor-idp/branding"
 	"github.com/openbasalt/samba-conductor/internal/i18n"
 )
 
@@ -43,6 +44,9 @@ type pageData struct {
 	ScriptSRI string
 	// D is the page's own data.
 	D map[string]any
+	// B is the branding of a self-service page (nil: the product look,
+	// always on admin pages).
+	B *branding.View
 }
 
 type userInfo struct {
@@ -187,9 +191,10 @@ func (s *Server) funcs(lang string) template.FuncMap {
 	}
 }
 
-// pages are the templates under templates/ besides the shared ones.
-func (s *Server) loadTemplates() (map[string]map[string]*template.Template, error) {
-	names, err := fs.Glob(templateFS, "templates/*.html")
+// loadTemplates parses every page with the layout, once per language,
+// with the partial bodies chosen at startup (nil: the built-in ones).
+func (s *Server) loadTemplates(bodies map[string]string) (map[string]map[string]*template.Template, error) {
+	names, err := pageNames()
 	if err != nil {
 		return nil, err
 	}
@@ -197,15 +202,11 @@ func (s *Server) loadTemplates() (map[string]map[string]*template.Template, erro
 	for _, lang := range i18n.Languages {
 		out[lang] = map[string]*template.Template{}
 		for _, n := range names {
-			base := strings.TrimSuffix(path.Base(n), ".html")
-			if base == "layout" || base == "partials" {
-				continue
-			}
-			t, err := template.New("").Funcs(s.funcs(lang)).ParseFS(templateFS, "templates/layout.html", "templates/partials.html", n)
+			t, err := s.parsePage(lang, n, bodies)
 			if err != nil {
 				return nil, fmt.Errorf("web: template %s: %w", n, err)
 			}
-			out[lang][base] = t
+			out[lang][strings.TrimSuffix(path.Base(n), ".html")] = t
 		}
 	}
 	return out, nil
@@ -221,7 +222,7 @@ func (rc *reqCtx) render(status int, page string, d map[string]any) {
 		return
 	}
 	pd := pageData{Lang: rc.lang, Theme: rc.theme, Path: rc.r.URL.Path, Query: rc.r.URL.Query(), Version: rc.s.version, D: d, Nav: map[string]bool{},
-		Nonce: rc.nonce}
+		Nonce: rc.nonce, B: rc.brandView()}
 	if rc.nonce != "" {
 		pd.ScriptSRI = rc.s.scriptSRI
 	}
@@ -255,10 +256,22 @@ func (rc *reqCtx) render(status int, page string, d map[string]any) {
 		}
 	}
 	var buf bytes.Buffer
-	if err := t.ExecuteTemplate(&buf, "layout", pd); err != nil {
+	err := t.ExecuteTemplate(&buf, "layout", pd)
+	if err != nil && pd.B != nil && len(rc.s.overridden) > 0 {
+		// A template override failed on this page's data: fall back to
+		// the built-in partials (the startup check uses sample data).
+		rc.s.log.Warn("branding template override failed; using the built-in partials", "page", page, "err", err)
+		buf.Reset()
+		err = rc.s.tmplBuiltin[rc.lang][page].ExecuteTemplate(&buf, "layout", pd)
+	}
+	if err != nil {
 		rc.s.log.Error("template execution failed", "page", page, "err", err)
 		http.Error(rc.w, "internal error", http.StatusInternalServerError)
 		return
+	}
+	if pd.B != nil && len(rc.s.allowed) > 0 {
+		// Allowlisted origins for images and fonts, on branded pages only.
+		rc.w.Header().Set("Content-Security-Policy", withMediaOrigins(rc.w.Header().Get("Content-Security-Policy"), rc.s.allowed))
 	}
 	rc.w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	rc.w.WriteHeader(status)

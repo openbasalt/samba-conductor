@@ -253,6 +253,21 @@ func (s *Server) routeTable() []route {
 		{method: "POST", pattern: "/admin/sso/policy", perm: PermSSOWrite, h: s.handleSSOPolicyPost},
 		{method: "GET", pattern: "/admin/sso/activity", perm: PermSSORead, h: s.handleSSOActivity},
 
+		// Settings > Branding: the look of the user-facing pages
+		// (self-service, and conductor-idp's sign-in pages through its
+		// management API). Administrators only; saving and restoring a
+		// version need the password and a fresh second factor.
+		{method: "GET", pattern: "/admin/branding", perm: PermBranding, h: s.handleBranding},
+		{method: "POST", pattern: "/admin/branding", perm: PermBranding, h: s.handleBrandingDraft, maxBody: brandingMaxBody},
+		{method: "GET", pattern: "/admin/branding/preview", perm: PermBranding, h: s.handleBrandingPreview},
+		{method: "GET", pattern: "/admin/branding/preview.css", perm: PermBranding, h: s.handleBrandingPreviewCSS},
+		{method: "GET", pattern: "/admin/branding/draft-asset", perm: PermBranding, h: s.handleBrandingDraftAsset},
+		{method: "POST", pattern: "/admin/branding/save", perm: PermBranding, h: s.handleBrandingSave},
+		{method: "POST", pattern: "/admin/branding/discard", perm: PermBranding, h: s.handleBrandingDiscard},
+		{method: "POST", pattern: "/admin/branding/push", perm: PermBranding, h: s.handleBrandingPush},
+		{method: "GET", pattern: "/admin/branding/versions", perm: PermBranding, h: s.handleBrandingVersions},
+		{method: "POST", pattern: "/admin/branding/revert", perm: PermBranding, h: s.handleBrandingRevert},
+
 		// WebAuthn related origins (other sites that may use conductor's
 		// security keys), when configured.
 		{method: "GET", pattern: "/.well-known/webauthn", perm: PermPublic, h: s.handleWellKnownWebAuthn},

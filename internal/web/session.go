@@ -116,6 +116,9 @@ type Session struct {
 	// accountSecrets are generated passwords of connected accounts, kept in
 	// memory only until shown once (by a random reference in the URL).
 	accountSecrets map[string]accountSecret
+	// brandDraft is the branding edit waiting for its preview and
+	// confirmation (it holds the uploaded images until then).
+	brandDraft *brandDraft
 }
 
 type flash struct {

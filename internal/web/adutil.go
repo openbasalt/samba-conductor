@@ -384,6 +384,10 @@ func dcReport(t func(string, ...any) string, results []ad.DCResult) string {
 // errMessage is the translated message of an operation error: the generic
 // one by kind, or, for a per-DC failure, which DCs were and were not written.
 func (s *Server) errMessage(t func(string, ...any) string, err error) string {
+	var be *brandingError
+	if errors.As(err, &be) {
+		return t(be.key)
+	}
 	var de *dcApplyError
 	if errors.As(err, &de) {
 		if ok := de.hosts(true); len(ok) > 0 {

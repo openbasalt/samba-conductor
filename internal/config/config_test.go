@@ -111,3 +111,22 @@ func TestExampleLoads(t *testing.T) {
 		t.Fatal(err)
 	}
 }
+
+func TestBrandingKeys(t *testing.T) {
+	c, err := load(t, base+`
+[branding]
+templates_dir = "/etc/conductor/templates"
+allowed_origins = ["https://cdn.example.com"]
+`)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if c.Branding.TemplatesDir != "/etc/conductor/templates" || c.AllowedOrigins()[0] != "https://cdn.example.com" {
+		t.Fatalf("%+v", c.Branding)
+	}
+	for _, bad := range []string{`templates_dir = "rel"`, `allowed_origins = ["http://cdn.example.com"]`} {
+		if _, err := load(t, base+"\n[branding]\n"+bad+"\n"); err == nil || !strings.Contains(err.Error(), "branding") {
+			t.Errorf("%s: %v", bad, err)
+		}
+	}
+}

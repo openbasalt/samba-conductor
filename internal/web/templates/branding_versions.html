@@ -1,0 +1,23 @@
+{{define "title"}}{{t "branding.versions"}}{{end}}
+{{define "content"}}<h1>{{t "branding.versions"}}</h1>
+{{template "branding-subnav" .}}
+<p class="hint">{{t "branding.versions.intro" .D.Keep}}</p>
+<section class="card">
+{{if .D.Rows}}<table class="table" data-e2e="branding-table-versions">
+  <thead><tr><th>{{t "branding.versions.version"}}</th><th>{{t "branding.versions.when"}}</th><th>{{t "branding.versions.by"}}</th><th>{{t "branding.field.org_name"}}</th><th>{{t "branding.versions.colors"}}</th><th>{{t "branding.versions.images"}}</th><th></th></tr></thead>
+  <tbody>{{range .D.Rows}}<tr data-e2e="branding-row-{{.Version}}">
+    <td>{{.Version}}{{if .Current}} <span class="badge badge-ok" data-e2e="branding-badge-current">{{t "branding.versions.current"}}</span>{{end}}{{if .RevertedFrom}} <span class="small muted">{{t "branding.versions.reverted_from" .RevertedFrom}}</span>{{end}}</td>
+    <td data-label="{{t "branding.versions.when"}}">{{time .CreatedAt}}</td>
+    <td data-label="{{t "branding.versions.by"}}">{{.CreatedBy}}</td>
+    <td data-label="{{t "branding.field.org_name"}}">{{if .Name}}{{.Name}}{{else}}<span class="muted">{{t "branding.status.default"}}</span>{{end}}</td>
+    <td data-label="{{t "branding.versions.colors"}}" class="mono small">{{if .Primary}}{{.Primary}}{{else}}-{{end}} / {{if .Accent}}{{.Accent}}{{else}}-{{end}}</td>
+    <td data-label="{{t "branding.versions.images"}}">{{.Images}}</td>
+    <td>{{if not .Current}}<form method="post" action="/admin/branding/revert">{{template "csrf" $}}<input type="hidden" name="version" value="{{.Version}}"><button class="btn btn-small" type="submit" data-e2e="branding-btn-revert-{{.Version}}">{{t "branding.versions.revert"}}</button></form>{{end}}</td>
+  </tr>{{end}}</tbody>
+</table>{{else}}<p data-e2e="branding-text-no-versions">{{t "branding.versions.none"}}</p>{{end}}
+</section>
+{{if .D.Current}}<section class="card" aria-labelledby="br-reset">
+  <h2 id="br-reset">{{t "branding.versions.reset"}}</h2>
+  <p class="hint">{{t "branding.versions.reset_hint"}}</p>
+  <form method="post" action="/admin/branding/revert">{{template "csrf" .}}<input type="hidden" name="version" value="0"><button class="btn" type="submit" data-e2e="branding-btn-reset">{{t "branding.versions.reset"}}</button></form>
+</section>{{end}}{{end}}

@@ -1,0 +1,12 @@
+<footer{{if .B}} class="branded"{{end}}>
+  {{with .B}}{{if or .Footer .HasLinks .HasSupport}}<div class="brand-footer" data-e2e="brand-footer">
+    {{with .Footer}}<p class="brand-text" data-e2e="brand-text-footer">{{.}}</p>{{end}}
+    {{if .HasLinks}}<nav class="brand-links" aria-label="{{t "brand.links"}}">{{with .HelpURL}}<a href="{{.}}" data-e2e="brand-link-help">{{t "brand.help"}}</a>{{end}}{{with .TermsURL}}<a href="{{.}}" data-e2e="brand-link-terms">{{t "brand.terms"}}</a>{{end}}{{with .PrivacyURL}}<a href="{{.}}" data-e2e="brand-link-privacy">{{t "brand.privacy"}}</a>{{end}}</nav>{{end}}
+    {{if .HasSupport}}<p class="brand-support" data-e2e="brand-text-support"><span>{{t "brand.support"}}:</span>{{with .SupportMailto}} <a href="{{.}}" data-e2e="brand-link-support-email">{{$.B.SupportEmail}}</a>{{end}}{{with .SupportTel}} <a href="{{.}}" data-e2e="brand-link-support-phone">{{$.B.SupportPhone}}</a>{{end}}{{with .SupportURL}} <a href="{{.}}" data-e2e="brand-link-support-url">{{t "brand.support_site"}}</a>{{end}}</p>{{end}}
+  </div>{{end}}{{end}}
+  <div class="prefs">
+    <span>{{t "footer.language"}}: <a href="?lang=en" data-e2e="footer-link-lang-en" lang="en">English</a> · <a href="?lang=pt-BR" data-e2e="footer-link-lang-pt-br" lang="pt-BR">Português (Brasil)</a></span>
+    <span>{{t "footer.theme"}}: <a href="?theme=light" data-e2e="footer-link-theme-light">{{t "footer.theme.light"}}</a> · <a href="?theme=dark" data-e2e="footer-link-theme-dark">{{t "footer.theme.dark"}}</a> · <a href="?theme=system" data-e2e="footer-link-theme-system">{{t "footer.theme.system"}}</a></span>
+  </div>
+  <div>Samba Conductor {{.Version}}</div>
+</footer>

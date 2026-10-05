@@ -67,6 +67,20 @@ func cspWithScript(nonce string) string {
 	return strings.Replace(cspPolicy, "script-src 'none'", "script-src 'nonce-"+nonce+"'", 1)
 }
 
+// withMediaOrigins adds allowlisted https origins (validated by the
+// configuration) to img-src and font-src of a policy; nothing else
+// changes.
+func withMediaOrigins(policy string, origins []string) string {
+	extra := ""
+	for _, o := range origins {
+		if strings.HasPrefix(o, "https://") && !strings.ContainsAny(o, " ;,'\"") {
+			extra += " " + o
+		}
+	}
+	policy = strings.Replace(policy, "img-src 'self'", "img-src 'self'"+extra, 1)
+	return strings.Replace(policy, "font-src 'self'", "font-src 'self'"+extra, 1)
+}
+
 func (s *Server) securityHeaders(h http.Header) {
 	h.Set("Content-Security-Policy", cspPolicy)
 	h.Set("X-Content-Type-Options", "nosniff")

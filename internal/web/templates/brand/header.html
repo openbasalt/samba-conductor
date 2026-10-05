@@ -1,0 +1,6 @@
+<header class="topbar{{if .B}} branded{{end}}">
+  <div class="topbar-inner">
+    <a class="brand" href="/" data-e2e="nav-link-home">{{if and .B .B.LogoLight}}<img class="logo logo-light" src="{{.B.LogoLight}}" alt="" height="32"><img class="logo logo-dark" src="{{.B.LogoDark}}" alt="" height="32">{{else}}<img src="/static/logo.svg" alt="" width="28" height="28">{{end}}<span>{{if .B}}{{.B.Name}}{{else}}Samba Conductor{{end}}</span></a>
+    {{if .User}}<span class="who" data-e2e="nav-text-user">{{.User.Name}}{{range .User.Roles}} · {{t (print "role." .)}}{{end}}</span>{{end}}
+  </div>
+</header>

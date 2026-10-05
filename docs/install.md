@@ -192,6 +192,14 @@ Helpdesk and auditor accounts enroll on their first sign-in
   (<https://github.com/openbasalt/samba-conductor-sync/blob/main/docs/usage-p5.md>) with its API socket
   (`conductor-sync-api.socket`, group `conductor`), then `[sync] enabled =
   true` in `conductor.toml` and restart conductor (`usage-p5b.md`).
+- Branding (optional): Settings > Branding in the admin UI sets the
+  organization's look of the self-service pages and, with the single
+  sign-on section enabled, of conductor-idp's sign-in pages. Template
+  overrides: `install -d -o root -g conductor -m 0750
+  /etc/conductor/templates`, start from `conductor templates show
+  self-home`, set `[branding] templates_dir`, run `conductor templates
+  check` (again after every upgrade) and restart conductor
+  ([branding.md](branding.md)).
 - Single sign-on (optional): install conductor-idp on this host
   (<https://github.com/openbasalt/samba-conductor-idp/blob/main/docs/install.md>,
   sections 8 and 9) with its API socket (`conductor-idp-api.socket`, group

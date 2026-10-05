@@ -5,20 +5,17 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="referrer" content="no-referrer">
 <meta name="robots" content="noindex, nofollow">
-<title>{{template "title" .}} · Samba Conductor</title>
+<title>{{template "title" .}} · {{if .B}}{{.B.Name}}{{else}}Samba Conductor{{end}}</title>
 <link rel="stylesheet" href="/static/app.css?v={{.Version}}">
+{{with .D.ExtraCSS}}<link rel="stylesheet" href="{{.}}">{{end}}
+{{with .B}}<link rel="stylesheet" href="{{.CSS}}">{{with .CustomCSS}}<link rel="stylesheet" href="{{.}}">{{end}}{{end}}
 {{if .Nonce}}<script src="/static/webauthn.js?v={{.Version}}" nonce="{{.Nonce}}" integrity="{{.ScriptSRI}}" defer></script>{{end}}
 {{if .D.Refresh}}<meta http-equiv="refresh" content="2">{{end}}
-<link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
+{{if and .B .B.Favicon}}<link rel="icon" href="{{.B.Favicon}}" type="{{.B.FaviconType}}">{{else}}<link rel="icon" href="/static/favicon.svg" type="image/svg+xml">{{end}}
 </head>
 <body>
 <a class="skip" href="#main">{{t "a11y.skip"}}</a>
-<header class="topbar">
-  <div class="topbar-inner">
-    <a class="brand" href="/" data-e2e="nav-link-home"><img src="/static/logo.svg" alt="" width="28" height="28"><span>Samba Conductor</span></a>
-    {{if .User}}<span class="who" data-e2e="nav-text-user">{{.User.Name}}{{range .User.Roles}} · {{t (print "role." .)}}{{end}}</span>{{end}}
-  </div>
-</header>
+{{if .B}}{{template "brand-header" .}}{{else}}{{template "product-brand-header" .}}{{end}}
 <div class="shell{{if .User}} has-nav{{end}}">
 {{if .User}}
 <nav class="sidenav" aria-label="{{t "nav.label"}}">
@@ -84,6 +81,12 @@
           <li><a href="/admin/sso/activity" data-e2e="nav-link-sso-activity"{{if active .Path "/admin/sso/activity"}} aria-current="page"{{end}}>{{t "nav.sso.activity"}}</a></li>
         </ul>
       </div>{{end}}
+      {{if has .Nav "branding"}}<div class="nav-group" data-e2e="nav-group-settings">
+        <h2 class="nav-heading">{{t "nav.group.settings"}}</h2>
+        <ul>
+          <li><a href="/admin/branding" data-e2e="nav-link-branding"{{if active .Path "/admin/branding"}} aria-current="page"{{end}}>{{t "nav.branding"}}</a></li>
+        </ul>
+      </div>{{end}}
       {{if or (has .Nav "audit.read") (has .Nav "domain.read")}}<div class="nav-group" data-e2e="nav-group-audit">
         <h2 class="nav-heading">{{t "nav.group.audit"}}</h2>
         <ul>
@@ -104,16 +107,11 @@
 </nav>
 {{end}}
 <main id="main">
+{{with .B}}{{with .Notice}}<div class="brand-notice" role="note" data-e2e="brand-text-notice">{{.}}</div>{{end}}{{end}}
 {{range .Flashes}}<div class="flash flash-{{.Kind}}" role="status" data-e2e="flash-{{.Kind}}">{{.Msg}}</div>{{end}}
 {{template "content" .}}
 </main>
 </div>
-<footer>
-  <div class="prefs">
-    <span>{{t "footer.language"}}: <a href="?lang=en" data-e2e="footer-link-lang-en" lang="en">English</a> · <a href="?lang=pt-BR" data-e2e="footer-link-lang-pt-br" lang="pt-BR">Português (Brasil)</a></span>
-    <span>{{t "footer.theme"}}: <a href="?theme=light" data-e2e="footer-link-theme-light">{{t "footer.theme.light"}}</a> · <a href="?theme=dark" data-e2e="footer-link-theme-dark">{{t "footer.theme.dark"}}</a> · <a href="?theme=system" data-e2e="footer-link-theme-system">{{t "footer.theme.system"}}</a></span>
-  </div>
-  <div>Samba Conductor {{.Version}}</div>
-</footer>
+{{if .B}}{{template "brand-footer" .}}{{else}}{{template "product-brand-footer" .}}{{end}}
 </body>
 </html>{{end}}

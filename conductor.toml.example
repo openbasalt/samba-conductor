@@ -112,3 +112,13 @@ mfa_socket = false
 # mfa_socket_path = "/run/conductor/mfa.sock"   # used when systemd passes no socket
 # mfa_socket_group = "conductor-idp"            # group of a socket conductor creates
 # mfa_allowed_users = ["conductor-idp"]
+
+[branding]
+# Template overrides of the self-service pages (docs/branding.md):
+# header.html, footer.html, self-home.html and an optional custom.css.
+# Unset: none. The organization name, logos, colors and texts are edited
+# in the admin UI (Settings > Branding).
+# templates_dir = "/etc/conductor/templates"
+# Origins the branded pages may load images and fonts from (CSP img-src
+# and font-src of those pages only). Unset: this origin only.
+# allowed_origins = ["https://cdn.example.com"]

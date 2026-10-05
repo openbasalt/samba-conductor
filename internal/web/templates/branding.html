@@ -1,0 +1,68 @@
+{{define "title"}}{{t "branding.title"}}{{end}}
+{{define "content"}}<h1>{{t "branding.title"}}</h1>
+<p class="hint">{{t "branding.intro"}}</p>
+{{template "branding-subnav" .}}
+{{with .D.Problems}}<div class="alert-error" role="alert" data-e2e="branding-alert-problems"><p>{{t "branding.problems"}}</p><ul>{{range .}}<li>{{.}}</li>{{end}}</ul><p class="small">{{t "branding.problems_files"}}</p></div>{{end}}
+<section class="card" aria-labelledby="br-status" data-e2e="branding-card-status">
+  <h2 id="br-status">{{t "branding.status"}}</h2>
+  <dl class="props">
+    <dt>{{t "branding.status.version"}}</dt><dd data-e2e="branding-text-version">{{if .D.Version}}{{.D.Version}}{{else}}{{t "branding.status.none"}}{{end}}</dd>
+    {{if .D.IDP}}<dt>{{t "branding.status.idp"}}</dt><dd data-e2e="branding-text-idp">{{with .D.IDPError}}<span class="badge badge-danger" data-e2e="branding-badge-idp-error">{{.}}</span>{{else}}{{if .D.InSync}}<span class="badge badge-ok" data-e2e="branding-badge-in-sync">{{t "branding.status.in_sync"}}</span>{{else}}<span class="badge badge-warn" data-e2e="branding-badge-out-of-sync">{{t "branding.status.out_of_sync" .D.IDPVersion}}</span>{{end}}{{end}}</dd>{{end}}
+  </dl>
+  <div class="actions">
+    {{if and .D.IDP (not .D.InSync)}}<form method="post" action="/admin/branding/push">{{template "csrf" .}}<button class="btn" type="submit" data-e2e="branding-btn-push">{{t "branding.push"}}</button></form>{{end}}
+    {{if and .D.HasDraft (not .D.FromDraft)}}<a class="btn" href="/admin/branding?draft=1" data-e2e="branding-link-draft">{{t "branding.continue_draft"}}</a>{{end}}
+  </div>
+</section>
+{{$b := .D.B}}
+<form method="post" action="/admin/branding" enctype="multipart/form-data" autocomplete="off" data-e2e="branding-form">
+  {{template "csrf" .}}{{if .D.FromDraft}}<input type="hidden" name="from_draft" value="1">{{end}}
+  <section class="card" aria-labelledby="br-org">
+    <h2 id="br-org">{{t "branding.section.org"}}</h2>
+    <div class="field"><label for="b-name">{{t "branding.field.org_name"}}</label><input id="b-name" name="org_name" type="text" maxlength="100" value="{{$b.OrgName}}" data-e2e="branding-input-org-name"><span class="hint">{{t "branding.hint.org_name"}}</span></div>
+    <div class="grid grid-2">
+      <div class="field"><label for="b-primary">{{t "branding.field.primary_color"}}</label><input id="b-primary" name="primary_color" type="text" inputmode="text" maxlength="7" pattern="#[0-9a-fA-F]{6}" placeholder="#0f766e" spellcheck="false" value="{{$b.PrimaryColor}}" data-e2e="branding-input-primary"><span class="hint">{{t "branding.hint.primary_color"}}</span></div>
+      <div class="field"><label for="b-accent">{{t "branding.field.accent_color"}}</label><input id="b-accent" name="accent_color" type="text" inputmode="text" maxlength="7" pattern="#[0-9a-fA-F]{6}" placeholder="#f59e0b" spellcheck="false" value="{{$b.AccentColor}}" data-e2e="branding-input-accent"><span class="hint">{{t "branding.hint.accent_color"}}</span></div>
+    </div>
+  </section>
+  <section class="card" aria-labelledby="br-img">
+    <h2 id="br-img">{{t "branding.section.images"}}</h2>
+    <p class="hint">{{t "branding.hint.images"}}</p>
+    <div class="grid grid-2">{{range .D.Slots}}
+      <div class="field" data-e2e="branding-slot-{{e2e .Slot}}">
+        <label for="b-file-{{.Slot}}">{{t (print "branding.field." .Slot)}}</label>
+        {{if .Asset}}<img class="slot-thumb" src="{{.URL}}" alt="{{t (print "branding.field." .Slot)}}" data-e2e="branding-img-{{e2e .Slot}}">
+        <span class="hint">{{.Asset.Type}}, {{.Asset.Width}}x{{.Asset.Height}} px, {{.Asset.Size}} B</span>
+        <div class="check"><input id="b-rm-{{.Slot}}" name="remove_{{.Slot}}" type="checkbox" value="1" data-e2e="branding-check-remove-{{e2e .Slot}}"><label for="b-rm-{{.Slot}}">{{t "branding.remove_image"}}</label></div>{{end}}
+        <input id="b-file-{{.Slot}}" name="file_{{.Slot}}" type="file" accept="{{.Accept}}" data-e2e="branding-file-{{e2e .Slot}}">
+        <span class="hint">{{t "branding.hint.image_limits" .Types .MaxKiB}}</span>
+      </div>{{end}}
+    </div>
+  </section>
+  {{range $i, $l := .D.Langs}}{{$tx := index $b.Texts $l}}<details class="card" data-e2e="branding-texts-{{e2e $l}}"{{if eq $i 0}} open{{end}}>
+    <summary><span class="label">{{t "branding.section.texts" (t (print "sso.lang." $l))}}</span></summary>
+    <div class="field"><label for="b-title-{{$l}}">{{t "branding.field.signin_title"}}</label><input id="b-title-{{$l}}" name="signin_title_{{$l}}" type="text" maxlength="120" value="{{$tx.SignInTitle}}" data-e2e="branding-input-signin-title-{{e2e $l}}"></div>
+    <div class="field"><label for="b-note-{{$l}}">{{t "branding.field.signin_note"}}</label><textarea id="b-note-{{$l}}" name="signin_note_{{$l}}" rows="2" maxlength="1000" data-e2e="branding-input-signin-note-{{e2e $l}}">{{$tx.SignInNote}}</textarea></div>
+    <div class="field"><label for="b-help-{{$l}}">{{t "branding.field.help"}}</label><textarea id="b-help-{{$l}}" name="help_{{$l}}" rows="3" maxlength="2000" data-e2e="branding-input-help-{{e2e $l}}">{{$tx.Help}}</textarea><span class="hint">{{t "branding.hint.help"}}</span></div>
+    <div class="field"><label for="b-footer-{{$l}}">{{t "branding.field.footer"}}</label><textarea id="b-footer-{{$l}}" name="footer_{{$l}}" rows="2" maxlength="500" data-e2e="branding-input-footer-{{e2e $l}}">{{$tx.Footer}}</textarea></div>
+    <div class="field"><label for="b-notice-{{$l}}">{{t "branding.field.notice"}}</label><textarea id="b-notice-{{$l}}" name="notice_{{$l}}" rows="2" maxlength="500" data-e2e="branding-input-notice-{{e2e $l}}">{{$tx.Notice}}</textarea><span class="hint">{{t "branding.hint.notice"}}</span></div>
+    {{if $.D.IDP}}<div class="field"><span class="label">{{t "branding.field.consent"}}</span><p class="brand-text" data-e2e="branding-text-consent-{{e2e $l}}">{{with $.D.Consent}}{{with index . $l}}{{.}}{{else}}<span class="muted">{{t "branding.consent_none"}}</span>{{end}}{{else}}<span class="muted">{{t "branding.consent_none"}}</span>{{end}}</p><span class="hint">{{t "branding.hint.consent"}}{{if $.D.CanSSO}} <a href="/admin/sso/policy" data-e2e="branding-link-consent">{{t "branding.consent_edit"}}</a>{{end}}</span></div>{{end}}
+  </details>{{end}}
+  <section class="card" aria-labelledby="br-support">
+    <h2 id="br-support">{{t "branding.section.support"}}</h2>
+    <div class="grid grid-2">
+      <div class="field"><label for="b-email">{{t "branding.field.support_email"}}</label><input id="b-email" name="support_email" type="email" maxlength="254" value="{{$b.Support.Email}}" data-e2e="branding-input-support-email"></div>
+      <div class="field"><label for="b-phone">{{t "branding.field.support_phone"}}</label><input id="b-phone" name="support_phone" type="text" inputmode="tel" maxlength="32" value="{{$b.Support.Phone}}" data-e2e="branding-input-support-phone"></div>
+    </div>
+    <div class="field"><label for="b-surl">{{t "branding.field.support_url"}}</label><input id="b-surl" name="support_url" type="text" inputmode="url" maxlength="2048" placeholder="https://" value="{{$b.Support.URL}}" data-e2e="branding-input-support-url"></div>
+    <h2>{{t "branding.section.links"}}</h2>
+    <p class="hint">{{t "branding.hint.links"}}</p>
+    <div class="grid grid-2">
+      <div class="field"><label for="b-lhelp">{{t "branding.field.link_help"}}</label><input id="b-lhelp" name="link_help" type="text" inputmode="url" maxlength="2048" value="{{$b.Links.Help}}" data-e2e="branding-input-link-help"></div>
+      <div class="field"><label for="b-lterms">{{t "branding.field.link_terms"}}</label><input id="b-lterms" name="link_terms" type="text" inputmode="url" maxlength="2048" value="{{$b.Links.Terms}}" data-e2e="branding-input-link-terms"></div>
+      <div class="field"><label for="b-lpriv">{{t "branding.field.link_privacy"}}</label><input id="b-lpriv" name="link_privacy" type="text" inputmode="url" maxlength="2048" value="{{$b.Links.Privacy}}" data-e2e="branding-input-link-privacy"></div>
+      <div class="field"><label for="b-lpol">{{t "branding.field.link_password_policy"}}</label><input id="b-lpol" name="link_password_policy" type="text" inputmode="url" maxlength="2048" value="{{$b.Links.PasswordPolicy}}" data-e2e="branding-input-link-password-policy"></div>
+    </div>
+  </section>
+  <div class="actions"><button class="btn btn-primary" type="submit" data-e2e="branding-btn-preview">{{t "branding.preview_button"}}</button></div>
+</form>{{end}}

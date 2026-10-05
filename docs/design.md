@@ -261,6 +261,15 @@ and the AD access layer in the
   shows the claims or the assertion a real user would get, which also
   validates the draft. Every change is previewed and confirmed with a
   fresh second factor; a client secret is shown once and kept nowhere.
+- Branding (administrators only, Settings > Branding): the organization's
+  name, logos, favicon, colors, texts per language, support contact and
+  links on the self-service pages here and on conductor-idp's sign-in
+  pages. An edit is previewed in the light and the dark theme, then saved
+  as a new version with the password and a fresh second factor and pushed
+  to conductor-idp; any kept version can be restored the same way.
+  Template overrides read from a directory can replace the header, the
+  footer and the self-service home. Admin pages keep the product look
+  ([branding.md](branding.md)).
 
 ## Decisions
 
@@ -291,6 +300,21 @@ and the AD access layer in the
   objects. New accounts are enabled by default: with a password nobody
   knows they are as unusable as disabled ones, and only an enabled AD user
   adopts its Google account; disabled is an option per import.
+- Branding without weakening the pages (2026-10-05): colors are CSS
+  custom properties in a generated same-origin stylesheet and images are
+  served from this origin with their checked type, so the CSP stays
+  `script-src 'none'` and `style-src 'self'`; only `[branding]
+  allowed_origins` can add image and font origins, on branded pages only.
+  SVG is refused rather than sanitized (no sanitizer is shipped and a
+  raster logo covers the need). A primary color below 4.5:1 on the light
+  background is refused, an accent below 3:1 is a warning. Admin pages
+  never take the branding, so an administrator always recognizes the
+  product's own pages. Every save and restore is a new version (the
+  history is append-only, the newest 50 kept) and needs a fresh second
+  factor; conductor-idp keeps its own copy, pushed through its management
+  API, so its sign-in pages keep their look while conductor is down. The
+  consent note stays a single sign-on setting, shown on the Branding page
+  with a link, so it is edited in one place.
 - Policy editable from the web, destinations and recipients not: a
   compromised web process must not be able to redirect future backups to
   a new key or bucket.

@@ -273,6 +273,10 @@ var errForbiddenTarget = errors.New("web: target not allowed")
 // adErrorKey maps an error to a friendly message key; details only go to
 // the server log.
 func (s *Server) adErrorKey(err error) string {
+	var be *brandingError
+	if errors.As(err, &be) {
+		return be.key
+	}
 	switch {
 	case errors.Is(err, errForbiddenTarget):
 		return "err.protected"

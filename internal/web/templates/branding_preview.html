@@ -1,0 +1,20 @@
+{{define "title"}}{{t "branding.preview.title"}}{{end}}
+{{define "content"}}<h1>{{t "branding.preview.title"}}</h1>
+{{template "branding-subnav" .}}
+<p class="hint">{{t "branding.preview.intro"}}</p>
+{{if .D.Stale}}<div class="alert-warn" role="alert" data-e2e="branding-alert-stale">{{t "branding.preview.stale"}}</div>{{end}}
+{{with .D.Warnings}}<div class="alert-warn" role="alert" data-e2e="branding-alert-warnings"><p>{{t "branding.preview.warnings"}}</p><ul>{{range .}}<li>{{.}}</li>{{end}}</ul></div>{{end}}
+<div class="preview-grid" id="preview">
+  <section class="brand-preview" aria-label="{{t "branding.preview.mode.light"}}" data-e2e="branding-preview-light">{{template "branding-mock" (dict "V" .D.PV "Mode" "light")}}</section>
+  <section class="brand-preview preview-dark" aria-label="{{t "branding.preview.mode.dark"}}" data-e2e="branding-preview-dark">{{template "branding-mock" (dict "V" .D.PV "Mode" "dark")}}</section>
+</div>
+<section class="card" aria-labelledby="pv-changes">
+  <h2 id="pv-changes">{{t "branding.preview.changes"}}</h2>
+  {{if .D.NoChange}}<p data-e2e="branding-text-no-change">{{t "form.no_change"}}</p>{{else}}<pre data-e2e="branding-text-changes">{{range .D.Changes}}{{.}}
+{{end}}</pre>{{end}}
+</section>
+<div class="actions">
+  <a class="btn" href="/admin/branding?draft=1" data-e2e="branding-link-edit">{{t "branding.preview.edit"}}</a>
+  <form method="post" action="/admin/branding/discard">{{template "csrf" .}}<button class="btn" type="submit" data-e2e="branding-btn-discard">{{t "branding.preview.discard"}}</button></form>
+  {{if not .D.NoChange}}<form method="post" action="/admin/branding/save">{{template "csrf" .}}<button class="btn btn-primary" type="submit" data-e2e="branding-btn-save">{{t "branding.preview.save"}}</button></form>{{end}}
+</div>{{end}}

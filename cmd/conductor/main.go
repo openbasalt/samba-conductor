@@ -6,6 +6,7 @@
 //	conductor enroll-link  issue a one-time 2FA enrollment link for an administrator
 //	conductor audit verify check the audit log's hash chain
 //	conductor audit export write the audit log as JSON lines
+//	conductor templates    list, show and check the self-service template overrides
 //	conductor version
 package main
 
@@ -56,6 +57,8 @@ func main() {
 		err = cmdEnrollLink(os.Args[2:])
 	case "audit":
 		err = cmdAudit(os.Args[2:])
+	case "templates":
+		err = cmdTemplates(os.Args[2:])
 	case "version", "--version", "-v":
 		fmt.Println("conductor", buildVersion())
 	case "help", "-h", "--help":
@@ -79,6 +82,7 @@ commands:
   enroll-link  issue a one-time 2FA enrollment link (as the conductor user)
   audit verify check the audit log hash chain (as the conductor user)
   audit export write the audit log as JSON lines
+  templates    list | show NAME | check: template overrides of the self-service pages
   version      print the version
 `)
 }

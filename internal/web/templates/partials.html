@@ -179,3 +179,28 @@
   {{if .NameID}}<p>NameID: <code data-e2e="sso-preview-nameid">{{.NameID}}</code> <span class="small muted">{{.NameIDFormat}}</span></p>{{end}}
   {{if .Values}}<table class="table" data-e2e="sso-table-preview"><tbody>{{range .Values}}<tr data-e2e="sso-preview-{{e2e .Name}}"><th scope="row" class="mono small">{{.Name}}</th><td class="small">{{join .Values ", "}}</td></tr>{{end}}</tbody></table>{{else}}<p class="muted small">{{t "sso.preview.no_values"}}</p>{{end}}
 </section>{{end}}
+
+{{define "branding-subnav"}}<nav class="tabs" aria-label="{{t "nav.branding"}}" data-e2e="branding-subnav">
+  <a href="/admin/branding" data-e2e="branding-tab-edit"{{if or (eq .Path "/admin/branding") (eq .Path "/admin/branding/preview")}} aria-current="page"{{end}}>{{t "branding.tab.edit"}}</a>
+  <a href="/admin/branding/versions" data-e2e="branding-tab-versions"{{if eq .Path "/admin/branding/versions"}} aria-current="page"{{end}}>{{t "branding.tab.versions"}}</a>
+</nav>{{end}}
+
+{{define "branding-mock"}}{{$v := .V}}<div class="preview-label">{{t (print "branding.preview.mode." .Mode)}}</div>
+<div class="topbar branded"><div class="topbar-inner"><span class="brand">{{if $v.LogoLight}}<img class="logo logo-light" src="{{$v.LogoLight}}" alt="" height="32"><img class="logo logo-dark" src="{{$v.LogoDark}}" alt="" height="32">{{else}}<img src="/static/logo.svg" alt="" width="28" height="28">{{end}}<span>{{$v.Name}}</span></span></div></div>
+<div class="preview-body{{if $v.Background}} brand-bg{{end}}">
+  {{with $v.Notice}}<div class="brand-notice" role="note" data-e2e="branding-preview-notice">{{.}}</div>{{end}}
+  <div class="card preview-card">
+    <h3 class="preview-title" data-e2e="branding-preview-title-{{.Mode}}">{{if $v.SignInTitle}}{{$v.SignInTitle}}{{else}}{{t "branding.preview.signin"}}{{end}}</h3>
+    {{with $v.SignInNote}}<p class="brand-text small">{{.}}</p>{{end}}
+    <div class="field"><span class="label">{{t "signin.username"}}</span><span class="preview-input" aria-hidden="true"></span></div>
+    <div class="field"><span class="label">{{t "signin.password"}}</span><span class="preview-input" aria-hidden="true"></span></div>
+    <span class="btn btn-primary btn-block" aria-hidden="true">{{t "signin.submit"}}</span>
+    {{if or $v.Help $v.HelpURL $v.PolicyURL}}<div class="brand-help">{{with $v.Help}}<p class="brand-text small">{{.}}</p>{{end}}<p class="small row">{{if $v.HelpURL}}<a href="{{$v.HelpURL}}">{{t "brand.help"}}</a>{{end}}{{if $v.PolicyURL}}<a href="{{$v.PolicyURL}}">{{t "brand.password_policy"}}</a>{{end}}</p></div>{{end}}
+    <p class="small"><a href="#preview">{{t "branding.preview.link_sample"}}</a></p>
+  </div>
+</div>
+<div class="preview-footer">
+  {{with $v.Footer}}<p class="brand-text">{{.}}</p>{{end}}
+  {{if $v.HasLinks}}<p class="brand-links">{{if $v.HelpURL}}<a href="{{$v.HelpURL}}">{{t "brand.help"}}</a>{{end}}{{if $v.TermsURL}}<a href="{{$v.TermsURL}}">{{t "brand.terms"}}</a>{{end}}{{if $v.PrivacyURL}}<a href="{{$v.PrivacyURL}}">{{t "brand.privacy"}}</a>{{end}}</p>{{end}}
+  {{if $v.HasSupport}}<p class="brand-support"><span>{{t "brand.support"}}:</span>{{with $v.SupportEmail}} <span>{{.}}</span>{{end}}{{with $v.SupportPhone}} <span>{{.}}</span>{{end}}{{with $v.SupportURL}} <span>{{.}}</span>{{end}}</p>{{end}}
+</div>{{end}}
