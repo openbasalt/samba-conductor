@@ -1,4 +1,4 @@
-policy_module(conductor, 1.0.0)
+policy_module(conductor, 1.1.0)
 
 # SELinux policy of Samba Conductor's web administrator (conductor_t, the
 # unprivileged "conductor" user) and its privileged helper
@@ -37,6 +37,11 @@ files_type(conductor_var_lib_t)
 type conductor_helper_var_run_t;
 files_pid_file(conductor_helper_var_run_t)
 
+# /run/conductor: mfa.sock, created by systemd for conductor-mfa.socket
+# (conductor's second factor, served to conductor-idp).
+type conductor_var_run_t;
+files_pid_file(conductor_var_run_t)
+
 # Files in the units' private /tmp: Kerberos credential caches handed to
 # samba-tool (conductor), the plaintext of a backup while it is encrypted
 # (helper).
@@ -54,6 +59,11 @@ files_tmp_file(conductor_helper_tmp_t)
 conductor_common(conductor_t)
 
 allow conductor_t self:tcp_socket { accept listen create_stream_socket_perms };
+allow conductor_t self:unix_stream_socket { accept listen };
+
+# The 2FA socket for conductor-idp (systemd creates it; conductor accepts).
+list_dirs_pattern(conductor_t, conductor_var_run_t, conductor_var_run_t)
+rw_sock_files_pattern(conductor_t, conductor_var_run_t, conductor_var_run_t)
 allow conductor_t self:udp_socket create_socket_perms;
 
 manage_dirs_pattern(conductor_t, conductor_var_lib_t, conductor_var_lib_t)

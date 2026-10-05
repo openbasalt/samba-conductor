@@ -74,6 +74,12 @@ rp_id = ""
 display_name = "Samba Conductor"
 # Administrators must sign in with a security key (TOTP refused for them).
 admin_required = false
+# To let conductor-idp use the same keys (passkeys), rp_id must be a domain
+# both hosts are under (rp_id = "example.com", origins =
+# ["https://conductor.example.com:8443", "https://idp.example.com:9443"]).
+# Origins on another domain go in related_origins (served at
+# https://<rp_id>/.well-known/webauthn, so conductor must answer on rp_id).
+# related_origins = []
 
 [bulk]
 # Most rows per CSV import or action on selected accounts.
@@ -90,3 +96,19 @@ samba_tool = "/usr/bin/samba-tool"
 # admits only the conductor user (SO_PEERCRED).
 enabled = false
 socket = "/run/conductor-sync/api.sock"
+
+[idp]
+# The "Single sign-on" section (administrators only): conductor drives
+# conductor-idp through its local management API (conductor-idp's
+# [api], conductor-idp-api.socket). The socket admits only the conductor
+# user (SO_PEERCRED).
+enabled = false
+socket = "/run/conductor-idp/api.sock"
+# Serve conductor's second factor to conductor-idp on this host (one
+# enrollment and policy for both; conductor-mfa.socket, and
+# mfa.backend = "conductor" in idp.toml). Only the conductor-idp user may
+# connect.
+mfa_socket = false
+# mfa_socket_path = "/run/conductor/mfa.sock"   # used when systemd passes no socket
+# mfa_socket_group = "conductor-idp"            # group of a socket conductor creates
+# mfa_allowed_users = ["conductor-idp"]

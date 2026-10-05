@@ -138,3 +138,43 @@
   <a href="/admin/files/{{.S.ID}}" data-e2e="files-tab-server"{{if eq .Tab "server"}} aria-current="page"{{end}}>{{t "files.tab.shares"}}</a>
   <a href="/admin/files/{{.S.ID}}/sessions" data-e2e="files-tab-sessions"{{if eq .Tab "sessions"}} aria-current="page"{{end}}>{{t "files.tab.sessions"}}</a>
 </nav>{{end}}
+
+{{/* ---- Single sign-on (P4b) ---- */}}
+{{define "sso-subnav"}}<nav class="tabs" aria-label="{{t "nav.group.sso"}}" data-e2e="sso-subnav">
+  <a href="/admin/sso" data-e2e="sso-tab-overview"{{if eq .Path "/admin/sso"}} aria-current="page"{{end}}>{{t "sso.tab.overview"}}</a>
+  <a href="/admin/sso/oidc" data-e2e="sso-tab-oidc"{{if active .Path "/admin/sso/oidc"}} aria-current="page"{{end}}>{{t "sso.tab.oidc"}}</a>
+  <a href="/admin/sso/saml" data-e2e="sso-tab-saml"{{if active .Path "/admin/sso/saml"}} aria-current="page"{{end}}>{{t "sso.tab.saml"}}</a>
+  <a href="/admin/sso/keys" data-e2e="sso-tab-keys"{{if active .Path "/admin/sso/keys"}} aria-current="page"{{end}}>{{t "sso.tab.keys"}}</a>
+  <a href="/admin/sso/policy" data-e2e="sso-tab-policy"{{if active .Path "/admin/sso/policy"}} aria-current="page"{{end}}>{{t "sso.tab.policy"}}</a>
+  <a href="/admin/sso/activity" data-e2e="sso-tab-activity"{{if active .Path "/admin/sso/activity"}} aria-current="page"{{end}}>{{t "sso.tab.activity"}}</a>
+</nav>{{end}}
+
+{{define "sso-enabled"}}{{if .}}<span class="badge badge-ok" data-e2e="sso-badge-enabled">{{t "status.enabled"}}</span>{{else}}<span class="badge badge-danger" data-e2e="sso-badge-disabled">{{t "status.disabled"}}</span>{{end}}{{end}}
+
+{{define "sso-groupname"}}{{$g := index .G .Ref}}<span data-e2e="sso-group-{{e2e .Ref}}">{{if $g.Found}}<b>{{$g.Name}}</b>{{else}}<span class="badge badge-warn">{{t "sync.group.unresolved"}}</span>{{end}} <span class="mono small muted">{{.Ref}}</span></span>{{end}}
+
+{{/* Group picker inside a form: hidden SIDs, remove buttons, a search
+     box and add buttons (name=add_group / add_filter). P: page data,
+     Field: "group" or "filter", List: the SIDs. */}}
+{{define "sso-picker"}}<ul class="tree" data-e2e="sso-list-{{.Field}}">{{range .List}}<li class="row"><input type="hidden" name="{{$.Field}}" value="{{.}}"><span class="grow">{{template "sso-groupname" (dict "G" $.P.D.GroupNames "Ref" .)}}</span><button class="btn btn-small" type="submit" name="remove_{{$.Field}}" value="{{.}}" formnovalidate data-e2e="sso-btn-remove-{{$.Field}}-{{e2e .}}">{{t "form.remove"}}</button></li>{{else}}<li class="muted" data-e2e="sso-list-{{.Field}}-empty">{{t .Empty}}</li>{{end}}</ul>{{end}}
+
+{{define "sso-search"}}<div class="row">
+  <label class="sr" for="sso-q">{{t "sso.groups.search"}}</label>
+  <input id="sso-q" name="q" type="search" value="{{.D.F.Q}}" placeholder="{{t "sso.groups.search_hint"}}" class="grow" data-e2e="sso-input-group-search">
+  <button class="btn btn-small" type="submit" name="action" value="search" formnovalidate data-e2e="sso-btn-group-search">{{t "sso.groups.search"}}</button>
+</div>
+{{template "error-alert" .D.DirError}}
+{{if .D.Hits}}<table class="table" data-e2e="sso-table-hits"><tbody>{{range .D.Hits}}<tr data-e2e="sso-hit-{{e2e .Name}}">
+  <td>{{.Name}}<br><span class="muted small">{{.DN}}</span>{{if .Description}}<br><span class="small">{{.Description}}</span>{{end}}</td>
+  <td><div class="row">
+    <button class="btn btn-small" type="submit" name="add_group" value="{{.SID}}" formnovalidate data-e2e="sso-btn-allow-{{e2e .Name}}">{{t "sso.groups.allow"}}</button>
+    {{if $.D.FilterAllowed}}<button class="btn btn-small" type="submit" name="add_filter" value="{{.SID}}" formnovalidate data-e2e="sso-btn-filter-{{e2e .Name}}">{{t "sso.groups.to_claim"}}</button>{{end}}
+  </div></td></tr>{{end}}</tbody></table>{{else if .D.F.Q}}<p class="muted" data-e2e="sso-text-no-hits">{{t "sync.search.none"}}</p>{{end}}{{end}}
+
+{{/* A claims or mapping preview. */}}
+{{define "sso-preview"}}<section class="card" aria-labelledby="sso-pv" data-e2e="sso-card-preview">
+  <h2 id="sso-pv">{{t "sso.preview.title" .User}}</h2>
+  {{if .Allowed}}<p><span class="badge badge-ok" data-e2e="sso-preview-allowed">{{t "sso.preview.allowed"}}</span></p>{{else}}<p><span class="badge badge-danger" data-e2e="sso-preview-denied">{{t "sso.preview.denied"}}</span> <span class="small">{{.Reason}}</span></p>{{end}}
+  {{if .NameID}}<p>NameID: <code data-e2e="sso-preview-nameid">{{.NameID}}</code> <span class="small muted">{{.NameIDFormat}}</span></p>{{end}}
+  {{if .Values}}<table class="table" data-e2e="sso-table-preview"><tbody>{{range .Values}}<tr data-e2e="sso-preview-{{e2e .Name}}"><th scope="row" class="mono small">{{.Name}}</th><td class="small">{{join .Values ", "}}</td></tr>{{end}}</tbody></table>{{else}}<p class="muted small">{{t "sso.preview.no_values"}}</p>{{end}}
+</section>{{end}}

@@ -1,0 +1,14 @@
+{{define "title"}}{{t "sso.tab.oidc"}}{{end}}
+{{define "content"}}<h1>{{t "sso.tab.oidc"}}</h1>
+{{template "sso-subnav" .}}
+{{template "error-alert" .D.Error}}
+{{if .D.CanWrite}}<div class="row"><a class="btn btn-primary" href="/admin/sso/new" data-e2e="sso-link-new-app">{{t "sso.new.button"}}</a><a class="btn" href="/admin/sso/oidc/new" data-e2e="sso-link-new-client">{{t "sso.client.new_blank"}}</a></div>{{end}}
+{{if .D.Clients}}<table class="table" data-e2e="sso-table-clients">
+  <thead><tr><th>{{t "sso.col.name"}}</th><th>client_id</th><th>{{t "sso.col.access"}}</th><th>{{t "sso.col.state"}}</th></tr></thead>
+  <tbody>{{range .D.Clients}}<tr data-e2e="sso-client-{{e2e .Name}}">
+    <td><a href="/admin/sso/oidc/{{.ID}}" data-e2e="sso-link-client-{{e2e .Name}}">{{.Name}}</a><br><span class="small muted">{{t (print "sso.kind." .Kind)}}</span></td>
+    <td data-label="client_id" class="mono small">{{.ID}}</td>
+    <td data-label="{{t "sso.col.access"}}" class="small">{{if .AllowAllUsers}}<span class="badge badge-warn">{{t "sso.all_users"}}</span>{{else}}{{t "sso.n_groups" (len .Groups)}}{{end}}{{if .RequireMFA}} <span class="badge">2FA</span>{{end}}</td>
+    <td data-label="{{t "sso.col.state"}}">{{template "sso-enabled" .Enabled}}</td>
+  </tr>{{end}}</tbody>
+</table>{{else if not .D.Error}}<p class="muted" data-e2e="sso-text-no-clients">{{t "sso.client.none"}}</p>{{end}}{{end}}

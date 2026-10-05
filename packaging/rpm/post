@@ -5,7 +5,7 @@
 # nothing is enabled or started: conductor needs "conductor setup" first.
 # systemd's own file triggers reload the manager at the end of the
 # transaction.
-UNITS="conductor-helper.service conductor.service"
+UNITS="conductor-helper.service conductor.service conductor-mfa.socket"
 if [ "$1" -eq 1 ]; then
 	if [ -x /usr/lib/systemd/systemd-update-helper ]; then
 		/usr/lib/systemd/systemd-update-helper install-system-units $UNITS || :

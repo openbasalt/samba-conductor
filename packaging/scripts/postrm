@@ -6,7 +6,7 @@
 # copies), and a reused UID would own them.
 set -e
 
-ENABLE="conductor-helper.service conductor.service"
+ENABLE="conductor-helper.service conductor.service conductor-mfa.socket"
 
 case "$1" in
 remove)

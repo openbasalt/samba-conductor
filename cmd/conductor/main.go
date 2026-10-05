@@ -20,13 +20,16 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"os/user"
 	"runtime/debug"
 	"strconv"
+	"strings"
 	"syscall"
 	"time"
 
 	"github.com/openbasalt/samba-conductor-ad/helper"
 	"github.com/openbasalt/samba-conductor-files/filesapi"
+	"github.com/openbasalt/samba-conductor-idp/idpapi"
 	"github.com/openbasalt/samba-conductor-sync/syncapi"
 	"github.com/openbasalt/samba-conductor/internal/config"
 	"github.com/openbasalt/samba-conductor/internal/directory"
@@ -150,14 +153,37 @@ func cmdServe(args []string) error {
 		log.Info("file servers section on", "key", c.id.Pin, "name", c.name)
 		fc = c
 	}
-	srv, err := web.New(web.Deps{Config: cfg, Store: st, Backend: dir, MFABox: box, Helper: hc, Sync: sc, Files: fc, Logger: log, Version: buildVersion()})
+	var ic web.IDPClient
+	if cfg.IDP.Enabled {
+		ic = idpClient{socket: cfg.IDP.Socket}
+	}
+	srv, err := web.New(web.Deps{Config: cfg, Store: st, Backend: dir, MFABox: box, Helper: hc, Sync: sc, Files: fc, IDP: ic,
+		Logger: log, Version: buildVersion()})
 	if err != nil {
 		return err
 	}
 	if err := srv.Start(ctx); err != nil {
 		return err
 	}
-	ln, err := listener(cfg)
+	fds := activationFiles()
+	if cfg.IDP.MFASocket {
+		mln, err := mfaListener(cfg, fds["mfa"])
+		if err != nil {
+			return fmt.Errorf("2FA socket: %w", err)
+		}
+		uids, err := lookupUIDs(cfg.MFAAllowedUserNames(), cfg.IDP.MFAAllowedUIDs)
+		if err != nil {
+			return fmt.Errorf("2FA socket: %w", err)
+		}
+		log.Info("2FA socket for conductor-idp", "socket", mln.Addr().String(), "allowed_uids", uids)
+		go func() {
+			if err := srv.ServeMFA(ctx, mln, uids); err != nil {
+				log.Error("2FA socket stopped", "err", err)
+			}
+		}()
+	}
+	delete(fds, "mfa")
+	ln, err := listener(cfg, fds)
 	if err != nil {
 		return err
 	}
@@ -193,18 +219,118 @@ func cmdServe(args []string) error {
 	return hs.Shutdown(sctx)
 }
 
+// activationFiles returns the sockets passed by systemd, by name
+// (FileDescriptorName=; unnamed ones are called "unknown" or after their
+// unit). The 2FA socket unit names its socket "mfa".
+func activationFiles() map[string]*os.File {
+	out := map[string]*os.File{}
+	if pid, _ := strconv.Atoi(os.Getenv("LISTEN_PID")); pid != os.Getpid() {
+		return out
+	}
+	n, _ := strconv.Atoi(os.Getenv("LISTEN_FDS"))
+	names := strings.Split(os.Getenv("LISTEN_FDNAMES"), ":")
+	for i := 0; i < n; i++ {
+		name := "unknown"
+		if i < len(names) && names[i] != "" {
+			name = names[i]
+		}
+		if _, dup := out[name]; dup {
+			name = fmt.Sprintf("%s.%d", name, i)
+		}
+		out[name] = os.NewFile(uintptr(3+i), "systemd-"+name)
+	}
+	_ = os.Unsetenv("LISTEN_PID")
+	_ = os.Unsetenv("LISTEN_FDS")
+	_ = os.Unsetenv("LISTEN_FDNAMES")
+	return out
+}
+
 // listener uses a socket passed by systemd (socket activation, e.g. port
 // 443 without any capability) or opens server.listen.
-func listener(cfg *config.Config) (net.Listener, error) {
-	if pid, _ := strconv.Atoi(os.Getenv("LISTEN_PID")); pid == os.Getpid() {
-		if n, _ := strconv.Atoi(os.Getenv("LISTEN_FDS")); n >= 1 {
-			f := os.NewFile(3, "systemd-socket")
-			ln, err := net.FileListener(f)
-			_ = f.Close()
-			return ln, err
-		}
+func listener(cfg *config.Config, fds map[string]*os.File) (net.Listener, error) {
+	for _, f := range fds {
+		ln, err := net.FileListener(f)
+		_ = f.Close()
+		return ln, err
 	}
 	return net.Listen("tcp", cfg.Server.Listen)
+}
+
+// mfaListener is the 2FA socket: the one systemd passed
+// (conductor-mfa.socket) or idp.mfa_socket_path created here (mode 0660,
+// group idp.mfa_socket_group).
+func mfaListener(cfg *config.Config, f *os.File) (*net.UnixListener, error) {
+	if f != nil {
+		l, err := net.FileListener(f)
+		_ = f.Close()
+		if err != nil {
+			return nil, err
+		}
+		ul, ok := l.(*net.UnixListener)
+		if !ok {
+			_ = l.Close()
+			return nil, errors.New("systemd passed a non-Unix socket as \"mfa\"")
+		}
+		return ul, nil
+	}
+	path := cfg.IDP.MFASocketPath
+	if st, err := os.Lstat(path); err == nil {
+		if st.Mode()&os.ModeSocket == 0 {
+			return nil, fmt.Errorf("%s exists and is not a socket", path)
+		}
+		_ = os.Remove(path)
+	}
+	old := syscall.Umask(0o117)
+	ln, err := net.ListenUnix("unix", &net.UnixAddr{Name: path, Net: "unix"})
+	syscall.Umask(old)
+	if err != nil {
+		return nil, err
+	}
+	ln.SetUnlinkOnClose(true)
+	if g := cfg.IDP.MFASocketGroup; g != "" {
+		gid, err := strconv.Atoi(g)
+		if err != nil {
+			grp, lerr := user.LookupGroup(g)
+			if lerr != nil {
+				_ = ln.Close()
+				return nil, lerr
+			}
+			gid, _ = strconv.Atoi(grp.Gid)
+		}
+		if err := os.Chown(path, -1, gid); err != nil {
+			_ = ln.Close()
+			return nil, fmt.Errorf("socket group %s: %w (conductor's user must be a member)", g, err)
+		}
+	}
+	if err := os.Chmod(path, 0o660); err != nil {
+		_ = ln.Close()
+		return nil, err
+	}
+	return ln, nil
+}
+
+// lookupUIDs resolves user names and adds explicit UIDs.
+func lookupUIDs(names []string, uids []int) ([]int, error) {
+	out := append([]int(nil), uids...)
+	for _, n := range names {
+		u, err := user.Lookup(n)
+		if err != nil {
+			return nil, fmt.Errorf("user %q: %w", n, err)
+		}
+		id, err := strconv.Atoi(u.Uid)
+		if err != nil {
+			return nil, err
+		}
+		out = append(out, id)
+	}
+	return out, nil
+}
+
+// idpClient calls conductor-idp's management API.
+type idpClient struct{ socket string }
+
+func (c idpClient) Call(ctx context.Context, req idpapi.Request) (idpapi.Response, error) {
+	return idpapi.Call(ctx, c.socket, req)
 }
 
 // syncClient calls conductor-sync's management API.

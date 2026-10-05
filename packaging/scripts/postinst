@@ -6,7 +6,7 @@
 # units that are running and keeps the administrator's enabled state.
 set -e
 
-ENABLE="conductor-helper.service conductor.service"
+ENABLE="conductor-helper.service conductor.service conductor-mfa.socket"
 RESTART="conductor-helper.service conductor.service"
 
 # override OWNER GROUP MODE PATH: a dpkg-statoverride for a path the package

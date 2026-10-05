@@ -12,6 +12,7 @@ import (
 	"fmt"
 	"html/template"
 	"log/slog"
+	"net"
 	"net/http"
 	"net/netip"
 	"sync"
@@ -56,7 +57,9 @@ type Deps struct {
 	// Sync is conductor-sync's management API (nil when [sync] is off).
 	Sync SyncClient
 	// Files reaches the conductor-files agents (nil when [files] is off).
-	Files   FilesClient
+	Files FilesClient
+	// IDP is conductor-idp's management API (nil when [idp] is off).
+	IDP     IDPClient
 	Logger  *slog.Logger
 	Version string
 }
@@ -112,6 +115,13 @@ type Server struct {
 	// filesStatus caches their status (list, dashboard).
 	files       FilesClient
 	filesStatus filesCache
+
+	// idp is conductor-idp's management API (nil when [idp] is off).
+	idp IDPClient
+	// idpCeremonies are WebAuthn assertions started for conductor-idp
+	// through the 2FA socket; mfaPeerCred replaces SO_PEERCRED in tests.
+	idpCeremonies idpCeremonies
+	mfaPeerCred   func(*net.UnixConn) (int, error)
 }
 
 // New builds the server.
@@ -127,7 +137,7 @@ func New(d Deps) (*Server, error) {
 		return nil, err
 	}
 	s := &Server{cfg: d.Config, store: d.Store, backend: d.Backend, box: d.MFABox, helper: d.Helper, log: d.Logger,
-		cat: cat, version: d.Version, now: time.Now, sync: d.Sync, files: d.Files}
+		cat: cat, version: d.Version, now: time.Now, sync: d.Sync, files: d.Files, idp: d.IDP}
 	for _, p := range d.Config.Server.TrustedProxies {
 		pre, err := netip.ParsePrefix(p)
 		if err != nil {

@@ -85,6 +85,10 @@ contents:
     dst: /usr/lib/systemd/system/conductor.service
     file_info: {mode: 0644}
   - expand: true
+    src: ${BUILD}/systemd/conductor-mfa.socket
+    dst: /usr/lib/systemd/system/conductor-mfa.socket
+    file_info: {mode: 0644}
+  - expand: true
     src: ${BUILD}/systemd/conductor-helper.service
     dst: /usr/lib/systemd/system/conductor-helper.service
     file_info: {mode: 0644}

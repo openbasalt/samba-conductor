@@ -105,6 +105,9 @@ type Session struct {
 	syncConn *syncConnDraft
 	// filesDraft is the share wizard in progress.
 	filesDraft *filesDraft
+	// ssoSecrets are client secrets returned by conductor-idp, kept until
+	// shown once (by a random reference in the URL).
+	ssoSecrets map[string]ssoSecret
 }
 
 type flash struct {

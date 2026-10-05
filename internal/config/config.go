@@ -46,6 +46,40 @@ type Config struct {
 	Tools     Tools     `toml:"tools"`
 	Sync      Sync      `toml:"sync"`
 	Files     Files     `toml:"files"`
+	IDP       IDP       `toml:"idp"`
+}
+
+// IDP connects conductor with conductor-idp. Two independent parts, both
+// off by default:
+//
+//   - Enabled: the "Single sign-on" section of the admin UI, which drives
+//     conductor-idp's management API (idpapi) over a local Unix socket.
+//   - MFASocket: conductor serves its 2FA store to conductor-idp (one
+//     enrollment and one policy for both, security keys included), on a
+//     Unix socket only conductor-idp's user may use (SO_PEERCRED).
+type IDP struct {
+	Enabled bool   `toml:"enabled"`
+	Socket  string `toml:"socket"`
+	// MFASocket enables the 2FA socket.
+	MFASocket bool `toml:"mfa_socket"`
+	// MFASocketPath is used when systemd passes no socket
+	// (conductor-mfa.socket does, with FileDescriptorName=mfa).
+	MFASocketPath string `toml:"mfa_socket_path"`
+	// MFASocketGroup owns a socket conductor creates itself (the
+	// conductor-idp group; conductor's user must be a member).
+	MFASocketGroup string `toml:"mfa_socket_group"`
+	// MFAAllowedUsers and MFAAllowedUIDs may use the 2FA socket; default
+	// the conductor-idp user.
+	MFAAllowedUsers []string `toml:"mfa_allowed_users"`
+	MFAAllowedUIDs  []int    `toml:"mfa_allowed_uids"`
+}
+
+// MFAAllowedUserNames returns the users admitted to the 2FA socket by name.
+func (c *Config) MFAAllowedUserNames() []string {
+	if len(c.IDP.MFAAllowedUsers) == 0 && len(c.IDP.MFAAllowedUIDs) == 0 {
+		return []string{"conductor-idp"}
+	}
+	return c.IDP.MFAAllowedUsers
 }
 
 // Files is the File servers section of the admin UI: conductor drives the
@@ -83,6 +117,13 @@ type WebAuthn struct {
 	// AdminRequired makes a security key mandatory for administrators:
 	// TOTP codes are no longer accepted for them (recovery codes are).
 	AdminRequired bool `toml:"admin_required"`
+	// RelatedOrigins are extra origins outside rp_id that may use the same
+	// keys (WebAuthn related origins: conductor serves them at
+	// /.well-known/webauthn, which browsers fetch from https://<rp_id>, so
+	// conductor must answer on the rp_id host). Origins below rp_id (the
+	// IdP on idp.example.com with rp_id example.com) need no listing here,
+	// only in origins.
+	RelatedOrigins []string `toml:"related_origins"`
 }
 
 // Enabled reports whether WebAuthn is configured.
@@ -233,6 +274,7 @@ func Default() *Config {
 		Tools:     Tools{SambaTool: "/usr/bin/samba-tool"},
 		Sync:      Sync{Socket: "/run/conductor-sync/api.sock"},
 		Files:     Files{KeyDir: "/var/lib/conductor/files"},
+		IDP:       IDP{Socket: "/run/conductor-idp/api.sock", MFASocketPath: "/run/conductor/mfa.sock"},
 	}
 }
 
@@ -328,13 +370,37 @@ func (c *Config) Validate() error {
 				bad("webauthn.origins %q must be https://host[:port] with host = rp_id or below it", o)
 			}
 		}
+		for _, o := range w.RelatedOrigins {
+			u, err := url.Parse(o)
+			if err != nil || u.Scheme != "https" || u.Host == "" || u.Path != "" || u.RawQuery != "" {
+				bad("webauthn.related_origins %q must be https://host[:port]", o)
+			}
+		}
 		if w.DisplayName == "" || len(w.DisplayName) > 64 {
 			bad("webauthn.display_name must be 1-64 characters")
 		}
 	} else if c.WebAuthn.AdminRequired {
 		bad("webauthn.admin_required needs webauthn.rp_id")
-	} else if len(c.WebAuthn.Origins) > 0 {
-		bad("webauthn.origins needs webauthn.rp_id")
+	} else if len(c.WebAuthn.Origins) > 0 || len(c.WebAuthn.RelatedOrigins) > 0 {
+		bad("webauthn.origins and related_origins need webauthn.rp_id")
+	}
+	if c.IDP.Enabled && !filepath.IsAbs(c.IDP.Socket) {
+		bad("idp.socket must be absolute")
+	}
+	if c.IDP.MFASocket {
+		if !filepath.IsAbs(c.IDP.MFASocketPath) {
+			bad("idp.mfa_socket_path must be absolute")
+		}
+		for _, u := range c.IDP.MFAAllowedUIDs {
+			if u <= 0 {
+				bad("idp.mfa_allowed_uids: root and negative UIDs are not allowed")
+			}
+		}
+		for _, u := range c.IDP.MFAAllowedUsers {
+			if u == "" || u == "root" || u == "conductor" || strings.ContainsAny(u, " :/") {
+				bad("idp.mfa_allowed_users: %q is not allowed", u)
+			}
+		}
 	}
 	if c.Bulk.MaxRows < 1 || c.Bulk.MaxRows > 100000 {
 		bad("bulk.max_rows must be 1-100000")
@@ -358,6 +424,12 @@ func (c *Config) Validate() error {
 func hostWithin(host, rpID string) bool {
 	h, r := strings.ToLower(host), strings.ToLower(rpID)
 	return h == r || strings.HasSuffix(h, "."+r)
+}
+
+// WebAuthnAllOrigins are every origin a ceremony may come from: the
+// origins (under rp_id) and the related origins.
+func (c *Config) WebAuthnAllOrigins() []string {
+	return append(slices.Clone(c.WebAuthnOrigins()), c.WebAuthn.RelatedOrigins...)
 }
 
 // WebAuthnOrigins returns the configured origins, or the default derived

@@ -54,6 +54,14 @@ and the AD access layer in the
   purpose and single use. The user handle is a hash of the user's SID.
 - TOTP secrets are sealed with AES-256-GCM (additional data: the user's
   SID) under a key from systemd `LoadCredential`.
+- conductor-idp can use this second factor instead of its own (`[idp]
+  mfa_socket`): a local socket only conductor-idp's user may use
+  (SO_PEERCRED) answers whether a user is enrolled and must use a second
+  factor (from the user's group SIDs, mapped to conductor's roles exactly
+  as at sign-in), verifies codes (refusing TOTP when a key is mandatory)
+  and runs WebAuthn assertions for the IdP's page (ceremonies kept here,
+  single use, five minutes). Wrong codes count against the same per-user
+  limit as conductor's sign-in; every verification is audited.
 
 ## Roles
 
@@ -216,6 +224,17 @@ and the AD access layer in the
   through its local management API. An apply requires typing a
   confirmation containing the start of the plan digest plus a fresh second
   factor.
+
+- Single sign-on (administrators only): the applications, signing keys,
+  settings and activity of
+  [conductor-idp](https://github.com/openbasalt/samba-conductor-idp/blob/main/docs/design.md)
+  through its local management API. OpenID Connect clients and SAML
+  service providers are added from guided presets (Google Workspace,
+  Grafana, Nextcloud, GitLab, generic) or SAML metadata (URL, file or
+  text); allowed groups are picked from the directory by SID; a preview
+  shows the claims or the assertion a real user would get, which also
+  validates the draft. Every change is previewed and confirmed with a
+  fresh second factor; a client secret is shown once and kept nowhere.
 
 ## Decisions
 

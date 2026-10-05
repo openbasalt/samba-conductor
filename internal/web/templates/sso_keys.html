@@ -1,0 +1,27 @@
+{{define "title"}}{{t "sso.tab.keys"}}{{end}}
+{{define "content"}}<h1>{{t "sso.tab.keys"}}</h1>
+{{template "sso-subnav" .}}
+{{template "error-alert" .D.Error}}
+{{with .D.K}}<p class="hint">{{t "sso.keys.intro" .RotateDays .OverlapHours}}</p>
+<section class="card" aria-labelledby="k-oidc" data-e2e="sso-card-keys-oidc">
+  <h2 id="k-oidc">{{t "sso.keys.oidc"}}</h2>
+  <table class="table" data-e2e="sso-table-keys-oidc"><thead><tr><th>{{t "sso.keys.id"}}</th><th>{{t "sso.keys.created"}}</th><th>{{t "sso.col.state"}}</th></tr></thead>
+  <tbody>{{range .OIDC}}<tr data-e2e="sso-key-{{e2e .ID}}"><td class="mono small">{{.ID}} <span class="muted">{{.Alg}}</span></td><td data-label="{{t "sso.keys.created"}}" class="small">{{time .CreatedAt}}</td>
+    <td data-label="{{t "sso.col.state"}}">{{if .Signing}}<span class="badge badge-ok">{{t "sso.keys.signing"}}</span>{{else}}<span class="badge">{{t "sso.keys.published_until" (time .RetireAt)}}</span>{{end}}</td></tr>{{end}}</tbody></table>
+  <p class="small">{{t "sso.keys.next_oidc" (time .NextOIDCRotation)}}</p>
+  {{if $.D.CanWrite}}<form method="post" action="/admin/sso/keys/rotate">{{template "csrf" $}}<input type="hidden" name="purpose" value="oidc"><button class="btn btn-small" type="submit" data-e2e="sso-btn-rotate-oidc">{{t "sso.keys.rotate_now"}}</button></form>{{end}}
+</section>
+{{if .SAMLEnabled}}<section class="card" aria-labelledby="k-saml" data-e2e="sso-card-keys-saml">
+  <h2 id="k-saml">{{t "sso.keys.saml"}}</h2>
+  {{if not .SAMLSwitchAt.IsZero}}<div class="alert-warn" data-e2e="sso-alert-saml-staged">{{t "sso.keys.saml_staged_long" (time .SAMLSwitchAt)}}</div>{{end}}
+  <table class="table" data-e2e="sso-table-keys-saml"><thead><tr><th>{{t "sso.keys.cert"}}</th><th>{{t "sso.keys.created"}}</th><th>{{t "sso.col.state"}}</th><th></th></tr></thead>
+  <tbody>{{range .SAML}}<tr data-e2e="sso-key-{{e2e .ID}}"><td class="small">{{with .Cert}}{{.Subject}}<br><span class="mono muted">SHA-256 {{.SHA256}}</span><br><span class="muted">{{t "sso.cert.until" (time .NotAfter)}}</span>{{end}}</td>
+    <td data-label="{{t "sso.keys.created"}}" class="small">{{time .CreatedAt}}</td>
+    <td data-label="{{t "sso.col.state"}}">{{if .Signing}}<span class="badge badge-ok">{{t "sso.keys.signing"}}</span>{{if not .RetireAt.IsZero}} <span class="badge badge-warn">{{t "sso.keys.replaced_at" (time .RetireAt)}}</span>{{end}}{{else}}<span class="badge badge-warn">{{t "sso.keys.next"}}</span>{{end}}</td>
+    <td><a class="btn btn-small" href="/admin/sso/keys/saml.pem?id={{.ID}}" data-e2e="sso-link-cert-{{e2e .ID}}">{{t "sso.keys.download"}}</a></td></tr>{{end}}</tbody></table>
+  {{if $.D.CanWrite}}<div class="row">
+    <form method="post" action="/admin/sso/keys/rotate">{{template "csrf" $}}<input type="hidden" name="purpose" value="saml"><button class="btn btn-small" type="submit" data-e2e="sso-btn-rotate-saml">{{t "sso.keys.rotate_staged"}}</button></form>
+    <form method="post" action="/admin/sso/keys/rotate">{{template "csrf" $}}<input type="hidden" name="purpose" value="saml"><input type="hidden" name="immediate" value="1"><button class="btn btn-danger btn-small" type="submit" data-e2e="sso-btn-rotate-saml-now">{{t "sso.keys.rotate_emergency"}}</button></form>
+  </div>
+  <p class="hint">{{t "sso.keys.saml_hint"}}</p>{{end}}
+</section>{{end}}{{end}}{{end}}

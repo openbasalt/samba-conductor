@@ -46,12 +46,15 @@ const (
 
 	PermFilesRead  Perm = "files.read"  // file servers: status, shares, permissions, sessions
 	PermFilesWrite Perm = "files.write" // enroll/remove servers, create/edit/remove shares
+
+	PermSSORead  Perm = "sso.read"  // single sign-on (conductor-idp): applications, keys, settings, activity
+	PermSSOWrite Perm = "sso.write" // register and change applications, rotate keys, settings (administrators only)
 )
 
 // allPerms lists every privileged permission (navigation, tests).
 var allPerms = []Perm{PermDashboard, PermUsersRead, PermUsersHelpdesk, PermUsersWrite, PermDirRead, PermDirWrite,
 	PermAuditRead, PermDomainRead, PermMFAManage, PermDNSRead, PermDNSWrite, PermGPORead, PermGPOWrite,
-	PermPolicyRead, PermPolicyWrite, PermHealthRead, PermBulk, PermBackupRead, PermBackupWrite, PermSyncRead, PermSyncWrite, PermFilesRead, PermFilesWrite}
+	PermPolicyRead, PermPolicyWrite, PermHealthRead, PermBulk, PermBackupRead, PermBackupWrite, PermSyncRead, PermSyncWrite, PermFilesRead, PermFilesWrite, PermSSORead, PermSSOWrite}
 
 // privileged reports whether p is beyond self-service.
 func (p Perm) privileged() bool {

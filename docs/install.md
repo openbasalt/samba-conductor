@@ -192,3 +192,26 @@ Helpdesk and auditor accounts enroll on their first sign-in
   (<https://github.com/openbasalt/samba-conductor-sync/blob/main/docs/usage-p5.md>) with its API socket
   (`conductor-sync-api.socket`, group `conductor`), then `[sync] enabled =
   true` in `conductor.toml` and restart conductor (`usage-p5b.md`).
+- Single sign-on (optional): install conductor-idp on this host
+  (<https://github.com/openbasalt/samba-conductor-idp/blob/main/docs/install.md>,
+  sections 8 and 9) with its API socket (`conductor-idp-api.socket`, group
+  `conductor`), then `[idp] enabled = true` in `conductor.toml` and restart
+  conductor (`usage-p4b.md`).
+- One second factor for conductor and conductor-idp (optional, same host):
+  `[idp] mfa_socket = true` in `conductor.toml`, then
+
+  ```sh
+  sudo install -d /etc/systemd/system/conductor.service.d
+  printf '[Service]\nPrivateUsers=no\n' | sudo tee /etc/systemd/system/conductor.service.d/mfa-socket.conf
+  sudo systemctl daemon-reload
+  sudo systemctl stop conductor                 # a socket unit does not start while its service runs
+  sudo systemctl enable --now conductor-mfa.socket
+  sudo systemctl start conductor
+  ```
+
+  and `mfa.backend = "conductor"` in `idp.toml`. The socket is owned by
+  conductor with the `conductor-idp` group (0660), so conductor-idp must
+  be installed first; `PrivateUsers=no` lets conductor see the peer's UID
+  (in a private user namespace every peer reads as `nobody` and the
+  SO_PEERCRED check refuses conductor-idp). For passkeys at the IdP, see
+  `[webauthn]` in `config.md`.

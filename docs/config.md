@@ -133,6 +133,14 @@ next to TOTP. Off while `rp_id` is empty.
 | `origins` | derived | Origins allowed in ceremonies, `https://host[:port]`, host = `rp_id` or below it. Default: `https://<rp_id>` plus the `listen` port when it is not 443 (behind a proxy: no port). |
 | `display_name` | `"Samba Conductor"` | Name the browser shows while registering a key. |
 | `admin_required` | `false` | Administrators must use a security key: TOTP codes are no longer accepted for them at sign-in and re-authentication (recovery codes are, as the emergency path). An administrator without a key registers one right after the TOTP step. |
+| `related_origins` | `[]` | Extra origins on other domains that may use the same keys (WebAuthn related origins), served at `/.well-known/webauthn`. Browsers fetch that from `https://<rp_id>`, so conductor must answer on the `rp_id` host. Origins below `rp_id` (conductor-idp on `idp.example.com` with `rp_id = "example.com"`) go in `origins` instead. |
+
+To let conductor-idp use these keys (its 2FA backend `conductor`, see
+`[idp]`), the IdP's origin must be allowed: with conductor on
+`conductor.example.com:8443` and the IdP on `idp.example.com:9443`, set
+`rp_id = "example.com"` and `origins = ["https://conductor.example.com:8443",
+"https://idp.example.com:9443"]`. Changing `rp_id` invalidates the keys
+already registered.
 
 The browser part is `/static/webauthn.js`, the only script conductor has.
 It is loaded only on the second-factor pages (sign-in 2FA, enrollment,
@@ -158,6 +166,17 @@ nonce and Subresource Integrity; it makes no requests of its own
 |---|---|---|
 | `enabled` | `false` | Show the "Google Workspace sync" section (administrators only) and drive conductor-sync through its management API. Needs `conductor-sync serve` (conductor-sync's `conductor-sync-api.socket`) on this host. |
 | `socket` | `"/run/conductor-sync/api.sock"` | The API socket (owner conductor-sync, group conductor, 0660; conductor-sync admits only the conductor user, SO_PEERCRED). |
+
+## `[idp]`
+
+| Key | Default | Meaning |
+|---|---|---|
+| `enabled` | `false` | Show the "Single sign-on" section (administrators only) and drive conductor-idp through its management API. Needs conductor-idp on this host with `[api] enabled = true` and `conductor-idp-api.socket`. |
+| `socket` | `"/run/conductor-idp/api.sock"` | The API socket (owner conductor-idp, group conductor, 0660; conductor-idp admits only the conductor user, SO_PEERCRED). |
+| `mfa_socket` | `false` | Serve conductor's second factor to conductor-idp (its `mfa.backend = "conductor"`): one enrollment (TOTP, recovery codes, security keys) and conductor's policy for both. Every verification is rate limited per user and audited here (`idp.mfa_*`). |
+| `mfa_socket_path` | `"/run/conductor/mfa.sock"` | Used when systemd passes no socket (`conductor-mfa.socket` passes it under the name `mfa`). |
+| `mfa_socket_group` | `""` | Group of a socket conductor creates itself (the conductor-idp group; conductor's user must be a member). Unused with socket activation. |
+| `mfa_allowed_users`, `mfa_allowed_uids` | `["conductor-idp"]` | Who may use the 2FA socket (SO_PEERCRED). Root and conductor are refused. |
 
 ## `[files]`
 

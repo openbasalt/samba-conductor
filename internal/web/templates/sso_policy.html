@@ -1,0 +1,29 @@
+{{define "title"}}{{t "sso.tab.policy"}}{{end}}
+{{define "content"}}<h1>{{t "sso.tab.policy"}}</h1>
+{{template "sso-subnav" .}}
+{{template "error-alert" .D.Error}}
+{{with .D.V}}<section class="card" aria-labelledby="pol-mfa" data-e2e="sso-card-policy-mfa">
+  <h2 id="pol-mfa">{{t "sso.policy.mfa"}}</h2>
+  {{if .MFAPolicyShared}}<p data-e2e="sso-text-mfa-shared">{{t "sso.policy.mfa_shared"}}</p>
+  <dl class="props"><dt>{{t "sso.policy.admins"}}</dt><dd>{{t "sso.policy.always"}}{{if $.D.ConductorKeys}} · {{t "sso.policy.keys_required"}}{{end}}</dd>
+    <dt>{{t "sso.policy.delegated"}}</dt><dd>{{if $.D.ConductorDelegated}}{{t "sso.policy.always"}}{{else}}{{t (print "sso.policy." $.D.ConductorPolicy)}}{{end}}</dd>
+    <dt>{{t "sso.policy.others"}}</dt><dd data-e2e="sso-text-conductor-policy">{{t (print "sso.policy." $.D.ConductorPolicy)}}</dd></dl>
+  <p class="hint">{{t "sso.policy.mfa_shared_hint"}}</p>
+  {{else}}<p data-e2e="sso-text-mfa-local">{{t "sso.policy.mfa_local"}}</p>{{if not $.D.MFASocket}}<p class="hint">{{t "sso.policy.mfa_local_hint"}}</p>{{end}}{{end}}
+</section>
+<form method="post" action="/admin/sso/policy" class="card" autocomplete="off" data-e2e="sso-form-policy">
+  {{template "csrf" $}}
+  <h2>{{t "sso.policy.sessions"}}</h2>
+  <p class="hint">{{t "sso.policy.sessions_hint"}}</p>
+  <div class="grid grid-2">
+    <div class="field"><label for="p-idle">{{t "sso.policy.idle"}}</label><input id="p-idle" name="session_idle_minutes" type="number" min="1" max="1440" value="{{.Settings.SessionIdleMinutes}}" required data-e2e="sso-input-policy-idle"><span class="hint">{{t "sso.policy.default" .Defaults.SessionIdleMinutes}}</span></div>
+    <div class="field"><label for="p-abs">{{t "sso.policy.absolute"}}</label><input id="p-abs" name="session_absolute_hours" type="number" min="1" max="24" value="{{.Settings.SessionAbsoluteHours}}" required data-e2e="sso-input-policy-absolute"><span class="hint">{{t "sso.policy.default" .Defaults.SessionAbsoluteHours}}</span></div>
+  </div>
+  {{if not .MFAPolicyShared}}<div class="field"><label for="p-mfa">{{t "sso.policy.others"}}</label><select id="p-mfa" name="mfa_policy" data-e2e="sso-select-policy-mfa">{{range $.D.Policies}}<option value="{{.}}"{{if eq . $.D.V.Settings.MFAPolicy}} selected{{end}}>{{t (print "sso.policy." .)}}</option>{{end}}</select><span class="hint">{{t "sso.policy.admins_always"}}</span></div>
+  {{else}}<input type="hidden" name="mfa_policy" value="{{.Settings.MFAPolicy}}">{{end}}
+  <h2>{{t "sso.policy.consent"}}</h2>
+  <p class="hint">{{t "sso.policy.consent_hint"}}</p>
+  {{range $.D.Languages}}<div class="field"><label for="p-c-{{.}}">{{t (print "sso.lang." .)}}</label><textarea id="p-c-{{.}}" name="consent_{{.}}" rows="3" maxlength="2000" data-e2e="sso-input-consent-{{e2e .}}">{{index $.D.V.Settings.ConsentText .}}</textarea></div>{{end}}
+  <p class="small muted" data-e2e="sso-text-policy-version">{{if .Version}}{{t "sso.policy.version" .Version (time .UpdatedAt)}}{{else}}{{t "sso.policy.from_file"}}{{end}}</p>
+  {{if $.D.CanWrite}}<div class="actions"><button class="btn btn-primary" type="submit" data-e2e="sso-btn-policy-save">{{t "sso.review_button"}}</button></div>{{end}}
+</form>{{end}}{{end}}

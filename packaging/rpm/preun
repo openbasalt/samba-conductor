@@ -1,7 +1,7 @@
 #!/bin/sh
 # %preun of conductor (RPM), as Fedora's %systemd_preun: on removal (not on
 # upgrade) the units are disabled and stopped.
-UNITS="conductor-helper.service conductor.service"
+UNITS="conductor-helper.service conductor.service conductor-mfa.socket"
 if [ "$1" -eq 0 ]; then
 	if [ -x /usr/lib/systemd/systemd-update-helper ]; then
 		/usr/lib/systemd/systemd-update-helper remove-system-units $UNITS || :

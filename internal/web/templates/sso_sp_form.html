@@ -1,0 +1,72 @@
+{{define "title"}}{{if .D.F.Edit}}{{t "sso.sp.edit" .D.F.Name}}{{else}}{{t "sso.sp.new"}}{{end}}{{end}}
+{{define "content"}}{{$f := .D.F}}<h1>{{if $f.Edit}}{{t "sso.sp.edit" $f.Name}}{{else}}{{t "sso.sp.new"}}{{end}}</h1>
+{{template "sso-subnav" .}}
+{{if .D.PresetName}}<div class="alert-info" data-e2e="sso-text-preset">{{t "sso.preset.applied" .D.PresetName}} {{t (print "sso.preset." .D.PresetID ".after")}}</div>{{end}}
+{{template "error-alert" .D.Error}}
+{{range $f.Warnings}}<div class="alert-warn" data-e2e="sso-warning-{{e2e .}}">{{t (print "sso.sp.warn." .)}}</div>{{end}}
+{{if and (not $f.Edit) (not $f.EntityID) (not .D.PresetName)}}<section class="card" aria-labelledby="sp-import" data-e2e="sso-card-sp-import">
+  <h2 id="sp-import">{{t "sso.sp.import"}}</h2>
+  <p class="hint">{{t "sso.sp.import_hint"}}</p>
+  <form method="post" action="/admin/sso/saml/import" enctype="multipart/form-data" autocomplete="off" data-e2e="sso-form-sp-import">
+    {{template "csrf" .}}
+    <div class="field"><label for="m-url">{{t "sso.sp.metadata_url"}}</label><input id="m-url" name="url" type="url" placeholder="https://app.example.com/saml/metadata" data-e2e="sso-input-metadata-url"></div>
+    <div class="field"><label for="m-file">{{t "sso.sp.metadata_file"}}</label><input id="m-file" name="file" type="file" accept=".xml,application/xml,application/samlmetadata+xml" data-e2e="sso-input-metadata-file"></div>
+    <div class="field"><label for="m-xml">{{t "sso.sp.metadata_xml"}}</label><textarea id="m-xml" name="xml" rows="4" data-e2e="sso-input-metadata-xml"></textarea></div>
+    <button class="btn btn-primary" type="submit" data-e2e="sso-btn-import">{{t "sso.sp.import_button"}}</button>
+  </form>
+  <p class="small">{{t "sso.sp.or_manual"}}</p>
+</section>{{end}}
+<form method="post" action="/admin/sso/saml/form" autocomplete="off" data-e2e="sso-form-sp">
+  {{template "csrf" .}}
+  <button class="sr" type="submit" name="action" value="search" formnovalidate tabindex="-1" aria-hidden="true">{{t "sso.groups.search"}}</button>
+  {{if $f.Edit}}<input type="hidden" name="edit" value="1">{{end}}
+  {{if $f.Preset}}<input type="hidden" name="preset" value="{{$f.Preset}}">{{end}}
+  {{if $f.EncCert}}<input type="hidden" name="enc_cert" value="{{$f.EncCert}}">{{end}}
+  {{if $f.SignCert}}<input type="hidden" name="sign_cert" value="{{$f.SignCert}}">{{end}}
+  <section class="card" aria-labelledby="sp-app">
+    <h2 id="sp-app">{{t "sso.sp.registration"}}</h2>
+    <div class="field"><label for="s-name">{{t "sso.col.name"}}</label><input id="s-name" name="name" type="text" maxlength="100" required value="{{$f.Name}}" data-e2e="sso-input-sp-name"></div>
+    {{if $f.Edit}}<input type="hidden" name="entity_id" value="{{$f.EntityID}}"><p class="small">Entity ID: <code>{{$f.EntityID}}</code></p>
+    {{else}}<div class="field"><label for="s-entity">Entity ID</label><input id="s-entity" name="entity_id" type="text" maxlength="1024" required value="{{$f.EntityID}}" data-e2e="sso-input-sp-entity"><span class="hint">{{t "sso.sp.entity_hint"}}</span></div>{{end}}
+    <div class="field"><label for="s-acs">{{t "sso.sp.acs"}}</label><textarea id="s-acs" name="acs_urls" rows="2" required data-e2e="sso-input-sp-acs">{{$f.ACS}}</textarea><span class="hint">{{t "sso.sp.acs_hint"}}</span></div>
+    <div class="grid grid-2">
+      <div class="field"><label for="s-fmt">{{t "sso.sp.nameid_format"}}</label><select id="s-fmt" name="nameid_format" data-e2e="sso-select-nameid-format">{{range .D.Formats}}<option value="{{.}}"{{if eq . $f.Format}} selected{{end}}>{{.}}</option>{{end}}</select></div>
+      <div class="field"><label for="s-src">{{t "sso.sp.nameid_source"}}</label><select id="s-src" name="nameid_source" data-e2e="sso-select-nameid-source">{{range .D.NameIDSources}}<option value="{{.}}"{{if eq . $f.Source}} selected{{end}}>{{t (print "sso.source." .)}}</option>{{end}}</select></div>
+    </div>
+    <div class="field"><label for="s-attrs">{{t "sso.sp.attributes"}}</label><textarea id="s-attrs" name="attributes" rows="4" data-e2e="sso-input-sp-attributes">{{$f.Attrs}}</textarea><span class="hint">{{t "sso.sp.attributes_hint" (join .D.Sources ", ")}}</span></div>
+    <div class="check"><input id="s-mfa" name="require_mfa" type="checkbox" value="1"{{if $f.RequireMFA}} checked{{end}} data-e2e="sso-check-require-mfa"><label for="s-mfa">{{t "sso.require_mfa"}} <span class="hint">{{t "sso.require_mfa_hint"}}</span></label></div>
+    <div class="check"><input id="s-idp" name="idp_initiated" type="checkbox" value="1"{{if $f.IdPInitiated}} checked{{end}} data-e2e="sso-check-idp-initiated"><label for="s-idp">{{t "sso.sp.idp_initiated"}} <span class="hint">{{t "sso.sp.idp_initiated_hint"}}</span></label></div>
+    <div class="field"><label for="s-relay">{{t "sso.sp.relay"}}</label><input id="s-relay" name="default_relay" type="text" maxlength="512" value="{{$f.Relay}}" data-e2e="sso-input-sp-relay"></div>
+  </section>
+  <section class="card" aria-labelledby="sp-sec">
+    <h2 id="sp-sec">{{t "sso.sp.security"}}</h2>
+    <div class="check"><input id="s-enc" name="encrypt" type="checkbox" value="1"{{if $f.Encrypt}} checked{{end}} data-e2e="sso-check-encrypt"><label for="s-enc">{{t "sso.sp.encrypt"}} <span class="hint">{{t "sso.sp.encrypt_hint"}}</span></label></div>
+    <p class="small" data-e2e="sso-text-enc-cert">{{t "sso.sp.encryption_cert"}}: {{if $f.EncCert}}{{t "sso.sp.cert_from_metadata"}}{{else if and $f.Edit .D.SP}}{{with .D.SP.EncryptionInfo}}{{.Subject}}{{else}}-{{end}}{{else}}-{{end}}</p>
+    {{if and $f.Edit .D.SP}}{{if .D.SP.EncryptionInfo}}<div class="check"><input id="s-clr-enc" name="clear_enc" type="checkbox" value="1"{{if $f.ClearEnc}} checked{{end}}><label for="s-clr-enc">{{t "sso.sp.clear_cert"}}</label></div>{{end}}{{end}}
+    <h3>{{t "sso.sp.slo"}}</h3>
+    <p class="hint">{{t "sso.sp.slo_hint"}}</p>
+    <div class="grid grid-2">
+      <div class="field"><label for="s-slo">{{t "sso.sp.slo_url"}}</label><input id="s-slo" name="slo_url" type="text" value="{{$f.SLOURL}}" data-e2e="sso-input-sp-slo"></div>
+      <div class="field"><label for="s-slob">{{t "sso.sp.slo_binding"}}</label><select id="s-slob" name="slo_binding" data-e2e="sso-select-slo-binding">{{range .D.SLOBindings}}<option value="{{.}}"{{if eq . $f.SLOBinding}} selected{{end}}>{{t (print "sso.binding." (e2e .))}}</option>{{end}}</select></div>
+    </div>
+    <p class="small" data-e2e="sso-text-sign-cert">{{t "sso.sp.signing_cert"}}: {{if $f.SignCert}}{{t "sso.sp.cert_from_metadata"}}{{else if and $f.Edit .D.SP}}{{with .D.SP.SigningInfo}}{{.Subject}}{{else}}-{{end}}{{else}}-{{end}}</p>
+    {{if and $f.Edit .D.SP}}{{if .D.SP.SigningInfo}}<div class="check"><input id="s-clr-sign" name="clear_sign" type="checkbox" value="1"{{if $f.ClearSign}} checked{{end}}><label for="s-clr-sign">{{t "sso.sp.clear_cert"}}</label></div>{{end}}{{end}}
+  </section>
+  <section class="card" aria-labelledby="sp-access">
+    <h2 id="sp-access">{{t "sso.access"}}</h2>
+    <p class="hint">{{t "sso.access_hint"}}</p>
+    {{template "sso-picker" (dict "P" $ "Field" "group" "List" $f.Groups "Empty" "sso.groups.none")}}
+    <div class="check"><input id="s-all" name="allow_all" type="checkbox" value="1"{{if $f.AllowAll}} checked{{end}} data-e2e="sso-check-allow-all"><label for="s-all">{{t "sso.all_users_label"}} <span class="hint">{{t "sso.all_users_hint"}}</span></label></div>
+    <h3>{{t "sso.groups.find"}}</h3>
+    {{template "sso-search" (dict "D" (dict "F" $f "Hits" .D.Hits "DirError" .D.DirError "FilterAllowed" false))}}
+  </section>
+  <section class="card" aria-labelledby="sp-review">
+    <h2 id="sp-review">{{t "sso.review"}}</h2>
+    <div class="row"><label for="s-pu" class="small">{{t "sso.preview.user"}}</label><input id="s-pu" name="preview_user" type="text" value="{{$f.PreviewUser}}" placeholder="{{t "sso.preview.user_hint"}}" class="grow" data-e2e="sso-input-preview-user">
+      <button class="btn btn-small" type="submit" name="action" value="preview" data-e2e="sso-btn-preview">{{t "sso.preview.mapping"}}</button></div>
+    <div class="actions"><button class="btn btn-primary" type="submit" name="action" value="review" data-e2e="sso-btn-review">{{t "sso.review_button"}}</button>
+      <a class="btn" href="/admin/sso/saml" data-e2e="sso-link-cancel">{{t "form.cancel"}}</a></div>
+    <p class="hint">{{t "sso.review_hint"}}</p>
+  </section>
+</form>
+{{with .D.Preview}}{{template "sso-preview" .}}{{end}}{{end}}

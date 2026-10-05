@@ -1,0 +1,16 @@
+{{define "title"}}{{t "sso.new.title"}}{{end}}
+{{define "content"}}<h1>{{t "sso.new.title"}}</h1>
+{{template "sso-subnav" .}}
+<p class="hint">{{t "sso.new.intro"}}</p>
+<div class="grid grid-2" data-e2e="sso-list-presets">
+{{range .D.Presets}}<section class="card" data-e2e="sso-preset-{{.ID}}">
+  <h2>{{.Name}} <span class="badge">{{if eq .Kind "oidc"}}OpenID Connect{{else}}SAML 2.0{{end}}</span></h2>
+  <p class="small">{{t (print "sso.preset." .ID ".hint")}}</p>
+  <a class="btn btn-primary btn-small" href="/admin/sso/new/{{.ID}}" data-e2e="sso-link-preset-{{.ID}}">{{t "sso.new.choose"}}</a>
+</section>{{end}}
+</div>
+<section class="card" data-e2e="sso-card-import">
+  <h2>{{t "sso.sp.import"}}</h2>
+  <p class="small">{{t "sso.new.import_hint"}}</p>
+  <a class="btn btn-small" href="/admin/sso/saml/new" data-e2e="sso-link-import">{{t "sso.sp.import"}}</a>
+</section>{{end}}

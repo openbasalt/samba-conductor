@@ -10,6 +10,7 @@ import (
 	"net/url"
 	"path"
 	"regexp"
+	"slices"
 	"strings"
 	"time"
 
@@ -157,7 +158,9 @@ func (s *Server) funcs(lang string) template.FuncMap {
 			}
 			return int64(s.now().Sub(t) / (24 * time.Hour))
 		},
-		"has": func(m map[string]bool, k string) bool { return m[k] },
+		"has":    func(m map[string]bool, k string) bool { return m[k] },
+		"inList": func(list []string, v string) bool { return slices.Contains(list, v) },
+		"list":   func(v ...string) []string { return v },
 		// File servers: the folder picker's links.
 		"browse": func(srvID, p string) template.URL { return template.URL(browseLink(srvID, p)) },
 		"pathq":  url.PathEscape,
@@ -237,6 +240,8 @@ func (rc *reqCtx) render(status int, page string, d map[string]any) {
 			pd.Nav["sync"] = rc.s.sync != nil && rc.roles.Has(PermSyncRead)
 			// So does the File servers section.
 			pd.Nav["files"] = rc.s.files != nil && rc.roles.Has(PermFilesRead)
+			// And the Single sign-on section (conductor-idp).
+			pd.Nav["sso"] = rc.s.idp != nil && rc.roles.Has(PermSSORead)
 		}
 	}
 	if pd.CSRF == "" {

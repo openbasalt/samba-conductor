@@ -5,12 +5,18 @@
 # Run the Playwright suite on the lab host against conductor on the lab's
 # dc1, once per project (desktop, mobile), each on a freshly reset lab.
 #
-#   e2e/run-lab.sh                    # deploy + snapshot conductor-p2b, run both
-#   e2e/run-lab.sh --no-deploy        # reuse the conductor-p2b snapshot
+#   e2e/run-lab.sh                    # deploy + snapshot conductor-p4b, run both
+#   e2e/run-lab.sh --no-deploy        # reuse the conductor-p4b snapshot
 #   e2e/run-lab.sh --no-deploy desktop
 #   E2E_GREP='administrator|WebAuthn' e2e/run-lab.sh --no-deploy desktop   # a subset
 #   E2E_NO_RESET=1 E2E_STALE=1 E2E_GREP='forced 2FA|missed schedule' e2e/run-lab.sh --no-deploy desktop
 #                                     # the missed-schedule check (lab as it is)
+#
+# Single sign-on (P4b): conductor-idp runs on dc1 (:9444). The example SAML
+# SP (conductor-idp's cmd/example-sp) runs in a container next to the
+# browser (host network, http://localhost:8000), removed afterwards; the
+# spec registers it through conductor's panel. The OIDC relying party is
+# the browser itself (the spec intercepts its redirect URI).
 #
 # Secrets stay on the lab host: they go from ~/conductor-lab/secrets.env to
 # the container through a 0600 env file that is deleted afterwards. After
@@ -58,7 +64,7 @@ SSH="ssh -n -i $LAB_HOME/id_ed25519 -o BatchMode=yes -o UserKnownHostsFile=$LAB_
 cd "$HOME/samba-conductor/planning/lab"
 SSH_FS="ssh -n -i $LAB_HOME/id_ed25519 -o BatchMode=yes -o UserKnownHostsFile=$LAB_HOME/known_hosts -o LogLevel=ERROR debian@10.93.0.20"
 SSH_DC2="ssh -i $LAB_HOME/id_ed25519 -o BatchMode=yes -o UserKnownHostsFile=$LAB_HOME/known_hosts -o LogLevel=ERROR debian@10.93.0.11"
-[ "$noreset" = 1 ] || ./reset.sh conductor-p2b </dev/null >/dev/null 2>&1
+[ "$noreset" = 1 ] || ./reset.sh conductor-p4b </dev/null >/dev/null 2>&1
 $SSH 'for i in $(seq 90); do ss -ltn | grep -q ":8443 " && exit 0; sleep 1; done; exit 1'
 link="$($SSH 'sudo -u conductor conductor enroll-link --user lab.admin --base-url https://dc1.lab.conductor.test:8443' | tail -n 1)"
 spki="$(openssl x509 -in "$LAB_HOME/tls/conductor-dc1.pem" -pubkey -noout | openssl pkey -pubin -outform der | openssl dgst -sha256 -binary | base64)"
@@ -104,7 +110,14 @@ smb_watcher() {
 smb_watcher </dev/null &
 watcher=$!
 envf="$(mktemp)"
-trap 'kill "$watcher" 2>/dev/null; rm -f "$envf"' EXIT
+trap 'kill "$watcher" 2>/dev/null; rm -f "$envf"; docker rm -f conductor-lab-example-sp >/dev/null 2>&1 || true' EXIT
+# The example SAML SP (single logout with the IdP).
+$SSH 'for i in $(seq 90); do ss -ltn | grep -q ":9444 " && exit 0; sleep 1; done; exit 1'
+docker rm -f conductor-lab-example-sp >/dev/null 2>&1 || true
+docker run -d --name conductor-lab-example-sp --network host --add-host dc1.lab.conductor.test:10.93.0.10 --security-opt label=disable \
+  -v "$HOME/conductor-build/example-sp:/example-sp:ro" -v "$LAB_HOME/ca.pem:/ca.pem:ro" -u "$(id -u):$(id -g)" \
+  mcr.microsoft.com/playwright:v1.62.1-noble /example-sp -idp-metadata https://dc1.lab.conductor.test:9444/saml/metadata -ca /ca.pem >/dev/null
+for i in $(seq 60); do curl -fsS -o /dev/null http://localhost:8000/saml/metadata && break; sleep 1; done
 ( set -a; . "$LAB_HOME/secrets.env"; set +a
   umask 077
   printf 'E2E_USER_PASSWORD=%s\nE2E_ADMIN_PASSWORD=%s\nE2E_HELPDESK_PASSWORD=%s\nE2E_ADMIN_ENROLL_URL=%s\nE2E_CERT_SPKI=%s\nE2E_STALE=%s\nE2E_FILES_CODE=%s\nE2E_SYNC_PASSWORD=%s\n' \
@@ -115,6 +128,7 @@ docker run --rm --network host --add-host dc1.lab.conductor.test:10.93.0.10 --se
   sh -c 'npm ci --no-audit --no-fund --loglevel=error >/dev/null && npx playwright test --project='"$project"' ${E2E_GREP:+--grep "$E2E_GREP"}' || test_rc=$?
 echo "=== audit chains on dc1 and fs1 after the $project run"
 $SSH 'sudo -u conductor conductor audit verify'
+$SSH 'sudo -u conductor-idp conductor-idp -config /etc/conductor-idp/idp.toml audit verify'
 $SSH_FS 'sudo conductor-files audit verify'
 exit "${test_rc:-0}"
 REMOTE

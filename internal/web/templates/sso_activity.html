@@ -1,0 +1,46 @@
+{{define "title"}}{{t "sso.tab.activity"}}{{end}}
+{{define "content"}}<h1>{{t "sso.tab.activity"}}</h1>
+{{template "sso-subnav" .}}
+{{template "error-alert" .D.Error}}
+<form method="get" action="/admin/sso/activity" class="row" data-e2e="sso-form-days">
+  <label for="days" class="small">{{t "sso.activity.period"}}</label>
+  <select id="days" name="days" data-e2e="sso-select-days">{{range .D.DayChoices}}<option value="{{.}}"{{if eq . $.D.Days}} selected{{end}}>{{t "sso.activity.days" .}}</option>{{end}}</select>
+  <button class="btn btn-small" type="submit" data-e2e="sso-btn-days">{{t "form.show"}}</button>
+</form>
+{{with .D.A}}<div class="stats">
+  <div class="stat" data-e2e="sso-stat-signins"><b>{{.SignIns}}</b><span>{{t "sso.activity.signins"}}</span></div>
+  <div class="stat" data-e2e="sso-stat-failures"><b>{{.Failures}}</b><span>{{t "sso.activity.failures"}}</span></div>
+  <div class="stat" data-e2e="sso-stat-lockouts"><b>{{.Lockouts}}</b><span>{{t "sso.activity.lockouts"}}</span></div>
+  <div class="stat" data-e2e="sso-stat-mfa"><b>{{.MFAFailures}}</b><span>{{t "sso.activity.mfa_failures"}}</span></div>
+  <div class="stat" data-e2e="sso-stat-rate"><b>{{.RateLimited}}</b><span>{{t "sso.activity.rate_limited"}}</span></div>
+</div>
+<section class="card" aria-labelledby="act-apps" data-e2e="sso-card-activity-apps">
+  <h2 id="act-apps">{{t "sso.activity.by_app"}}</h2>
+  {{if .Apps}}<table class="table" data-e2e="sso-table-activity-apps"><thead><tr><th>{{t "sso.col.name"}}</th><th>{{t "sso.activity.signins"}}</th><th>{{t "sso.activity.users"}}</th><th>{{t "sso.activity.denied"}}</th></tr></thead>
+  <tbody>{{range .Apps}}<tr data-e2e="sso-activity-app-{{e2e .ID}}"><td>{{if .Name}}{{.Name}}{{else}}<span class="muted">{{t "sso.activity.removed"}}</span>{{end}} <span class="badge">{{.Kind}}</span><br><span class="mono small muted">{{.ID}}</span></td>
+    <td data-label="{{t "sso.activity.signins"}}">{{.SignIns}}</td><td data-label="{{t "sso.activity.users"}}">{{.Users}}</td><td data-label="{{t "sso.activity.denied"}}">{{.Denied}}</td></tr>{{end}}</tbody></table>
+  {{else}}<p class="muted" data-e2e="sso-text-no-activity">{{t "sso.activity.none"}}</p>{{end}}
+</section>
+{{if .Recent}}<section class="card" aria-labelledby="act-ref" data-e2e="sso-card-activity-refusals">
+  <h2 id="act-ref">{{t "sso.activity.refusals"}}</h2>
+  <ul class="tree">{{range .Recent}}<li class="small"><span class="muted">{{time .Time}}</span> <code>{{.Action}}</code> <b>{{.Actor}}</b> {{.Target}} <span class="muted">{{.Detail}}</span></li>{{end}}</ul>
+</section>{{end}}{{end}}
+<section class="card" aria-labelledby="act-log" data-e2e="sso-card-activity-log">
+  <h2 id="act-log">{{t "sso.activity.log"}}</h2>
+  <form method="get" action="/admin/sso/activity" class="grid grid-2" data-e2e="sso-form-audit-filter">
+    <input type="hidden" name="days" value="{{.D.Days}}">
+    <div class="field"><label for="f-actor">{{t "audit.actor"}}</label><input id="f-actor" name="actor" type="text" value="{{.D.F.Actor}}" data-e2e="sso-input-filter-actor"></div>
+    <div class="field"><label for="f-action">{{t "audit.action"}}</label><input id="f-action" name="action" type="text" value="{{.D.F.Action}}" placeholder="signin. / oidc. / saml. / api." data-e2e="sso-input-filter-action"></div>
+    <div class="field"><label for="f-target">{{t "audit.target"}}</label><input id="f-target" name="target" type="text" value="{{.D.F.Target}}" data-e2e="sso-input-filter-target"></div>
+    <div class="field"><label for="f-result">{{t "audit.result"}}</label><select id="f-result" name="result" data-e2e="sso-select-filter-result"><option value="">-</option>{{range (list "ok" "denied" "failed" "pending")}}<option value="{{.}}"{{if eq . $.D.F.Result}} selected{{end}}>{{.}}</option>{{end}}</select></div>
+    <div class="actions"><button class="btn btn-small" type="submit" data-e2e="sso-btn-filter">{{t "form.show"}}</button>
+      <a class="btn btn-small" href="/admin/sso/activity?days={{.D.Days}}&amp;verify=1" data-e2e="sso-link-verify">{{t "sso.activity.verify"}}</a></div>
+  </form>
+  {{with .D.Verify}}{{if .BrokenAt}}<div class="alert-error" data-e2e="sso-alert-chain-broken">{{t "sso.activity.chain_broken" .BrokenAt .Reason}}</div>{{else}}<div class="alert-info" data-e2e="sso-alert-chain-ok">{{t "sso.activity.chain_ok" .Rows}}</div>{{end}}{{end}}
+  {{if .D.Events}}<table class="table" data-e2e="sso-table-audit"><thead><tr><th>{{t "audit.time"}}</th><th>{{t "audit.action"}}</th><th>{{t "audit.actor"}}</th><th>{{t "audit.target"}}</th><th>{{t "audit.result"}}</th></tr></thead>
+  <tbody>{{range .D.Events}}<tr data-e2e="sso-audit-{{.ID}}"><td class="small">{{time .Time}}</td><td data-label="{{t "audit.action"}}"><code>{{.Action}}</code>{{if .Detail}}<br><span class="small muted">{{.Detail}}</span>{{end}}</td>
+    <td data-label="{{t "audit.actor"}}" class="small">{{.Actor}}{{if .IP}}<br><span class="muted">{{.IP}}</span>{{end}}</td><td data-label="{{t "audit.target"}}" class="small mono">{{.Target}}</td>
+    <td data-label="{{t "audit.result"}}"><span class="badge{{if eq .Result "ok"}} badge-ok{{else if eq .Result "denied"}} badge-danger{{else if eq .Result "failed"}} badge-warn{{end}}">{{.Result}}</span></td></tr>{{end}}</tbody></table>
+  <nav class="pager" aria-label="{{t "pager.label"}}">{{if gt .D.Page 1}}<a class="btn btn-small" href="{{pageLink .Query (add .D.Page -1)}}" data-e2e="sso-link-prev">{{t "pager.prev"}}</a>{{end}}{{if .D.More}}<a class="btn btn-small" href="{{pageLink .Query (add .D.Page 1)}}" data-e2e="sso-link-next">{{t "pager.next"}}</a>{{end}}</nav>
+  {{else}}<p class="muted">{{t "sso.activity.none"}}</p>{{end}}
+</section>{{end}}

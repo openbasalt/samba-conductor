@@ -14,11 +14,13 @@ backups with restore drills
 file servers
 ([conductor-files](https://github.com/openbasalt/samba-conductor-files)) and
 the Google Workspace sync section
-([conductor-sync](https://github.com/openbasalt/samba-conductor-sync)).
+([conductor-sync](https://github.com/openbasalt/samba-conductor-sync)) and
+the Single sign-on section
+([conductor-idp](https://github.com/openbasalt/samba-conductor-idp)).
 Validated end to end in a two-DC lab, desktop and mobile, including a
 full-forest restore: lab runs in [`docs/usage-p3.md`](docs/usage-p3.md),
 [`docs/usage-p2.md`](docs/usage-p2.md), [`docs/usage-p1.md`](docs/usage-p1.md)
-and [`docs/usage-p5b.md`](docs/usage-p5b.md). Recovery runbook:
+[`docs/usage-p5b.md`](docs/usage-p5b.md) and [`docs/usage-p4b.md`](docs/usage-p4b.md). Recovery runbook:
 [`docs/restore.md`](docs/restore.md).
 
 | | |
@@ -102,6 +104,18 @@ and [`docs/usage-p5b.md`](docs/usage-p5b.md). Recovery runbook:
   confirmation and the digest, blocked scheduled runs and their override,
   history and the settings' version history. Every change is previewed,
   re-authenticated and audited here and in conductor-sync.
+- Single sign-on (administrators only, `[idp]` on): conductor-idp's
+  OpenID Connect clients and SAML service providers (guided presets for
+  Google Workspace, Grafana, Nextcloud and GitLab, SAML metadata import,
+  allowed AD groups picked by SID, a claims or assertion preview for a
+  real user, single logout endpoints), signing keys with staged rotation
+  and certificate download, session lifetimes and the consent note, and
+  sign-in activity per application with conductor-idp's audit log. Every
+  change is previewed, re-authenticated and audited here and in
+  conductor-idp; a client secret is shown once.
+- One second factor for conductor and conductor-idp (`[idp] mfa_socket`):
+  conductor serves its enrollments (TOTP, recovery codes, security keys)
+  and its policy to conductor-idp on a local socket.
 - Self-service: profile, edit of the attributes Samba lets users write
   on themselves (phones, office, address, web page), password change,
   2FA, sessions and "sign out everywhere".
@@ -145,7 +159,7 @@ and [`docs/usage-p5b.md`](docs/usage-p5b.md). Recovery runbook:
 - [Configuration reference](docs/config.md)
 - [Restore runbook](docs/restore.md)
 - [Design](docs/design.md)
-- Lab runs: [Google Workspace sync section](docs/usage-p5b.md), [backups, drills, restore exercise](docs/usage-p3.md), [DNS, Group Policy, policies, bulk](docs/usage-p2.md), [core administration and self-service](docs/usage-p1.md) and [screenshots](docs/screenshots/)
+- Lab runs: [Single sign-on section](docs/usage-p4b.md), [Google Workspace sync section](docs/usage-p5b.md), [backups, drills, restore exercise](docs/usage-p3.md), [DNS, Group Policy, policies, bulk](docs/usage-p2.md), [core administration and self-service](docs/usage-p1.md) and [screenshots](docs/screenshots/)
 
 ## Development
 

@@ -210,6 +210,41 @@ func (s *Server) routeTable() []route {
 		{method: "GET", pattern: "/admin/files/{id}/shares/{name}/edit", perm: PermFilesWrite, h: s.handleShareEdit},
 		{method: "POST", pattern: "/admin/files/{id}/shares/{name}/remove", perm: PermFilesWrite, h: s.handleFileShareRemove},
 
+		// Single sign-on (conductor-idp's management API): administrators
+		// only. Every change is previewed and confirmed with
+		// re-authentication; a client secret is shown once.
+		{method: "GET", pattern: "/admin/sso", perm: PermSSORead, h: s.handleSSO},
+		{method: "GET", pattern: "/admin/sso/new", perm: PermSSOWrite, h: s.handleSSONew},
+		{method: "GET", pattern: "/admin/sso/new/{preset}", perm: PermSSOWrite, h: s.handleSSOPreset},
+		{method: "POST", pattern: "/admin/sso/new/{preset}", perm: PermSSOWrite, h: s.handleSSOPreset},
+		{method: "GET", pattern: "/admin/sso/secret/{ref}", perm: PermSSOWrite, h: s.handleSSOSecret},
+		{method: "GET", pattern: "/admin/sso/oidc", perm: PermSSORead, h: s.handleSSOClients},
+		{method: "GET", pattern: "/admin/sso/oidc/new", perm: PermSSOWrite, h: s.handleSSOClientNew},
+		{method: "POST", pattern: "/admin/sso/oidc/form", perm: PermSSOWrite, h: s.handleSSOClientForm},
+		{method: "GET", pattern: "/admin/sso/oidc/{id}", perm: PermSSORead, h: s.handleSSOClient},
+		{method: "GET", pattern: "/admin/sso/oidc/{id}/edit", perm: PermSSOWrite, h: s.handleSSOClientEdit},
+		{method: "POST", pattern: "/admin/sso/oidc/{id}/rotate", perm: PermSSOWrite, h: s.handleSSOClientRotate},
+		{method: "POST", pattern: "/admin/sso/oidc/{id}/enabled", perm: PermSSOWrite, h: s.handleSSOClientEnabled},
+		{method: "POST", pattern: "/admin/sso/oidc/{id}/delete", perm: PermSSOWrite, h: s.handleSSOClientDelete},
+		{method: "GET", pattern: "/admin/sso/saml", perm: PermSSORead, h: s.handleSSOSPs},
+		{method: "GET", pattern: "/admin/sso/saml/new", perm: PermSSOWrite, h: s.handleSSOSPNew},
+		{method: "POST", pattern: "/admin/sso/saml/import", perm: PermSSOWrite, h: s.handleSSOSPImport, maxBody: maxMetadataUpload + 64<<10},
+		{method: "POST", pattern: "/admin/sso/saml/form", perm: PermSSOWrite, h: s.handleSSOSPForm, maxBody: 256 << 10},
+		{method: "GET", pattern: "/admin/sso/saml/sp", perm: PermSSORead, h: s.handleSSOSP},
+		{method: "GET", pattern: "/admin/sso/saml/sp/edit", perm: PermSSOWrite, h: s.handleSSOSPEdit},
+		{method: "POST", pattern: "/admin/sso/saml/sp/enabled", perm: PermSSOWrite, h: s.handleSSOSPEnabled},
+		{method: "POST", pattern: "/admin/sso/saml/sp/delete", perm: PermSSOWrite, h: s.handleSSOSPDelete},
+		{method: "GET", pattern: "/admin/sso/keys", perm: PermSSORead, h: s.handleSSOKeys},
+		{method: "POST", pattern: "/admin/sso/keys/rotate", perm: PermSSOWrite, h: s.handleSSOKeysRotate},
+		{method: "GET", pattern: "/admin/sso/keys/saml.pem", perm: PermSSORead, h: s.handleSSOCert},
+		{method: "GET", pattern: "/admin/sso/policy", perm: PermSSORead, h: s.handleSSOPolicy},
+		{method: "POST", pattern: "/admin/sso/policy", perm: PermSSOWrite, h: s.handleSSOPolicyPost},
+		{method: "GET", pattern: "/admin/sso/activity", perm: PermSSORead, h: s.handleSSOActivity},
+
+		// WebAuthn related origins (other sites that may use conductor's
+		// security keys), when configured.
+		{method: "GET", pattern: "/.well-known/webauthn", perm: PermPublic, h: s.handleWellKnownWebAuthn},
+
 		{method: "GET", pattern: "/admin/audit", perm: PermAuditRead, h: s.handleAudit},
 		{method: "GET", pattern: "/admin/audit/export", perm: PermAuditRead, h: s.handleAuditExport},
 		{method: "GET", pattern: "/admin/domain", perm: PermDomainRead, h: s.handleDomain},

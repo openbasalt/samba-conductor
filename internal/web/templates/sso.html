@@ -1,0 +1,39 @@
+{{define "title"}}{{t "nav.group.sso"}}{{end}}
+{{define "content"}}<h1>{{t "nav.group.sso"}}</h1>
+<p class="hint">{{t "sso.intro"}}</p>
+{{if .D.Disabled}}<section class="card" data-e2e="sso-card-disabled"><h2>{{t "sso.disabled.title"}}</h2><p>{{t "sso.disabled.text"}}</p></section>
+{{else}}{{template "sso-subnav" .}}{{template "error-alert" .D.Error}}{{with .D.S}}
+{{if not .DirectoryOK}}<div class="alert-warn" role="alert" data-e2e="sso-alert-directory">{{t "sso.directory_down"}}</div>{{end}}
+<div class="stats">
+  <div class="stat" data-e2e="sso-card-clients"><b data-e2e="sso-text-clients">{{.Clients}}</b><span>{{t "sso.stat.clients"}}</span></div>
+  <div class="stat" data-e2e="sso-card-sps"><b data-e2e="sso-text-sps">{{if .SAMLEnabled}}{{.SPs}}{{else}}—{{end}}</b><span>{{t "sso.stat.sps"}}</span></div>
+  {{with $.D.A}}<div class="stat" data-e2e="sso-card-signins"><b data-e2e="sso-text-signins">{{.SignIns}}</b><span>{{t "sso.stat.signins7"}}</span></div>
+  <div class="stat" data-e2e="sso-card-failures"><b data-e2e="sso-text-failures">{{.Failures}}</b><span>{{t "sso.stat.failures7" .Lockouts}}</span></div>{{end}}
+  <div class="stat" data-e2e="sso-card-mfa"><b data-e2e="sso-text-mfa-backend">{{t (print "sso.mfa_backend." .MFABackend)}}</b><span>{{t "sso.stat.mfa"}}</span></div>
+</div>
+{{if $.D.CanWrite}}<section class="card" data-e2e="sso-card-actions">
+  <h2>{{t "sso.actions"}}</h2>
+  <div class="row">
+    <a class="btn btn-primary" href="/admin/sso/new" data-e2e="sso-link-new">{{t "sso.new.button"}}</a>
+    <a class="btn" href="/admin/sso/oidc" data-e2e="sso-link-clients">{{t "sso.tab.oidc"}}</a>
+    {{if .SAMLEnabled}}<a class="btn" href="/admin/sso/saml" data-e2e="sso-link-sps">{{t "sso.tab.saml"}}</a>{{end}}
+  </div>
+</section>{{end}}
+<section class="card" aria-labelledby="sso-endpoints" data-e2e="sso-card-endpoints">
+  <h2 id="sso-endpoints">{{t "sso.endpoints"}}</h2>
+  <dl class="props">
+    <dt>{{t "sso.issuer"}}</dt><dd class="mono small" data-e2e="sso-text-issuer">{{.Issuer}}</dd>
+    <dt>{{t "sso.discovery"}}</dt><dd class="mono small">{{.DiscoveryURL}}</dd>
+    {{if .SAMLEnabled}}<dt>{{t "sso.saml.metadata"}}</dt><dd class="mono small" data-e2e="sso-text-saml-metadata">{{.SAMLMetadataURL}}</dd>
+    <dt>{{t "sso.saml.sso"}}</dt><dd class="mono small">{{.SAMLSSOURL}}</dd>
+    <dt>{{t "sso.saml.slo"}}</dt><dd class="mono small">{{.SAMLSLOURL}}</dd>{{else}}<dt>SAML</dt><dd class="muted">{{t "sso.saml.off"}}</dd>{{end}}
+    <dt>{{t "sso.version"}}</dt><dd class="small muted">conductor-idp {{.Version}}</dd>
+  </dl>
+</section>
+{{with $.D.K}}<section class="card" data-e2e="sso-card-keys"><h2>{{t "sso.tab.keys"}}</h2>
+  <p class="small">{{t "sso.keys.next_oidc" (time .NextOIDCRotation)}}{{if not .SAMLSwitchAt.IsZero}} · <span class="badge badge-warn" data-e2e="sso-badge-saml-staged">{{t "sso.keys.saml_staged" (time .SAMLSwitchAt)}}</span>{{end}}</p>
+</section>{{end}}
+{{with $.D.A}}{{if .Apps}}<section class="card" data-e2e="sso-card-top-apps"><h2>{{t "sso.activity.by_app7"}}</h2>
+  <ul class="tree">{{range .Apps}}<li data-e2e="sso-top-app-{{e2e .ID}}"><b>{{if .Name}}{{.Name}}{{else}}{{.ID}}{{end}}</b> <span class="badge">{{.Kind}}</span> <span class="small muted">{{t "sso.activity.app_line" .SignIns .Users .Denied}}</span></li>{{end}}</ul>
+</section>{{end}}{{end}}
+{{end}}{{end}}{{end}}

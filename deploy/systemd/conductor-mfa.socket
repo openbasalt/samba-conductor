@@ -1,0 +1,24 @@
+# conductor's second-factor socket for conductor-idp (one 2FA enrollment
+# and policy for both: [idp] mfa_socket = true in conductor.toml and
+# mfa.backend = "conductor" in idp.toml). systemd creates it owned by the
+# conductor user and the conductor-idp group, mode 0660, and hands it to
+# conductor.service under the name "mfa"; conductor additionally admits
+# only the conductor-idp user (SO_PEERCRED, which needs PrivateUsers=no in
+# conductor.service: see docs/install.md). Enable it only where
+# conductor-idp is installed (the group must exist).
+[Unit]
+Description=Samba Conductor second-factor socket for conductor-idp
+Documentation=https://github.com/openbasalt/samba-conductor/blob/main/docs/install.md
+
+[Socket]
+ListenStream=/run/conductor/mfa.sock
+FileDescriptorName=mfa
+SocketUser=conductor
+SocketGroup=conductor-idp
+SocketMode=0660
+DirectoryMode=0755
+Accept=no
+Service=conductor.service
+
+[Install]
+WantedBy=sockets.target

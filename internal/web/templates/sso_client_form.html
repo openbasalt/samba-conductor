@@ -1,0 +1,48 @@
+{{define "title"}}{{if .D.F.ID}}{{t "sso.client.edit" .D.F.Name}}{{else}}{{t "sso.client.new"}}{{end}}{{end}}
+{{define "content"}}{{$f := .D.F}}<h1>{{if $f.ID}}{{t "sso.client.edit" $f.Name}}{{else}}{{t "sso.client.new"}}{{end}}</h1>
+{{template "sso-subnav" .}}
+{{if .D.PresetName}}<div class="alert-info" data-e2e="sso-text-preset">{{t "sso.preset.applied" .D.PresetName}} {{t (print "sso.preset." .D.PresetID ".after")}}</div>{{end}}
+{{template "error-alert" .D.Error}}
+<form method="post" action="/admin/sso/oidc/form" autocomplete="off" data-e2e="sso-form-client">
+  {{template "csrf" .}}
+  <button class="sr" type="submit" name="action" value="search" formnovalidate tabindex="-1" aria-hidden="true">{{t "sso.groups.search"}}</button>
+  {{if $f.ID}}<input type="hidden" name="id" value="{{$f.ID}}"><input type="hidden" name="kind" value="{{$f.Kind}}">{{end}}
+  {{if $f.Preset}}<input type="hidden" name="preset" value="{{$f.Preset}}">{{end}}
+  <section class="card" aria-labelledby="c-app">
+    <h2 id="c-app">{{t "sso.client.app"}}</h2>
+    <div class="field"><label for="c-name">{{t "sso.col.name"}}</label><input id="c-name" name="name" type="text" maxlength="100" required value="{{$f.Name}}" data-e2e="sso-input-client-name"></div>
+    {{if not $f.ID}}<fieldset class="field"><legend class="label">{{t "sso.client.kind"}}</legend>
+      {{range .D.Kinds}}<div class="check"><input id="c-kind-{{.}}" name="kind" type="radio" value="{{.}}"{{if eq $f.Kind .}} checked{{end}} data-e2e="sso-radio-kind-{{.}}"><label for="c-kind-{{.}}">{{t (print "sso.kind." .)}} <span class="hint">{{t (print "sso.kind." . "_hint")}}</span></label></div>{{end}}
+    </fieldset>{{else}}<p class="small">{{t "sso.client.kind"}}: <b>{{t (print "sso.kind." $f.Kind)}}</b></p>{{end}}
+    <div class="field"><label for="c-redirects">{{t "sso.client.redirects"}}</label><textarea id="c-redirects" name="redirect_uris" rows="3" required data-e2e="sso-input-client-redirects">{{$f.Redirects}}</textarea><span class="hint">{{t "sso.client.redirects_hint"}}</span></div>
+    <div class="field"><label for="c-postlogout">{{t "sso.client.post_logout"}}</label><textarea id="c-postlogout" name="post_logout_uris" rows="2" data-e2e="sso-input-client-post-logout">{{$f.PostLogout}}</textarea></div>
+    <fieldset class="field"><legend class="label">{{t "sso.client.scopes"}}</legend>
+      {{range .D.Scopes}}<div class="check"><input id="c-scope-{{.}}" name="scopes" type="checkbox" value="{{.}}"{{if inList $f.Scopes .}} checked{{end}} data-e2e="sso-check-scope-{{e2e .}}"><label for="c-scope-{{.}}"><code>{{.}}</code> <span class="hint">{{t (print "sso.scope." .)}}</span></label></div>{{end}}
+    </fieldset>
+    <div class="check"><input id="c-first" name="first_party" type="checkbox" value="1"{{if $f.FirstParty}} checked{{end}} data-e2e="sso-check-first-party"><label for="c-first">{{t "sso.client.first_party"}} <span class="hint">{{t "sso.client.first_party_hint"}}</span></label></div>
+    <div class="check"><input id="c-mfa" name="require_mfa" type="checkbox" value="1"{{if $f.RequireMFA}} checked{{end}} data-e2e="sso-check-require-mfa"><label for="c-mfa">{{t "sso.require_mfa"}} <span class="hint">{{t "sso.require_mfa_hint"}}</span></label></div>
+  </section>
+  <section class="card" aria-labelledby="c-access">
+    <h2 id="c-access">{{t "sso.access"}}</h2>
+    <p class="hint">{{t "sso.access_hint"}}</p>
+    {{template "sso-picker" (dict "P" $ "Field" "group" "List" $f.Groups "Empty" "sso.groups.none")}}
+    <div class="check"><input id="c-all" name="allow_all" type="checkbox" value="1"{{if $f.AllowAll}} checked{{end}} data-e2e="sso-check-allow-all"><label for="c-all">{{t "sso.all_users_label"}} <span class="hint">{{t "sso.all_users_hint"}}</span></label></div>
+    <h3>{{t "sso.client.groups_claim"}}</h3>
+    <div class="field"><label class="sr" for="c-claim">{{t "sso.client.groups_claim"}}</label><select id="c-claim" name="groups_claim" data-e2e="sso-select-groups-claim">
+      {{range .D.Claims}}<option value="{{.}}"{{if eq $f.Claim .}} selected{{end}}>{{t (print "sso.claim." .)}}</option>{{end}}
+    </select><span class="hint">{{t "sso.client.groups_claim_hint"}}</span></div>
+    <p class="small">{{t "sso.client.groups_filter"}}</p>
+    {{template "sso-picker" (dict "P" $ "Field" "filter" "List" $f.Filter "Empty" "sso.groups.filter_none")}}
+    <h3>{{t "sso.groups.find"}}</h3>
+    {{template "sso-search" (dict "D" (dict "F" $f "Hits" .D.Hits "DirError" .D.DirError "FilterAllowed" true))}}
+  </section>
+  <section class="card" aria-labelledby="c-review">
+    <h2 id="c-review">{{t "sso.review"}}</h2>
+    <div class="row"><label for="c-pu" class="small">{{t "sso.preview.user"}}</label><input id="c-pu" name="preview_user" type="text" value="{{$f.PreviewUser}}" placeholder="{{t "sso.preview.user_hint"}}" class="grow" data-e2e="sso-input-preview-user">
+      <button class="btn btn-small" type="submit" name="action" value="preview" data-e2e="sso-btn-preview">{{t "sso.preview.button"}}</button></div>
+    <div class="actions"><button class="btn btn-primary" type="submit" name="action" value="review" data-e2e="sso-btn-review">{{t "sso.review_button"}}</button>
+      <a class="btn" href="{{if $f.ID}}/admin/sso/oidc/{{$f.ID}}{{else}}/admin/sso/oidc{{end}}" data-e2e="sso-link-cancel">{{t "form.cancel"}}</a></div>
+    <p class="hint">{{t "sso.review_hint"}}</p>
+  </section>
+</form>
+{{with .D.Preview}}{{template "sso-preview" .}}{{end}}{{end}}

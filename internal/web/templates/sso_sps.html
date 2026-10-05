@@ -1,0 +1,15 @@
+{{define "title"}}{{t "sso.tab.saml"}}{{end}}
+{{define "content"}}<h1>{{t "sso.tab.saml"}}</h1>
+{{template "sso-subnav" .}}
+{{template "error-alert" .D.Error}}
+{{with .D.S}}{{if not .SAMLEnabled}}<div class="alert-warn" data-e2e="sso-alert-saml-off">{{t "sso.saml.off"}}</div>{{end}}{{end}}
+{{if .D.CanWrite}}<div class="row"><a class="btn btn-primary" href="/admin/sso/new" data-e2e="sso-link-new-app">{{t "sso.new.button"}}</a><a class="btn" href="/admin/sso/saml/new" data-e2e="sso-link-new-sp">{{t "sso.sp.import"}}</a></div>{{end}}
+{{if .D.SPs}}<table class="table" data-e2e="sso-table-sps">
+  <thead><tr><th>{{t "sso.col.name"}}</th><th>Entity ID</th><th>{{t "sso.col.access"}}</th><th>{{t "sso.col.state"}}</th></tr></thead>
+  <tbody>{{range .D.SPs}}<tr data-e2e="sso-sp-{{e2e .Name}}">
+    <td><a href="/admin/sso/saml/sp?id={{.EntityID}}" data-e2e="sso-link-sp-{{e2e .Name}}">{{.Name}}</a>{{if .SLOURL}} <span class="badge">SLO</span>{{end}}</td>
+    <td data-label="Entity ID" class="mono small">{{.EntityID}}</td>
+    <td data-label="{{t "sso.col.access"}}" class="small">{{if .AllowAllUsers}}<span class="badge badge-warn">{{t "sso.all_users"}}</span>{{else}}{{t "sso.n_groups" (len .Groups)}}{{end}}{{if .RequireMFA}} <span class="badge">2FA</span>{{end}}</td>
+    <td data-label="{{t "sso.col.state"}}">{{template "sso-enabled" .Enabled}}</td>
+  </tr>{{end}}</tbody>
+</table>{{else if not .D.Error}}<p class="muted" data-e2e="sso-text-no-sps">{{t "sso.sp.none"}}</p>{{end}}{{end}}

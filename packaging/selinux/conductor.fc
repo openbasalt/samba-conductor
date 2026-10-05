@@ -10,3 +10,4 @@
 /var/lib/conductor(/.*)?			gen_context(system_u:object_r:conductor_var_lib_t,s0)
 
 /run/conductor-helper(/.*)?			gen_context(system_u:object_r:conductor_helper_var_run_t,s0)
+/run/conductor(/.*)?				gen_context(system_u:object_r:conductor_var_run_t,s0)

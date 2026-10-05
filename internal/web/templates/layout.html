@@ -76,6 +76,14 @@
           <li><a href="/admin/files" data-e2e="nav-link-files"{{if active .Path "/admin/files"}} aria-current="page"{{end}}>{{t "nav.files.servers"}}</a></li>
         </ul>
       </div>{{end}}
+      {{if has .Nav "sso"}}<div class="nav-group" data-e2e="nav-group-sso">
+        <h2 class="nav-heading">{{t "nav.group.sso"}}</h2>
+        <ul>
+          <li><a href="/admin/sso" data-e2e="nav-link-sso"{{if eq .Path "/admin/sso"}} aria-current="page"{{end}}>{{t "nav.sso.overview"}}</a></li>
+          <li><a href="/admin/sso/oidc" data-e2e="nav-link-sso-apps"{{if or (active .Path "/admin/sso/oidc") (active .Path "/admin/sso/saml") (active .Path "/admin/sso/new")}} aria-current="page"{{end}}>{{t "nav.sso.apps"}}</a></li>
+          <li><a href="/admin/sso/activity" data-e2e="nav-link-sso-activity"{{if active .Path "/admin/sso/activity"}} aria-current="page"{{end}}>{{t "nav.sso.activity"}}</a></li>
+        </ul>
+      </div>{{end}}
       {{if or (has .Nav "audit.read") (has .Nav "domain.read")}}<div class="nav-group" data-e2e="nav-group-audit">
         <h2 class="nav-heading">{{t "nav.group.audit"}}</h2>
         <ul>

@@ -56,7 +56,7 @@ func newWebAuthn(c *config.Config) (*webauthn.WebAuthn, error) {
 	return webauthn.New(&webauthn.Config{
 		RPID:                  c.WebAuthn.RPID,
 		RPDisplayName:         c.WebAuthn.DisplayName,
-		RPOrigins:             c.WebAuthnOrigins(),
+		RPOrigins:             c.WebAuthnAllOrigins(),
 		AttestationPreference: protocol.PreferNoAttestation,
 		AuthenticatorSelection: protocol.AuthenticatorSelection{
 			ResidentKey:      protocol.ResidentKeyRequirementDiscouraged,
@@ -76,6 +76,11 @@ func (s *Server) waUserFor(ctx context.Context, sess *Session) (waUser, []store.
 	sess.mu.Lock()
 	userSID, sam, display := sess.userSID.String(), sess.sam, sess.displayName
 	sess.mu.Unlock()
+	return s.waUserBySID(ctx, userSID, sam, display)
+}
+
+// waUserBySID loads a user's credentials by SID.
+func (s *Server) waUserBySID(ctx context.Context, userSID, sam, display string) (waUser, []store.WebAuthnCredential, error) {
 	rows, err := s.store.WebAuthnCredentials(ctx, userSID)
 	if err != nil {
 		return waUser{}, nil, err
@@ -550,4 +555,22 @@ func (s *Server) handleBulkKeyPage(rc *reqCtx) {
 		"Back": "/admin/bulk/" + stored.ID}
 	s.addReauthOptions(rc, d)
 	rc.render(http.StatusOK, "confirm_key", d)
+}
+
+// handleWellKnownWebAuthn publishes the related origins (WebAuthn Level 3):
+// browsers fetch https://<rp_id>/.well-known/webauthn to learn which other
+// origins may use credentials of this RP ID.
+func (s *Server) handleWellKnownWebAuthn(rc *reqCtx) {
+	if !s.cfg.WebAuthn.Enabled() || len(s.cfg.WebAuthn.RelatedOrigins) == 0 {
+		rc.errorPage(http.StatusNotFound, "err.not_found")
+		return
+	}
+	b, err := json.Marshal(map[string][]string{"origins": s.cfg.WebAuthnAllOrigins()})
+	if err != nil {
+		rc.errorPage(http.StatusInternalServerError, "err.internal")
+		return
+	}
+	rc.w.Header().Set("Content-Type", "application/json")
+	rc.w.Header().Set("Cache-Control", "public, max-age=3600")
+	_, _ = rc.w.Write(b)
 }

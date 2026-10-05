@@ -389,7 +389,12 @@ func (s *Server) secondFactorDone(rc *reqCtx, detail string) {
 // verifySecondFactor checks a TOTP or recovery code for the session's user,
 // with replay protection. It returns (ok, usedRecoveryCode).
 func (s *Server) verifySecondFactor(ctx context.Context, sess *Session, code string) (bool, bool, error) {
-	userSID := sess.userSID.String()
+	return s.verifyCodeFor(ctx, sess.userSID.String(), code)
+}
+
+// verifyCodeFor checks a TOTP code (each step once) or an unused recovery
+// code of a user, by SID (also for conductor-idp, through the 2FA socket).
+func (s *Server) verifyCodeFor(ctx context.Context, userSID, code string) (bool, bool, error) {
 	if totp.LooksLikeRecoveryCode(code) {
 		ok, err := s.store.UseRecoveryCode(ctx, userSID, totp.HashRecoveryCode(userSID, code))
 		return ok, ok, err

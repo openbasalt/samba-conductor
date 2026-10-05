@@ -1,0 +1,62 @@
+{{define "title"}}{{with .D.SP}}{{.Name}}{{else}}{{t "sso.tab.saml"}}{{end}}{{end}}
+{{define "content"}}{{template "error-alert" .D.Error}}{{with .D.SP}}<h1 data-e2e="sso-text-sp-title">{{.Name}} {{template "sso-enabled" .Enabled}}</h1>
+{{template "sso-subnav" $}}
+<div class="grid grid-2">
+<section class="card" aria-labelledby="sp-settings" data-e2e="sso-card-sp">
+  <h2 id="sp-settings">{{t "sso.sp.registration"}}</h2>
+  <dl class="props">
+    <dt>Entity ID</dt><dd class="mono small" data-e2e="sso-text-sp-entity">{{.EntityID}}</dd>
+    <dt>{{t "sso.sp.acs"}}</dt><dd class="mono small">{{join .ACSURLs " "}}</dd>
+    <dt>NameID</dt><dd class="small">{{.NameIDFormat}} &larr; <code>{{.NameIDSource}}</code></dd>
+    <dt>{{t "sso.sp.attributes"}}</dt><dd class="small">{{range .Attributes}}<code>{{.Name}}</code> &larr; {{.Source}}<br>{{else}}<span class="muted">-</span>{{end}}</dd>
+    <dt>{{t "sso.sp.encrypt"}}</dt><dd class="small">{{if .EncryptAssertion}}{{t "form.yes"}}{{else}}{{t "form.no"}}{{end}}{{with .EncryptionInfo}}<br><span class="muted">{{.Subject}} · {{t "sso.cert.until" (time .NotAfter)}}</span>{{end}}</dd>
+    <dt>{{t "sso.sp.slo"}}</dt><dd class="small" data-e2e="sso-text-sp-slo">{{if .SLOURL}}<span class="mono">{{.SLOURL}}</span><br><span class="muted">{{.SLOBinding}}</span>{{else}}<span class="muted">{{t "sso.sp.slo_none"}}</span>{{end}}</dd>
+    <dt>{{t "sso.sp.signing_cert"}}</dt><dd class="small">{{with .SigningInfo}}{{.Subject}}<br><span class="mono muted">{{.SHA256}}</span>{{else}}<span class="muted">-</span>{{end}}</dd>
+    <dt>{{t "sso.sp.idp_initiated"}}</dt><dd>{{if .IdPInitiated}}{{t "form.yes"}}{{if .DefaultRelay}} <span class="small muted">RelayState {{.DefaultRelay}}</span>{{end}}{{else}}{{t "form.no"}}{{end}}</dd>
+    <dt>{{t "sso.require_mfa"}}</dt><dd>{{if .RequireMFA}}{{t "form.yes"}}{{else}}{{t "form.no"}}{{end}}</dd>
+  </dl>
+</section>
+<section class="card" aria-labelledby="sp-access" data-e2e="sso-card-sp-access">
+  <h2 id="sp-access">{{t "sso.access"}}</h2>
+  {{if .AllowAllUsers}}<p><span class="badge badge-warn">{{t "sso.all_users"}}</span></p>{{end}}
+  <ul class="tree" data-e2e="sso-list-sp-groups">{{range .Groups}}<li>{{template "sso-groupname" (dict "G" $.D.GroupNames "Ref" .)}}</li>{{else}}{{if not $.D.SP.AllowAllUsers}}<li class="muted">{{t "sso.groups.none"}}</li>{{end}}{{end}}</ul>
+</section>
+</div>
+{{with $.D.S}}<section class="card" aria-labelledby="sp-idp" data-e2e="sso-card-sp-idp">
+  <h2 id="sp-idp">{{if $.D.Google}}{{t "sso.google.title"}}{{else}}{{t "sso.sp.for_app"}}{{end}}</h2>
+  <p class="hint">{{if $.D.Google}}{{t "sso.google.hint"}}{{else}}{{t "sso.sp.for_app_hint"}}{{end}}</p>
+  <dl class="props" data-e2e="sso-list-sp-idp">
+    {{if $.D.Google}}<dt>{{t "sso.google.signin_url"}}</dt><dd class="mono small" data-e2e="sso-text-google-signin">{{.SAMLSSOURL}}</dd>
+    <dt>{{t "sso.google.entity_id"}}</dt><dd class="mono small">{{.SAMLMetadataURL}}</dd>
+    <dt>{{t "sso.google.signout_url"}}</dt><dd class="mono small">{{.Issuer}}/logged-out</dd>
+    <dt>{{t "sso.google.cert"}}</dt><dd><a href="/admin/sso/keys/saml.pem" data-e2e="sso-link-google-cert">{{t "sso.keys.download"}}</a></dd>
+    {{else}}<dt>{{t "sso.saml.metadata"}}</dt><dd class="mono small">{{.SAMLMetadataURL}}</dd>
+    <dt>{{t "sso.saml.sso"}}</dt><dd class="mono small">{{.SAMLSSOURL}}</dd>
+    <dt>{{t "sso.saml.slo"}}</dt><dd class="mono small">{{.SAMLSLOURL}}</dd>
+    <dt>{{t "sso.keys.cert"}}</dt><dd><a href="/admin/sso/keys/saml.pem" data-e2e="sso-link-sp-cert">{{t "sso.keys.download"}}</a></dd>{{end}}
+  </dl>
+</section>{{end}}
+<section class="card" aria-labelledby="sp-pv">
+  <h2 id="sp-pv">{{t "sso.preview.mapping"}}</h2>
+  <form method="get" action="/admin/sso/saml/sp" class="row" data-e2e="sso-form-sp-preview">
+    <input type="hidden" name="id" value="{{.EntityID}}">
+    <label class="sr" for="pu">{{t "sso.preview.user"}}</label><input id="pu" name="preview_user" type="text" value="{{$.D.PreviewUser}}" placeholder="{{t "sso.preview.user_hint"}}" required class="grow" data-e2e="sso-input-preview-user">
+    <button class="btn btn-small" type="submit" data-e2e="sso-btn-preview">{{t "sso.preview.button"}}</button>
+  </form>
+  {{template "error-alert" $.D.PreviewError}}
+</section>
+{{with $.D.Preview}}{{template "sso-preview" .}}{{end}}
+{{if $.D.CanWrite}}<section class="card" aria-labelledby="sp-actions" data-e2e="sso-card-sp-actions">
+  <h2 id="sp-actions">{{t "sso.actions"}}</h2>
+  <div class="row">
+    <a class="btn btn-primary" href="/admin/sso/saml/sp/edit?id={{.EntityID}}" data-e2e="sso-link-sp-edit">{{t "sso.edit"}}</a>
+    <form method="post" action="/admin/sso/saml/sp/enabled">{{template "csrf" $}}<input type="hidden" name="id" value="{{.EntityID}}"><input type="hidden" name="enabled" value="{{if .Enabled}}0{{else}}1{{end}}"><button class="btn" type="submit" data-e2e="sso-btn-sp-toggle">{{if .Enabled}}{{t "sso.disable"}}{{else}}{{t "sso.enable"}}{{end}}</button></form>
+  </div>
+  <form method="post" action="/admin/sso/saml/sp/delete" class="row danger-zone" data-e2e="sso-form-sp-delete">
+    {{template "csrf" $}}<input type="hidden" name="id" value="{{.EntityID}}">
+    <label for="del" class="small grow">{{t "sso.delete_confirm" .Name}}</label>
+    <input id="del" name="confirm" type="text" required autocomplete="off" data-e2e="sso-input-sp-delete">
+    <button class="btn btn-danger btn-small" type="submit" data-e2e="sso-btn-sp-delete">{{t "sso.delete"}}</button>
+  </form>
+</section>{{end}}
+{{end}}{{end}}

@@ -1,0 +1,13 @@
+{{define "title"}}{{.D.P.Name}}{{end}}
+{{define "content"}}<h1>{{.D.P.Name}}</h1>
+{{template "sso-subnav" .}}
+<p class="hint">{{t (print "sso.preset." .D.P.ID ".hint")}}</p>
+{{template "error-alert" .D.Error}}
+<form method="post" action="/admin/sso/new/{{.D.P.ID}}" class="card" autocomplete="off" data-e2e="sso-form-preset">
+  {{template "csrf" .}}
+  {{range .D.P.Params}}<div class="field"><label for="p-{{.Key}}">{{t (print "sso.preset.param." .Key)}}{{if not .Required}} <span class="hint">{{t "form.optional"}}</span>{{end}}</label>
+    <input id="p-{{.Key}}" name="{{.Key}}" type="text" value="{{index $.D.V .Key}}" placeholder="{{.Example}}"{{if .Required}} required{{end}} data-e2e="sso-input-preset-{{e2e .Key}}">
+    <span class="hint">{{t (print "sso.preset.param." .Key "_hint")}}</span></div>{{end}}
+  <div class="actions"><button class="btn btn-primary" type="submit" data-e2e="sso-btn-preset-next">{{t "sso.preset.next"}}</button>
+  <a class="btn" href="/admin/sso/new">{{t "form.cancel"}}</a></div>
+</form>{{end}}

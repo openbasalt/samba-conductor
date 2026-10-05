@@ -1,0 +1,60 @@
+{{define "title"}}{{with .D.C}}{{.Name}}{{else}}{{t "sso.tab.oidc"}}{{end}}{{end}}
+{{define "content"}}{{template "error-alert" .D.Error}}{{with .D.C}}<h1 data-e2e="sso-text-client-title">{{.Name}} {{template "sso-enabled" .Enabled}}</h1>
+{{template "sso-subnav" $}}
+<div class="grid grid-2">
+<section class="card" aria-labelledby="cl-settings" data-e2e="sso-card-client">
+  <h2 id="cl-settings">{{t "sso.client.app"}}</h2>
+  <dl class="props">
+    <dt>client_id</dt><dd class="mono" data-e2e="sso-text-client-id">{{.ID}}</dd>
+    <dt>{{t "sso.client.kind"}}</dt><dd>{{t (print "sso.kind." .Kind)}}</dd>
+    {{if .HasSecret}}<dt>client_secret</dt><dd class="small muted">{{t "sso.client.secret_hidden"}} · {{t "sso.client.rotated_at" (time .SecretRotatedAt)}}</dd>{{end}}
+    <dt>{{t "sso.client.redirects"}}</dt><dd class="mono small" data-e2e="sso-text-client-redirects">{{join .RedirectURIs " "}}</dd>
+    {{if .PostLogoutURIs}}<dt>{{t "sso.client.post_logout"}}</dt><dd class="mono small">{{join .PostLogoutURIs " "}}</dd>{{end}}
+    <dt>{{t "sso.client.scopes"}}</dt><dd class="mono small">{{join .Scopes " "}}</dd>
+    <dt>{{t "sso.client.groups_claim"}}</dt><dd>{{t (print "sso.claim." .GroupsClaim)}}</dd>
+    <dt>{{t "sso.client.first_party"}}</dt><dd>{{if .FirstParty}}{{t "form.yes"}}{{else}}{{t "form.no"}}{{end}}</dd>
+    <dt>{{t "sso.require_mfa"}}</dt><dd>{{if .RequireMFA}}{{t "form.yes"}}{{else}}{{t "form.no"}}{{end}}</dd>
+    <dt>{{t "sso.updated"}}</dt><dd class="small muted">{{time .UpdatedAt}}</dd>
+  </dl>
+</section>
+<section class="card" aria-labelledby="cl-access" data-e2e="sso-card-client-access">
+  <h2 id="cl-access">{{t "sso.access"}}</h2>
+  {{if .AllowAllUsers}}<p><span class="badge badge-warn" data-e2e="sso-badge-all-users">{{t "sso.all_users"}}</span></p>{{end}}
+  <ul class="tree" data-e2e="sso-list-client-groups">{{range .Groups}}<li>{{template "sso-groupname" (dict "G" $.D.GroupNames "Ref" .)}}</li>{{else}}{{if not $.D.C.AllowAllUsers}}<li class="muted">{{t "sso.groups.none"}}</li>{{end}}{{end}}</ul>
+  {{if .GroupsFilter}}<h3>{{t "sso.client.groups_filter"}}</h3><ul class="tree">{{range .GroupsFilter}}<li>{{template "sso-groupname" (dict "G" $.D.GroupNames "Ref" .)}}</li>{{end}}</ul>{{end}}
+</section>
+</div>
+{{with $.D.S}}<section class="card" aria-labelledby="cl-rp" data-e2e="sso-card-client-rp">
+  <h2 id="cl-rp">{{t "sso.client.for_app"}}</h2>
+  <p class="hint">{{t "sso.client.for_app_hint"}}</p>
+  <dl class="props">
+    <dt>{{t "sso.issuer"}}</dt><dd class="mono small">{{.Issuer}}</dd>
+    <dt>{{t "sso.discovery"}}</dt><dd class="mono small" data-e2e="sso-text-client-discovery">{{.DiscoveryURL}}</dd>
+    <dt>{{t "sso.client.endpoints"}}</dt><dd class="mono small">{{.Issuer}}/authorize · {{.Issuer}}/oauth/token · {{.Issuer}}/userinfo</dd>
+    <dt>PKCE</dt><dd class="small">S256 ({{t "sso.client.pkce_required"}})</dd>
+  </dl>
+</section>{{end}}
+<section class="card" aria-labelledby="cl-pv">
+  <h2 id="cl-pv">{{t "sso.preview.button"}}</h2>
+  <form method="get" action="/admin/sso/oidc/{{.ID}}" class="row" data-e2e="sso-form-client-preview">
+    <label class="sr" for="pu">{{t "sso.preview.user"}}</label><input id="pu" name="preview_user" type="text" value="{{$.D.PreviewUser}}" placeholder="{{t "sso.preview.user_hint"}}" required class="grow" data-e2e="sso-input-preview-user">
+    <button class="btn btn-small" type="submit" data-e2e="sso-btn-preview">{{t "sso.preview.button"}}</button>
+  </form>
+  {{template "error-alert" $.D.PreviewError}}
+</section>
+{{with $.D.Preview}}{{template "sso-preview" .}}{{end}}
+{{if $.D.CanWrite}}<section class="card" aria-labelledby="cl-actions" data-e2e="sso-card-client-actions">
+  <h2 id="cl-actions">{{t "sso.actions"}}</h2>
+  <div class="row">
+    <a class="btn btn-primary" href="/admin/sso/oidc/{{.ID}}/edit" data-e2e="sso-link-client-edit">{{t "sso.edit"}}</a>
+    {{if .HasSecret}}<form method="post" action="/admin/sso/oidc/{{.ID}}/rotate">{{template "csrf" $}}<button class="btn" type="submit" data-e2e="sso-btn-client-rotate">{{t "sso.client.rotate"}}</button></form>{{end}}
+    <form method="post" action="/admin/sso/oidc/{{.ID}}/enabled">{{template "csrf" $}}<input type="hidden" name="enabled" value="{{if .Enabled}}0{{else}}1{{end}}"><button class="btn" type="submit" data-e2e="sso-btn-client-toggle">{{if .Enabled}}{{t "sso.disable"}}{{else}}{{t "sso.enable"}}{{end}}</button></form>
+  </div>
+  <form method="post" action="/admin/sso/oidc/{{.ID}}/delete" class="row danger-zone" data-e2e="sso-form-client-delete">
+    {{template "csrf" $}}
+    <label for="del" class="small grow">{{t "sso.delete_confirm" .ID}}</label>
+    <input id="del" name="confirm" type="text" required autocomplete="off" data-e2e="sso-input-client-delete">
+    <button class="btn btn-danger btn-small" type="submit" data-e2e="sso-btn-client-delete">{{t "sso.delete"}}</button>
+  </form>
+</section>{{end}}
+{{end}}{{end}}
