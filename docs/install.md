@@ -31,20 +31,28 @@ database); it reaches AD over LDAPS and Kerberos like any client.
 
 ## 0. Install the package
 
-The project's APT repository is not published yet; until it is, install the
-`.deb` of a release directly (`sudo apt install ./conductor_<version>_amd64.deb`,
-after checking it against the release's signed `SHA256SUMS`). Once the
-repository is published:
+Install from the OpenBasalt APT repository (Debian 13, Ubuntu 24.04 and
+26.04, amd64). Check that the key's fingerprint is
+`3601 7348 42BD 4E48 2D19  DE4A E4EE D5EC A395 B302` (OpenBasalt release
+key) before installing it; stop if it differs.
 
 ```sh
-curl -fsSLo /tmp/samba-conductor.gpg https://apt.openbasalt.org/samba-conductor/samba-conductor-archive-keyring.gpg
-gpg --show-keys /tmp/samba-conductor.gpg     # must be 3601734842BD4E482D19DE4AE4EED5ECA395B302 (OpenBasalt release key)
-sudo install -m 0644 /tmp/samba-conductor.gpg /usr/share/keyrings/samba-conductor-archive-keyring.gpg
-printf 'Types: deb\nURIs: https://apt.openbasalt.org/samba-conductor\nSuites: stable\nComponents: main\nSigned-By: /usr/share/keyrings/samba-conductor-archive-keyring.gpg\n' |
-  sudo tee /etc/apt/sources.list.d/samba-conductor.sources
+curl -fsSLo /tmp/openbasalt-release-key.asc https://obpkg.org/keys/openbasalt-release-key.asc
+gpg --show-keys --with-fingerprint /tmp/openbasalt-release-key.asc
+sudo install -d -m 0755 /etc/apt/keyrings
+sudo gpg --dearmor -o /etc/apt/keyrings/openbasalt.gpg /tmp/openbasalt-release-key.asc
+sudo chmod 0644 /etc/apt/keyrings/openbasalt.gpg
+printf 'Types: deb\nURIs: https://obpkg.org/apt\nSuites: stable\nComponents: main\nSigned-By: /etc/apt/keyrings/openbasalt.gpg\n' |
+  sudo tee /etc/apt/sources.list.d/openbasalt.sources
 sudo apt update
 sudo apt install conductor
 ```
+
+The same repository carries every Samba Conductor package (`conductor`,
+`conductor-idp`, `conductor-sync`, `conductor-backup`, `conductor-files`).
+A release `.deb` can also be installed directly
+(`sudo apt install ./conductor_<version>_amd64.deb`) after checking it against
+the release's signed `SHA256SUMS`.
 
 The package contains `conductor` and `conductor-helper` (`/usr/bin`), their
 units (`/usr/lib/systemd/system`), man pages and
