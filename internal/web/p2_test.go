@@ -15,11 +15,13 @@ import (
 	"regexp"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/fxamacker/cbor/v2"
 	ad "github.com/openbasalt/samba-conductor-ad"
 	"github.com/openbasalt/samba-conductor/internal/config"
 	"github.com/openbasalt/samba-conductor/internal/store"
+	"github.com/openbasalt/samba-conductor/internal/totp"
 )
 
 func withWebAuthn(c *config.Config) {
@@ -484,5 +486,64 @@ func TestSidebarFollowsRoles(t *testing.T) {
 	}
 	if has(help, "nav-link-bulk") || has(help, "nav-link-health") == false {
 		t.Error("helpdesk operations group")
+	}
+}
+
+// TestBulkJobReauthSecondFactors: a job that needs re-authentication asks
+// for the same second factors as any other confirmation: an authenticator
+// code (or a recovery code) and, when the policy requires a security key
+// for administrators, the key or a recovery code only.
+func TestBulkJobReauthSecondFactors(t *testing.T) {
+	newJob := func(t *testing.T, h *harness, admin string) *bulkJob {
+		t.Helper()
+		sess := h.s.sess.byID[hashToken(admin)]
+		dn := "CN=a,OU=People,DC=lab,DC=test"
+		op, _ := ad.UnlockUser(dn)
+		r := &bulkRow{No: 1, Label: "a", Target: dn, Input: map[string]string{"guid": "x"}, ops: []*ad.Operation{op},
+			Preview: rowPreview([]*ad.Operation{op}), Status: store.RowPending}
+		job := &bulkJob{ID: strings.Repeat("k", 22), Kind: importKind, ownerSID: sess.userSID.String(), owner: "lab.admin",
+			session: sess.hash, perm: PermUsersHelpdesk, Reauth: true, Rows: []*bulkRow{r}, Status: store.JobPreviewed, created: h.now}
+		if err := h.st.CreateBulkJob(context.Background(), store.BulkJob{ID: job.ID, Kind: job.Kind, OwnerSID: job.ownerSID, OwnerName: job.owner},
+			[]store.BulkRow{{No: 1, Label: "a", Target: dn, Input: "{}", Preview: r.Preview}}); err != nil {
+			t.Fatal(err)
+		}
+		h.s.jobs.put(job, h.now)
+		return job
+	}
+
+	h := newHarness(t)
+	admin := h.session(t, "lab.admin", stageFull, true)
+	secret := h.enrollTOTP(t, "lab.admin")
+	job := newJob(t, h, admin)
+	body := h.do("GET", "/admin/bulk/"+job.ID+"?lang=en", admin, nil).Body.String()
+	if !strings.Contains(body, "a code from your authenticator (or a recovery code)") || !strings.Contains(body, "Authentication code") ||
+		strings.Contains(body, "re-authentication with a security key") {
+		t.Fatalf("job page asks for a key or recovery code only: %s", body)
+	}
+	// Without a code nothing runs.
+	if w := h.do("POST", "/admin/bulk/"+job.ID+"/apply", admin, url.Values{"password": {"pw"}}); w.Code != http.StatusSeeOther {
+		t.Fatalf("apply without code: %d", w.Code)
+	}
+	if got, _ := h.st.GetBulkJob(context.Background(), job.ID); got.Status != store.JobPreviewed {
+		t.Fatalf("applied without a second factor: %s", got.Status)
+	}
+	// An authenticator code is accepted.
+	h.now = h.now.Add(30 * time.Second)
+	if w := h.do("POST", "/admin/bulk/"+job.ID+"/apply", admin, url.Values{"password": {"pw"}, "code": {totp.Code(secret, totp.Step(h.now))}}); w.Code != http.StatusSeeOther {
+		t.Fatalf("apply with code: %d", w.Code)
+	}
+	h.s.bgJobs.Wait()
+	if got, _ := h.st.GetBulkJob(context.Background(), job.ID); got.Status != store.JobDone {
+		t.Fatalf("a TOTP code was not accepted: %s", got.Status)
+	}
+
+	// Policy: security keys required for administrators.
+	h = newHarness(t, withWebAuthn, func(c *config.Config) { c.WebAuthn.AdminRequired = true })
+	admin = h.session(t, "lab.admin", stageFull, true)
+	h.s.sess.byID[hashToken(admin)].keyOK = true // signed in with a key
+	job = newJob(t, h, admin)
+	body = h.do("GET", "/admin/bulk/"+job.ID+"?lang=en", admin, nil).Body.String()
+	if !strings.Contains(body, "re-authentication with a security key") || !strings.Contains(body, "Recovery code") {
+		t.Fatalf("key policy not shown: %s", body)
 	}
 }

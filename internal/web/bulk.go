@@ -300,6 +300,15 @@ func (s *Server) handleBulkJob(rc *reqCtx) {
 	if job != nil {
 		job.mu.Lock()
 		d["Reauth"] = job.Reauth && job.Status == store.JobPreviewed
+		if d["Reauth"] == true {
+			// The same second factors as any other confirmation: an
+			// authenticator code (or a recovery code) unless the policy
+			// requires a security key for administrators.
+			d["CodeAllowed"] = !s.keyRequired(rc.roles)
+			if d["CodeAllowed"] == true {
+				d["ReauthKey"] = "bulk.reauth"
+			}
+		}
 		d["Title"] = job.Title
 		if job.passwordsLeft && job.Status == store.JobDone {
 			rc.sess.mu.Lock()

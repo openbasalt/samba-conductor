@@ -36,6 +36,7 @@
   "bulk.apply": "Aplicar {0} linha(s)",
   "bulk.apply_hint": "Confira as alterações de cada linha abaixo. Elas são aplicadas linha a linha com a sua própria conta; cada linha é auditada e reportada.",
   "bulk.apply_title": "Aplicar as alterações",
+  "bulk.reauth": "Aplicar este trabalho exige nova autenticação: confirme sua senha e um código do seu autenticador (ou um código de recuperação).",
   "bulk.changes": "Alterações",
   "bulk.counts": "{0} aplicadas · {1} com falha · {2} não aplicadas · {3} sem alteração",
   "bulk.create_hint": "Um usuário por linha. ou: um caminho como Lab/People/Sales ou um DN; groups: nomes separados por ; ; must_change_password e enabled: yes ou no (padrão yes). As senhas são geradas, mostradas uma vez e disponíveis para download.",

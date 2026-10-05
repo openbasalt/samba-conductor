@@ -36,6 +36,7 @@
   "bulk.apply": "Apply {0} row(s)",
   "bulk.apply_hint": "Check the changes of every row below. They are applied row by row with your own account; every row is audited and reported.",
   "bulk.apply_title": "Apply the changes",
+  "bulk.reauth": "Applying this job needs re-authentication: confirm your password and a code from your authenticator (or a recovery code).",
   "bulk.changes": "Changes",
   "bulk.counts": "{0} applied · {1} failed · {2} not applied · {3} without change",
   "bulk.create_hint": "One user per row. ou: a path like Lab/People/Sales or a DN; groups: names separated by ; ; must_change_password and enabled: yes or no (default yes). Passwords are generated, shown once and downloadable.",
