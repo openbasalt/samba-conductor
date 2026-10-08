@@ -7,6 +7,7 @@
 //	conductor audit verify check the audit log's hash chain
 //	conductor audit export write the audit log as JSON lines
 //	conductor templates    list, show and check the self-service template overrides
+//	conductor healthcheck  container healthcheck (TLS handshake pinned to its certificate)
 //	conductor version
 package main
 
@@ -59,6 +60,8 @@ func main() {
 		err = cmdAudit(os.Args[2:])
 	case "templates":
 		err = cmdTemplates(os.Args[2:])
+	case "healthcheck":
+		err = cmdHealthcheck(os.Args[2:])
 	case "version", "--version", "-v":
 		fmt.Println("conductor", buildVersion())
 	case "help", "-h", "--help":
@@ -83,6 +86,7 @@ commands:
   audit verify check the audit log hash chain (as the conductor user)
   audit export write the audit log as JSON lines
   templates    list | show NAME | check: template overrides of the self-service pages
+  healthcheck  exit 0 when the listener answers with conductor's certificate (containers)
   version      print the version
 `)
 }
