@@ -38,6 +38,11 @@ Check the audit log hash chain, as the conductor user.
 .B audit export
 Write the audit log as JSON lines.
 .TP
+.B healthcheck
+Exit 0 when the web listener answers a TLS handshake with conductor's own
+certificate and, when enabled, the 2FA socket for conductor-idp exists
+(container healthchecks).
+.TP
 .B version
 Print the version.
 .SH FILES
