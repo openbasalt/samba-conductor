@@ -116,7 +116,7 @@ $SSH 'for i in $(seq 90); do ss -ltn | grep -q ":9444 " && exit 0; sleep 1; done
 docker rm -f conductor-lab-example-sp >/dev/null 2>&1 || true
 docker run -d --name conductor-lab-example-sp --network host --add-host dc1.lab.conductor.test:10.93.0.10 --security-opt label=disable \
   -v "$HOME/conductor-build/example-sp:/example-sp:ro" -v "$LAB_HOME/ca.pem:/ca.pem:ro" -u "$(id -u):$(id -g)" \
-  mcr.microsoft.com/playwright:v1.62.1-noble /example-sp -idp-metadata https://dc1.lab.conductor.test:9444/saml/metadata -ca /ca.pem >/dev/null
+  mcr.microsoft.com/playwright:v1.63.0-noble /example-sp -idp-metadata https://dc1.lab.conductor.test:9444/saml/metadata -ca /ca.pem >/dev/null
 for i in $(seq 60); do curl -fsS -o /dev/null http://localhost:8000/saml/metadata && break; sleep 1; done
 ( set -a; . "$LAB_HOME/secrets.env"; set +a
   umask 077
@@ -124,7 +124,7 @@ for i in $(seq 60); do curl -fsS -o /dev/null http://localhost:8000/saml/metadat
     "$LAB_USER_PASSWORD" "$LAB_TESTADMIN_PASSWORD" "$LAB_HELPDESK_PASSWORD" "$link" "$spki" "$stale" "$files_code" "${LAB_SYNC_PASSWORD:-}" >"$envf" )
 docker run --rm --network host --add-host dc1.lab.conductor.test:10.93.0.10 --security-opt label=disable \
   -u "$(id -u):$(id -g)" -e HOME=/tmp -e CI=1 -e NODE_EXTRA_CA_CERTS=/work/.auth/lab-ca.pem --env-file "$envf" \
-  -e E2E_GREP="$grep" -v "$E2E:/work" -w /work mcr.microsoft.com/playwright:v1.62.1-noble </dev/null \
+  -e E2E_GREP="$grep" -v "$E2E:/work" -w /work mcr.microsoft.com/playwright:v1.63.0-noble </dev/null \
   sh -c 'npm ci --no-audit --no-fund --loglevel=error >/dev/null && npx playwright test --project='"$project"' ${E2E_GREP:+--grep "$E2E_GREP"}' || test_rc=$?
 echo "=== audit chains on dc1 and fs1 after the $project run"
 $SSH 'sudo -u conductor conductor audit verify'

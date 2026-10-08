@@ -18,7 +18,7 @@ What happens (spec [design.md](design.md) §4):
    key generated), start both units, snapshot both DCs as `conductor-p1`.
 2. Per project (`desktop` 1366×900, `mobile` Pixel 7): `reset.sh
    conductor-p1`, `conductor enroll-link --user lab.admin` on dc1, the
-   suite in `mcr.microsoft.com/playwright:v1.62.1-noble`, then
+   suite in `mcr.microsoft.com/playwright:v1.63.0-noble`, then
    `conductor audit verify` on dc1.
 
 | Spec | Covers |

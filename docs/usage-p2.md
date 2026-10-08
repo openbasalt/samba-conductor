@@ -21,7 +21,7 @@ What happens (spec [design.md](design.md) §7):
    `conductor-p2` (`conductor-p1` is kept as it was).
 2. Per project (`desktop` 1366×900, `mobile` Pixel 7): `reset.sh
    conductor-p2`, an enrollment link for `lab.admin`, the suite in
-   `mcr.microsoft.com/playwright:v1.62.1-noble`, then `conductor audit
+   `mcr.microsoft.com/playwright:v1.63.0-noble`, then `conductor audit
    verify` on dc1.
 
 | Spec | Covers |
