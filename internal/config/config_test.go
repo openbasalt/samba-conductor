@@ -51,16 +51,49 @@ func TestValidation(t *testing.T) {
 		"bad mfa policy":          base + "[mfa]\npolicy = \"sometimes\"\n",
 		"session too long":        base + "[session]\nabsolute_hours = 72\n",
 		"trusted proxy w/o proxy": strings.Replace(base, `listen = ":8443"`, "listen = \":8443\"\ntrusted_proxies = [\"127.0.0.1/32\"]", 1),
+		"proxy w/o trusted":       proxyBody(""),
+		"http public url":         withServer(`public_url = "http://dc1.example.com"`),
+		"public url with path":    withServer(`public_url = "https://dc1.example.com/conductor"`),
 	}
 	for name, body := range cases {
 		if _, err := load(t, body); err == nil {
 			t.Errorf("%s: accepted", name)
 		}
 	}
-	proxy := strings.Replace(strings.Replace(strings.Replace(base, `tls_cert = "/etc/conductor/tls/cert.pem"`, "behind_proxy = true\ntrusted_proxies = [\"127.0.0.1/32\"]", 1),
-		`tls_key = "/etc/conductor/tls/key.pem"`, "", 1), `":8443"`, `"127.0.0.1:8080"`, 1)
-	if _, err := load(t, proxy); err != nil {
+	if _, err := load(t, proxyBody(`trusted_proxies = ["127.0.0.1/32"]`)); err != nil {
 		t.Errorf("loopback behind a proxy refused: %v", err)
+	}
+	if _, err := load(t, proxyBody("")); err == nil || !strings.Contains(err.Error(), "trusted_proxies is required") {
+		t.Errorf("behind_proxy without trusted_proxies: %v", err)
+	}
+}
+
+// withServer is base with a line added to [server].
+func withServer(line string) string {
+	return strings.Replace(base, `listen = ":8443"`, "listen = \":8443\"\n"+line, 1)
+}
+
+// proxyBody is base turned into a loopback listener behind a reverse proxy,
+// with extra lines added to [server].
+func proxyBody(extra string) string {
+	return strings.Replace(strings.Replace(strings.Replace(base, `tls_cert = "/etc/conductor/tls/cert.pem"`, "behind_proxy = true\n"+extra, 1),
+		`tls_key = "/etc/conductor/tls/key.pem"`, "", 1), `":8443"`, `"127.0.0.1:8080"`, 1)
+}
+
+func TestPublicBaseURL(t *testing.T) {
+	c, err := load(t, base)
+	if err != nil || c.PublicBaseURL() != "" {
+		t.Fatalf("no public URL: %q %v", c.PublicBaseURL(), err)
+	}
+	// The WebAuthn origin is the fallback.
+	c, err = load(t, base+"[webauthn]\nrp_id = \"dc1.lab.conductor.test\"\n")
+	if err != nil || c.PublicBaseURL() != "https://dc1.lab.conductor.test:8443" {
+		t.Fatalf("from rp_id: %q %v", c.PublicBaseURL(), err)
+	}
+	// server.public_url wins, without a trailing slash.
+	c, err = load(t, withServer(`public_url = "https://conductor.example.com/"`)+"[webauthn]\nrp_id = \"dc1.lab.conductor.test\"\n")
+	if err != nil || c.PublicBaseURL() != "https://conductor.example.com" {
+		t.Fatalf("public_url: %q %v", c.PublicBaseURL(), err)
 	}
 }
 

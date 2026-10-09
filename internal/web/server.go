@@ -15,6 +15,7 @@ import (
 	"net"
 	"net/http"
 	"net/netip"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -157,6 +158,11 @@ func New(d Deps) (*Server, error) {
 			return nil, err
 		}
 		s.trusted = append(s.trusted, pre)
+	}
+	if d.Config.Server.BehindProxy {
+		// Say whose X-Forwarded-For is believed: rate limits and the audit
+		// log use the client address it carries.
+		d.Logger.Info("behind a reverse proxy", "trusted_proxies", strings.Join(d.Config.Server.TrustedProxies, ","))
 	}
 	if s.roleSIDs, err = parseRoleSIDs(d.Config.Roles); err != nil {
 		return nil, err
