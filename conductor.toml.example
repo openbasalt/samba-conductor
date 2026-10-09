@@ -7,10 +7,18 @@
 listen = ":8443"
 tls_cert = "/etc/conductor/tls/cert.pem"
 tls_key = "/etc/conductor/tls/key.pem"
-# Or behind a TLS reverse proxy on the same host (loopback only):
+# Or behind a TLS reverse proxy on the same host (loopback only).
+# trusted_proxies is required with behind_proxy: the proxy's addresses,
+# whose X-Forwarded-For gives the client address used by rate limits and
+# the audit log.
 # listen = "127.0.0.1:8080"
 # behind_proxy = true
 # trusted_proxies = ["127.0.0.1/32", "::1/128"]
+# The https URL users open. Enrollment links are built from it (default:
+# the WebAuthn origin when webauthn.rp_id is set; without either, the web
+# pages issue no enrollment link and the enroll-link command needs
+# --base-url).
+# public_url = "https://dc1.example.com:8443"
 
 [domain]
 realm = "EXAMPLE.COM"

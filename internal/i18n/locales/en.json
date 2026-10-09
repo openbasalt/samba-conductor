@@ -619,6 +619,7 @@
   "user.enable.title": "Enable {0}",
   "user.enroll_link": "Issue 2FA enrollment link",
   "user.enroll_link.done": "Enrollment link created.",
+  "user.enroll_link.no_public_url": "No enrollment link can be issued: set server.public_url (or webauthn.rp_id) in the configuration, or run conductor enroll-link --base-url on the server.",
   "user.enroll_link.show": "Give this one-time link to the user over a trusted channel. It is valid for 24 hours and is shown only now:",
   "user.enroll_link.summary": "Create a one-time link that lets this user set up two-factor authentication.",
   "user.enroll_link.title": "Enrollment link for {0}",

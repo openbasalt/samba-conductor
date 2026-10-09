@@ -80,7 +80,11 @@ sudo install -m 0640 -o root -g conductor key.pem /etc/conductor/tls/key.pem
 
 The key is readable by the `conductor` group only. Behind a reverse proxy
 skip this step and use `setup --behind-proxy` (conductor then listens on
-`127.0.0.1:8080` and never serves plain HTTP on another address).
+`127.0.0.1:8080` and never serves plain HTTP on another address). Setup also
+writes `trusted_proxies` for a proxy on the same host; that setting is
+required with `behind_proxy`, so rate limits and the audit log see each
+client's own address. Give `--public-url` with the address users open, so
+enrollment links point to it.
 
 ## 3. systemd units (source install only)
 

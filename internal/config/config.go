@@ -175,9 +175,13 @@ type Server struct {
 	// BehindProxy serves plain HTTP for a TLS-terminating reverse proxy on
 	// the same host; only allowed on a loopback address.
 	BehindProxy bool `toml:"behind_proxy"`
-	// TrustedProxies whose X-Forwarded-For is believed (CIDRs). Only used
-	// with BehindProxy.
+	// TrustedProxies whose X-Forwarded-For is believed (CIDRs). Required
+	// with BehindProxy, refused without it.
 	TrustedProxies []string `toml:"trusted_proxies"`
+	// PublicURL is the https URL users open (https://host[:port]); links
+	// conductor hands out, such as 2FA enrollment links, are built from it
+	// and never from a request's Host header.
+	PublicURL string `toml:"public_url"`
 }
 
 // Domain is how the AD domain is reached.
@@ -330,6 +334,17 @@ func (c *Config) Validate() error {
 	if len(c.Server.TrustedProxies) > 0 && !c.Server.BehindProxy {
 		bad("server.trusted_proxies only makes sense with server.behind_proxy")
 	}
+	if c.Server.BehindProxy && len(c.Server.TrustedProxies) == 0 {
+		// Without it every request seems to come from the proxy: one rate
+		// limit bucket for all clients and the proxy's address in the audit.
+		bad(`server.trusted_proxies is required with server.behind_proxy (the proxy's addresses, e.g. ["127.0.0.1/32", "::1/128"])`)
+	}
+	if c.Server.PublicURL != "" {
+		if u, err := url.Parse(c.Server.PublicURL); err != nil || u.Scheme != "https" || u.Host == "" ||
+			(u.Path != "" && u.Path != "/") || u.RawQuery != "" || u.Fragment != "" || u.User != nil {
+			bad("server.public_url must be https://host[:port] without a path (got %q)", c.Server.PublicURL)
+		}
+	}
 
 	if c.Domain.Realm == "" || strings.ContainsAny(c.Domain.Realm, " /\\") {
 		bad("domain.realm is required")
@@ -459,6 +474,18 @@ func hostWithin(host, rpID string) bool {
 // origins (under rp_id) and the related origins.
 func (c *Config) WebAuthnAllOrigins() []string {
 	return append(slices.Clone(c.WebAuthnOrigins()), c.WebAuthn.RelatedOrigins...)
+}
+
+// PublicBaseURL is the base of the links conductor hands out: server.public_url,
+// else the first WebAuthn origin, else "" (no link can be built).
+func (c *Config) PublicBaseURL() string {
+	if c.Server.PublicURL != "" {
+		return strings.TrimRight(c.Server.PublicURL, "/")
+	}
+	if o := c.WebAuthnOrigins(); len(o) > 0 {
+		return strings.TrimRight(o[0], "/")
+	}
+	return ""
 }
 
 // WebAuthnOrigins returns the configured origins, or the default derived

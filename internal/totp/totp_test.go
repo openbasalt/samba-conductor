@@ -1,6 +1,7 @@
 package totp
 
 import (
+	"bytes"
 	"strings"
 	"testing"
 	"time"
@@ -65,5 +66,38 @@ func TestURIAndRecovery(t *testing.T) {
 	}
 	if LooksLikeRecoveryCode("123456") {
 		t.Error("TOTP code taken for a recovery code")
+	}
+}
+
+// TestRecoverySymbolsUniform feeds every byte value once: the rejection
+// sampling keeps 248 of them (8 per symbol of the 31-symbol alphabet) and
+// drops 248-255, which the plain modulo mapped onto the first symbols.
+func TestRecoverySymbolsUniform(t *testing.T) {
+	all := make([]byte, 256)
+	for i := range all {
+		all[i] = byte(i)
+	}
+	limit := 256 - 256%len(recoveryAlphabet)
+	sym, err := uniformSymbols(bytes.NewReader(all), recoveryAlphabet, limit)
+	if err != nil {
+		t.Fatal(err)
+	}
+	count := map[byte]int{}
+	for _, c := range sym {
+		count[c]++
+	}
+	for i := range len(recoveryAlphabet) {
+		if n := count[recoveryAlphabet[i]]; n != limit/len(recoveryAlphabet) {
+			t.Errorf("symbol %q drawn %d times", recoveryAlphabet[i], n)
+		}
+	}
+	// Rejected bytes are skipped and replaced by the next ones.
+	c, err := recoveryCode(bytes.NewReader([]byte{255, 248, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9}))
+	if err != nil || c != "abcde-fghjk" {
+		t.Fatalf("code %q %v", c, err)
+	}
+	// A short source is an error, never a short code.
+	if _, err := recoveryCode(bytes.NewReader([]byte{255, 0, 1})); err == nil {
+		t.Fatal("short random source accepted")
 	}
 }

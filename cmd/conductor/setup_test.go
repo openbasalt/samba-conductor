@@ -34,5 +34,8 @@ func TestRenderedConfigLoads(t *testing.T) {
 		if o.publicURL != "" && c.WebAuthnOrigins()[0] != "https://dc1.lab.example.test:8443" {
 			t.Fatalf("origins %v", c.WebAuthnOrigins())
 		}
+		if c.PublicBaseURL() != o.publicURL {
+			t.Fatalf("public URL %q for %+v", c.PublicBaseURL(), o)
+		}
 	}
 }

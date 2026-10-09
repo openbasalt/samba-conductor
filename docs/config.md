@@ -12,7 +12,8 @@ any invalid value, so a typo never silently falls back to a default.
 | `listen` | `":8443"` | Address to listen on (ignored when systemd passes a socket). |
 | `tls_cert`, `tls_key` | none | Built-in TLS (TLS 1.2+). Both or neither. |
 | `behind_proxy` | `false` | Plain HTTP for a TLS reverse proxy on the same host. Only with a loopback `listen` address; never together with `tls_*`. Without TLS and without this, conductor refuses to start. |
-| `trusted_proxies` | `[]` | CIDRs whose `X-Forwarded-For` is believed (rate limits and audit use the client address). Only with `behind_proxy`. |
+| `trusted_proxies` | `[]` | CIDRs of the reverse proxy, whose `X-Forwarded-For` is believed (rate limits and audit use the client address). Required with `behind_proxy` and refused without it; for a proxy on the same host, `["127.0.0.1/32", "::1/128"]`. Requests from any other address are attributed to their own address, whatever header they carry. |
+| `public_url` | none | The https URL users open (`https://host[:port]`, no path). Enrollment links issued from the web pages are built from it, never from the request's `Host` header. Default: the first WebAuthn origin when `webauthn.rp_id` is set; without either, the web pages issue no enrollment link. `conductor enroll-link` uses it when `--base-url` is not given. |
 
 conductor always sends HSTS and `__Host-` cookies, so the browser must reach
 it over HTTPS (directly or through the proxy).
