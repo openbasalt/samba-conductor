@@ -6,9 +6,10 @@ Samba Conductor v2. Design: [docs/design.md](docs/design.md) and the
 family's [architecture.md](https://github.com/openbasalt/samba-conductor-docs/blob/main/architecture.md). The other
 repositories: [samba-conductor-docs](https://github.com/openbasalt/samba-conductor-docs).
 
-Container images: `docker.io/openbasalt/samba-conductor` and `samba-conductor-dc` (the DC, in preview), also on `ghcr.io/openbasalt`, see [containers.md](https://github.com/openbasalt/samba-conductor-docs/blob/main/containers.md).
+Container images: `docker.io/openbasalt/samba-conductor` and `samba-conductor-dc` (the DC, in preview), tags `0.1.0` and `latest`, also on `ghcr.io/openbasalt` with the same digests, see [containers.md](https://github.com/openbasalt/samba-conductor-docs/blob/main/containers.md).
 
-Status: pre-release, no tagged version yet. Users, groups, OUs, computers,
+Status: 0.1.0 released (signed GitHub release `v0.1.0`, APT packages
+`0.1.0-1`, container images above). Users, groups, OUs, computers,
 self-service, DNS, Group Policy links, password policies, lockouts across
 DCs, account health, bulk operations, security keys, encrypted domain
 backups with restore drills
@@ -127,8 +128,13 @@ full-forest restore: lab runs in [`docs/usage-p3.md`](docs/usage-p3.md),
   accounts": the user's own account on each target conductor-sync
   provisions to, activated on demand and given a new password (generated
   and shown once, or typed), with a recent second factor; never stored.
-- Audit log: append-only SQLite table, hash-chained; viewer with
-  filters, JSON lines export, `conductor audit verify`.
+- Audit log: append-only SQLite table (triggers refuse updates and
+  deletes) with a hash chain; viewer with filters, JSON lines export,
+  `conductor audit verify`. The chain detects accidental or partial edits.
+  It is not keyed or anchored outside the database, so it does not protect
+  against someone with write access to the database file. Protect the
+  database file and ship the exported log off the host if you need tamper
+  evidence.
 - conductor-helper: the only root process, on a Unix socket only the
   `conductor` user may use (SO_PEERCRED): read-only domain information
   (functional levels, FSMO roles, DCs) and, with backups configured
