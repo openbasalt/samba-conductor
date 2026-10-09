@@ -619,6 +619,7 @@
   "user.enable.title": "Ativar {0}",
   "user.enroll_link": "Gerar link de cadastro de 2FA",
   "user.enroll_link.done": "Link de cadastro criado.",
+  "user.enroll_link.no_public_url": "Não é possível gerar o link de cadastro: defina server.public_url (ou webauthn.rp_id) na configuração, ou rode conductor enroll-link --base-url no servidor.",
   "user.enroll_link.show": "Entregue este link de uso único ao usuário por um canal confiável. Ele vale por 24 horas e só é mostrado agora:",
   "user.enroll_link.summary": "Criar um link de uso único para este usuário configurar a autenticação em dois fatores.",
   "user.enroll_link.title": "Link de cadastro para {0}",

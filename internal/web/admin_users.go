@@ -425,9 +425,16 @@ func (s *Server) handleUserMFAReset(rc *reqCtx) {
 }
 
 func (s *Server) handleUserEnrollLink(rc *reqCtx) {
+	// The link is built from the configured public URL only: a Host header
+	// (from a misconfigured proxy, or an internal name) could send the
+	// one-time token to the wrong host.
+	base := s.cfg.PublicBaseURL()
+	if base == "" {
+		rc.errorPage(http.StatusConflict, "user.enroll_link.no_public_url")
+		return
+	}
 	s.userAction(rc, PermMFAManage, func(ctx context.Context, conn *ad.Conn, u ad.User) (*pendingOp, error) {
 		sam := strings.ToLower(u.SAMAccountName)
-		host := rc.r.Host
 		return &pendingOp{action: "mfa.enroll_link", title: rc.T("user.enroll_link.title", u.SAMAccountName),
 			summary: rc.T("user.enroll_link.summary"), preview: "issue a one-time 2FA enrollment link for " + sam + ", valid 24 hours",
 			run: func(ctx context.Context, rc *reqCtx) error {
@@ -436,7 +443,7 @@ func (s *Server) handleUserEnrollLink(rc *reqCtx) {
 					return err
 				}
 				rc.sess.mu.Lock()
-				rc.sess.issuedLink = "https://" + host + "/signin?enroll=" + tok
+				rc.sess.issuedLink = base + "/signin?enroll=" + tok
 				rc.sess.mu.Unlock()
 				return nil
 			}, done: rc.T("user.enroll_link.done")}, nil

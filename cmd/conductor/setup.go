@@ -369,6 +369,10 @@ trusted_proxies = ["127.0.0.1/32", "::1/128"]
 tls_cert = {{q .TLSCert}}
 tls_key = {{q .TLSKey}}
 {{- end}}
+{{- if .PublicURL}}
+# The https URL users open; enrollment links are built from it.
+public_url = {{q .PublicURL}}
+{{- end}}
 
 [domain]
 realm = {{q .Realm}}
@@ -434,7 +438,7 @@ func renderConfig(o setupOpts, caPath string, roles config.Roles) ([]byte, error
 	}
 	var sb strings.Builder
 	err := configTemplate.Execute(&sb, map[string]any{"Now": time.Now().UTC().Format(time.RFC3339), "Listen": listen, "RPID": rpID,
-		"BehindProxy": o.behindProxy, "TLSCert": o.tlsCert, "TLSKey": o.tlsKey, "Realm": o.realm, "CAFile": caPath,
+		"BehindProxy": o.behindProxy, "PublicURL": o.publicURL, "TLSCert": o.tlsCert, "TLSKey": o.tlsKey, "Realm": o.realm, "CAFile": caPath,
 		"Preferred": []string{o.dc}, "Roles": roles, "MFAPolicy": o.mfaPolicy})
 	return []byte(sb.String()), err
 }
@@ -459,7 +463,7 @@ func cmdEnrollLink(args []string) error {
 	fs := flag.NewFlagSet("enroll-link", flag.ExitOnError)
 	cfgPath := fs.String("config", config.DefaultPath, "configuration file")
 	username := fs.String("user", "", "administrator's username (sAMAccountName)")
-	baseURL := fs.String("base-url", "", "https URL users open, e.g. https://dc1.example.com:8443")
+	baseURL := fs.String("base-url", "", "https URL users open, e.g. https://dc1.example.com:8443 (default: server.public_url)")
 	_ = fs.Parse(args)
 	if *username == "" || strings.ContainsAny(*username, "@\\/ ") {
 		return errors.New("--user USERNAME (sAMAccountName) is required")
@@ -487,6 +491,9 @@ func cmdEnrollLink(args []string) error {
 		return err
 	}
 	base := strings.TrimRight(*baseURL, "/")
+	if base == "" {
+		base = cfg.PublicBaseURL()
+	}
 	if base == "" {
 		base = "https://" + hostFQDN() + portSuffix(cfg.Server.Listen)
 	}
