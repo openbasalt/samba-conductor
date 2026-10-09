@@ -18,6 +18,12 @@ RestartSec=5s
 # The key that encrypts TOTP secrets reaches the service as a systemd
 # credential ($CREDENTIALS_DIRECTORY/totp-key), readable only by it.
 LoadCredential=totp-key:/etc/conductor/credentials/totp-key
+# The relay password of [mail] (docs/mail.md), only when the relay needs
+# one. Left out here because a LoadCredential= whose file is missing stops
+# the unit from starting (systemd 252): add it with a drop-in
+# (systemctl edit conductor) once the file exists, or use
+# mail.password_file instead.
+#LoadCredential=smtp-password:/etc/conductor/credentials/smtp-password
 
 StateDirectory=conductor
 StateDirectoryMode=0700

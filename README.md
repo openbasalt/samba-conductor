@@ -128,6 +128,10 @@ full-forest restore: lab runs in [`docs/usage-p3.md`](docs/usage-p3.md),
   accounts": the user's own account on each target conductor-sync
   provisions to, activated on demand and given a new password (generated
   and shown once, or typed), with a recent second factor; never stored.
+- E-mail (`[mail]` on): an SMTP relay over STARTTLS or TLS, a queue in
+  SQLite with sealed content, retries and expiry, message templates in
+  English and Brazilian Portuguese with the organization's branding, and
+  Settings > E-mail with the queue, the recent messages and a test message.
 - Audit log: append-only SQLite table (triggers refuse updates and
   deletes) with a hash chain; viewer with filters, JSON lines export,
   `conductor audit verify`. The chain detects accidental or partial edits.
@@ -171,6 +175,7 @@ full-forest restore: lab runs in [`docs/usage-p3.md`](docs/usage-p3.md),
 - [Install on Basalt OS / Fedora (RPM, SELinux)](docs/install-fedora.md)
 - Packaging, releases, CI: [packaging.md](https://github.com/openbasalt/samba-conductor-docs/blob/main/packaging.md); package files in [`packaging/`](packaging/)
 - [Configuration reference](docs/config.md)
+- [E-mail](docs/mail.md)
 - [Restore runbook](docs/restore.md)
 - [Design](docs/design.md)
 - Lab runs: [Single sign-on section](docs/usage-p4b.md), [Google Workspace sync section](docs/usage-p5b.md), [backups, drills, restore exercise](docs/usage-p3.md), [DNS, Group Policy, policies, bulk](docs/usage-p2.md), [core administration and self-service](docs/usage-p1.md) and [screenshots](docs/screenshots/)
