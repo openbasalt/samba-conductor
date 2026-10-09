@@ -6,10 +6,10 @@ Samba Conductor v2. Design: [docs/design.md](docs/design.md) and the
 family's [architecture.md](https://github.com/openbasalt/samba-conductor-docs/blob/main/architecture.md). The other
 repositories: [samba-conductor-docs](https://github.com/openbasalt/samba-conductor-docs).
 
-Container images: `docker.io/openbasalt/samba-conductor` and `samba-conductor-dc` (the DC, in preview), tags `0.1.0` and `latest`, also on `ghcr.io/openbasalt` with the same digests, see [containers.md](https://github.com/openbasalt/samba-conductor-docs/blob/main/containers.md).
+Container images: `docker.io/openbasalt/samba-conductor` and `samba-conductor-dc` (the DC, in preview), tags `0.1.1` and `latest`, also on `ghcr.io/openbasalt` with the same digests, see [containers.md](https://github.com/openbasalt/samba-conductor-docs/blob/main/containers.md).
 
-Status: 0.1.0 released (signed GitHub release `v0.1.0`, APT packages
-`0.1.0-1`, container images above). Users, groups, OUs, computers,
+Status: 0.1.1 released (signed GitHub release `v0.1.1`, APT packages
+`0.1.1-1`, container images above). Users, groups, OUs, computers,
 self-service, DNS, Group Policy links, password policies, lockouts across
 DCs, account health, bulk operations, security keys, encrypted domain
 backups with restore drills
