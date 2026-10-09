@@ -131,8 +131,8 @@ Portuguese (the recipient's language when conductor knows it, otherwise
 `[ui] default_language`). The look comes from Settings > Branding: the
 organization name, the light logo, the primary color, the support
 contact and the help text ([branding.md](branding.md)). The logo is an
-absolute URL on the first `[webauthn] origins` entry (or
-`https://` + `rp_id`), so recipients load it from conductor; it is left
+absolute URL on `server.public_url` (or the first `[webauthn] origins`
+entry, or `https://` + `rp_id`), so recipients load it from conductor; it is left
 out when conductor has no https address. Nothing else is loaded from
 elsewhere and every style is inline.
 
