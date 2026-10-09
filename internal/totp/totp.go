@@ -13,6 +13,7 @@ import (
 	"encoding/binary"
 	"encoding/hex"
 	"fmt"
+	"io"
 	"net/url"
 	"strings"
 	"time"
@@ -94,23 +95,47 @@ const RecoveryCodeCount = 10
 
 var recoveryAlphabet = "abcdefghjkmnpqrstuvwxyz23456789"
 
-// NewRecoveryCodes returns fresh single-use codes ("xxxxx-xxxxx", 50 bits
-// each) to show once to the user.
+// NewRecoveryCodes returns fresh single-use codes ("xxxxx-xxxxx", about 49
+// bits each) to show once to the user.
 func NewRecoveryCodes() ([]string, error) {
 	out := make([]string, RecoveryCodeCount)
 	for i := range out {
-		b := make([]byte, 10)
-		if _, err := rand.Read(b); err != nil {
+		c, err := recoveryCode(rand.Reader)
+		if err != nil {
 			return nil, err
 		}
-		var sb strings.Builder
-		for j, c := range b {
-			if j == 5 {
-				sb.WriteByte('-')
-			}
-			sb.WriteByte(recoveryAlphabet[int(c)%len(recoveryAlphabet)])
+		out[i] = c
+	}
+	return out, nil
+}
+
+// recoveryCode draws one code from r. Each symbol is uniform over the
+// alphabet: bytes at or above the largest multiple of its size are
+// rejected and drawn again, so the modulo does not favour any symbol.
+func recoveryCode(r io.Reader) (string, error) {
+	sym, err := uniformSymbols(r, recoveryAlphabet, 10)
+	if err != nil {
+		return "", err
+	}
+	return string(sym[:5]) + "-" + string(sym[5:]), nil
+}
+
+// uniformSymbols returns n symbols of alphabet (at most 256 of them) drawn
+// uniformly from the bytes of r by rejection sampling.
+func uniformSymbols(r io.Reader, alphabet string, n int) ([]byte, error) {
+	limit := 256 - 256%len(alphabet)
+	out := make([]byte, 0, n)
+	buf := make([]byte, n)
+	for len(out) < n {
+		chunk := buf[:n-len(out)]
+		if _, err := io.ReadFull(r, chunk); err != nil {
+			return nil, err
 		}
-		out[i] = sb.String()
+		for _, c := range chunk {
+			if int(c) < limit {
+				out = append(out, alphabet[int(c)%len(alphabet)])
+			}
+		}
 	}
 	return out, nil
 }
