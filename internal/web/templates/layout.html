@@ -81,10 +81,11 @@
           <li><a href="/admin/sso/activity" data-e2e="nav-link-sso-activity"{{if active .Path "/admin/sso/activity"}} aria-current="page"{{end}}>{{t "nav.sso.activity"}}</a></li>
         </ul>
       </div>{{end}}
-      {{if has .Nav "branding"}}<div class="nav-group" data-e2e="nav-group-settings">
+      {{if or (has .Nav "branding") (has .Nav "settings")}}<div class="nav-group" data-e2e="nav-group-settings">
         <h2 class="nav-heading">{{t "nav.group.settings"}}</h2>
         <ul>
-          <li><a href="/admin/branding" data-e2e="nav-link-branding"{{if active .Path "/admin/branding"}} aria-current="page"{{end}}>{{t "nav.branding"}}</a></li>
+          {{if has .Nav "branding"}}<li><a href="/admin/branding" data-e2e="nav-link-branding"{{if active .Path "/admin/branding"}} aria-current="page"{{end}}>{{t "nav.branding"}}</a></li>{{end}}
+          {{if has .Nav "settings"}}<li><a href="/admin/settings/mail" data-e2e="nav-link-mail"{{if active .Path "/admin/settings/mail"}} aria-current="page"{{end}}>{{t "nav.mail"}}</a></li>{{end}}
         </ul>
       </div>{{end}}
       {{if or (has .Nav "audit.read") (has .Nav "domain.read")}}<div class="nav-group" data-e2e="nav-group-audit">

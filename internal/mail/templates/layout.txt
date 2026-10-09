@@ -1,0 +1,7 @@
+{{/* Shared parts of the plain text messages. */}}
+{{- define "text-bottom"}}
+--
+{{if .Support.Any}}{{t "mail.footer.support"}}:{{with .Support.Email}} {{.}}{{end}}{{with .Support.Phone}} {{.}}{{end}}{{with .Support.URL}} {{.}}{{end}}
+{{end}}{{with .Support.Text}}{{.}}
+{{end}}{{t "mail.footer.automatic" .OrgName}}
+{{end}}

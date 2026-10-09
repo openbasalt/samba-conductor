@@ -27,6 +27,7 @@ import (
 	"github.com/openbasalt/samba-conductor/internal/config"
 	"github.com/openbasalt/samba-conductor/internal/directory"
 	"github.com/openbasalt/samba-conductor/internal/i18n"
+	"github.com/openbasalt/samba-conductor/internal/mail"
 	"github.com/openbasalt/samba-conductor/internal/ratelimit"
 	"github.com/openbasalt/samba-conductor/internal/secret"
 	"github.com/openbasalt/samba-conductor/internal/store"
@@ -61,7 +62,10 @@ type Deps struct {
 	// Files reaches the conductor-files agents (nil when [files] is off).
 	Files FilesClient
 	// IDP is conductor-idp's management API (nil when [idp] is off).
-	IDP     IDPClient
+	IDP IDPClient
+	// Mail is the outgoing e-mail queue (nil when [mail] is off); its
+	// worker runs apart (serve starts it).
+	Mail    *mail.Queue
 	Logger  *slog.Logger
 	Version string
 }
@@ -136,6 +140,13 @@ type Server struct {
 	customCSS   []byte
 	customTag   string
 	allowed     []string
+
+	// mailq is the e-mail queue (nil when [mail] is off); mailr renders
+	// the message templates; mailTestLimit bounds the test messages of
+	// each administrator.
+	mailq         *mail.Queue
+	mailr         *mail.Renderer
+	mailTestLimit *ratelimit.Bucket
 }
 
 // New builds the server.
@@ -151,7 +162,7 @@ func New(d Deps) (*Server, error) {
 		return nil, err
 	}
 	s := &Server{cfg: d.Config, store: d.Store, backend: d.Backend, box: d.MFABox, helper: d.Helper, log: d.Logger,
-		cat: cat, version: d.Version, now: time.Now, sync: d.Sync, files: d.Files, idp: d.IDP}
+		cat: cat, version: d.Version, now: time.Now, sync: d.Sync, files: d.Files, idp: d.IDP, mailq: d.Mail}
 	for _, p := range d.Config.Server.TrustedProxies {
 		pre, err := netip.ParsePrefix(p)
 		if err != nil {
@@ -202,6 +213,10 @@ func New(d Deps) (*Server, error) {
 			}
 		}
 	}
+	if err := s.loadMailTemplates(); err != nil {
+		return nil, err
+	}
+	s.mailTestLimit = ratelimit.NewBucket(mailTestsPerHour, time.Hour)
 	lctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	s.loadBranding(lctx)
 	cancel()
