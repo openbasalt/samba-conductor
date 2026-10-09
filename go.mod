@@ -12,10 +12,10 @@ require (
 	github.com/fxamacker/cbor/v2 v2.9.4
 	github.com/go-ldap/ldap/v3 v3.4.14
 	github.com/go-webauthn/webauthn v0.18.2
-	github.com/openbasalt/samba-conductor-ad v0.0.0-20261005165108-3dc32c3dd473
-	github.com/openbasalt/samba-conductor-files v0.0.0-20261003144929-7e45179686c3
-	github.com/openbasalt/samba-conductor-idp v0.0.0-20261005202055-42549bfaace9
-	github.com/openbasalt/samba-conductor-sync v0.0.0-20261005175505-d66356c382d9
+	github.com/openbasalt/samba-conductor-ad v0.0.0-20261009012208-17469fcb3764
+	github.com/openbasalt/samba-conductor-files v0.0.0-20261009012130-1ff33f4cb0c6
+	github.com/openbasalt/samba-conductor-idp v0.0.0-20261009022042-5d3f9f8e1f25
+	github.com/openbasalt/samba-conductor-sync v0.0.0-20261009022047-f5f8a11975ac
 	golang.org/x/term v0.46.0
 	modernc.org/sqlite v1.60.1
 	rsc.io/qr v0.2.0
@@ -28,7 +28,7 @@ require (
 	github.com/go-asn1-ber/asn1-ber v1.5.8 // indirect
 	github.com/go-crypt/x v0.4.12 // indirect
 	github.com/go-krb5/krb5 v0.1.0 // indirect
-	github.com/go-krb5/x v0.3.2 // indirect
+	github.com/go-krb5/x v0.4.1 // indirect
 	github.com/go-viper/mapstructure/v2 v2.5.0 // indirect
 	github.com/go-webauthn/x v0.3.1 // indirect
 	github.com/golang-jwt/jwt/v5 v5.3.1 // indirect
@@ -41,7 +41,6 @@ require (
 	github.com/tinylib/msgp v1.6.4 // indirect
 	github.com/x448/float16 v0.8.4 // indirect
 	golang.org/x/crypto v0.57.0 // indirect
-	golang.org/x/net v0.60.0 // indirect
 	golang.org/x/sys v0.48.0 // indirect
 	modernc.org/libc v1.77.1 // indirect
 	modernc.org/mathutil v1.7.1 // indirect
