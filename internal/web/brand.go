@@ -20,6 +20,7 @@ import (
 	"github.com/openbasalt/samba-conductor-idp/branding"
 	"github.com/openbasalt/samba-conductor/internal/config"
 	"github.com/openbasalt/samba-conductor/internal/i18n"
+	"github.com/openbasalt/samba-conductor/internal/mail"
 	"github.com/openbasalt/samba-conductor/internal/store"
 )
 
@@ -97,6 +98,7 @@ func (s *Server) renderPartial(p branding.Partial, body string) (string, error) 
 // loadOverrides reads the template directory and logs what it decided.
 func (s *Server) loadOverrides() branding.Result {
 	res := branding.Load(s.cfg.Branding.TemplatesDir, BuiltinPartials(), s.allowed, s.renderPartial)
+	res.Findings = withoutMailDir(res.Findings)
 	for _, f := range res.Findings {
 		if f.Level == branding.LevelOK {
 			s.log.Info("branding template", "file", f.File, "result", f.Message)
@@ -108,14 +110,27 @@ func (s *Server) loadOverrides() branding.Result {
 }
 
 // CheckTemplates checks the template directory of a configuration
-// (`conductor templates check`).
+// (`conductor templates check`): the partials of the self-service pages
+// and the message templates in its mail directory.
 func CheckTemplates(cfg *config.Config) ([]branding.Finding, error) {
 	cat, err := i18n.Load()
 	if err != nil {
 		return nil, err
 	}
 	s := &Server{cfg: cfg, cat: cat, version: "check", allowed: cfg.AllowedOrigins()}
-	return branding.Check(cfg.Branding.TemplatesDir, BuiltinPartials(), s.allowed, s.renderPartial), nil
+	findings := withoutMailDir(branding.Check(cfg.Branding.TemplatesDir, BuiltinPartials(), s.allowed, s.renderPartial))
+	mf, err := mail.CheckOverrides(cat, MailTemplatesDir(cfg.Branding.TemplatesDir))
+	if err != nil {
+		return nil, err
+	}
+	return append(findings, mf...), nil
+}
+
+// withoutMailDir drops the finding about the mail directory of the
+// template directory: it holds the message templates (checked by the mail
+// package), not a partial of the pages.
+func withoutMailDir(in []branding.Finding) []branding.Finding {
+	return slices.DeleteFunc(in, func(f branding.Finding) bool { return f.File == mailDir && f.Level == branding.LevelWarning })
 }
 
 func assetURL(a branding.Asset) string { return "/branding/assets/" + a.SHA256 }

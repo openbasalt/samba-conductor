@@ -1,0 +1,12 @@
+{{.OrgName}}
+
+An account was created for you at {{.OrgName}}.
+
+Username: {{.Username}}
+
+To start using it, set your password at the address below. The link is valid for {{.ExpiresIn}} (until {{.ExpiresAt}}) and works once.
+
+{{.Link}}
+
+If you were not expecting this message, you can ignore it.
+{{template "text-bottom" .}}

@@ -51,12 +51,14 @@ const (
 	PermSSOWrite Perm = "sso.write" // register and change applications, rotate keys, settings (administrators only)
 
 	PermBranding Perm = "branding" // look of the user-facing pages: edit, preview, save, revert (administrators only)
+
+	PermSettings Perm = "settings" // Settings > E-mail: relay status, queue, log, test message (administrators only)
 )
 
 // allPerms lists every privileged permission (navigation, tests).
 var allPerms = []Perm{PermDashboard, PermUsersRead, PermUsersHelpdesk, PermUsersWrite, PermDirRead, PermDirWrite,
 	PermAuditRead, PermDomainRead, PermMFAManage, PermDNSRead, PermDNSWrite, PermGPORead, PermGPOWrite,
-	PermPolicyRead, PermPolicyWrite, PermHealthRead, PermBulk, PermBackupRead, PermBackupWrite, PermSyncRead, PermSyncWrite, PermFilesRead, PermFilesWrite, PermSSORead, PermSSOWrite, PermBranding}
+	PermPolicyRead, PermPolicyWrite, PermHealthRead, PermBulk, PermBackupRead, PermBackupWrite, PermSyncRead, PermSyncWrite, PermFilesRead, PermFilesWrite, PermSSORead, PermSSOWrite, PermBranding, PermSettings}
 
 // privileged reports whether p is beyond self-service.
 func (p Perm) privileged() bool {

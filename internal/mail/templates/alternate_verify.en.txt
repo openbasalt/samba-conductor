@@ -1,0 +1,8 @@
+{{.OrgName}}
+
+Your verification code for a recovery address at {{.OrgName}} is:
+
+{{.Code}}
+
+It is valid for {{.ExpiresIn}}. Type it on the page where you added this address. If you did not ask for it, ignore this message: the address will not be used.
+{{template "text-bottom" .}}

@@ -268,6 +268,11 @@ func (s *Server) routeTable() []route {
 		{method: "GET", pattern: "/admin/branding/versions", perm: PermBranding, h: s.handleBrandingVersions},
 		{method: "POST", pattern: "/admin/branding/revert", perm: PermBranding, h: s.handleBrandingRevert},
 
+		// Settings > E-mail: the relay as configured (never its password),
+		// the queue, the log and a test message. Administrators only.
+		{method: "GET", pattern: "/admin/settings/mail", perm: PermSettings, h: s.handleMailSettings},
+		{method: "POST", pattern: "/admin/settings/mail/test", perm: PermSettings, h: s.handleMailTest},
+
 		// WebAuthn related origins (other sites that may use conductor's
 		// security keys), when configured.
 		{method: "GET", pattern: "/.well-known/webauthn", perm: PermPublic, h: s.handleWellKnownWebAuthn},

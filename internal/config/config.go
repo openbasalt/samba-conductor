@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"net"
+	"net/mail"
 	"net/netip"
 	"net/url"
 	"os"
@@ -49,7 +50,46 @@ type Config struct {
 	Files     Files     `toml:"files"`
 	IDP       IDP       `toml:"idp"`
 	Branding  Branding  `toml:"branding"`
+	Mail      Mail      `toml:"mail"`
 }
+
+// Mail security modes of the SMTP connection.
+const (
+	MailSTARTTLS = "starttls"
+	MailTLS      = "tls"
+	MailNone     = "none"
+)
+
+// Mail is the SMTP relay conductor sends its messages through (test
+// messages now; invitations, password reset links and notifications use
+// the same queue). Off while host is empty.
+type Mail struct {
+	// Host of the relay; empty turns mail off.
+	Host string `toml:"host"`
+	Port int    `toml:"port"`
+	// Security: starttls (required, never downgraded), tls (implicit TLS)
+	// or none (plain SMTP, only to a loopback relay).
+	Security string `toml:"security"`
+	// Username for SMTP AUTH PLAIN; empty: no authentication.
+	Username string `toml:"username"`
+	// PasswordFile holds the password when it does not come as the
+	// systemd credential "smtp-password".
+	PasswordFile string `toml:"password_file"`
+	// From is the sender ("Name <address>" or an address).
+	From    string `toml:"from"`
+	ReplyTo string `toml:"reply_to"`
+	// HelloName is the EHLO name; default the host name.
+	HelloName string `toml:"hello_name"`
+	// CAFile is an extra CA (PEM) for the relay's certificate, added to
+	// the system roots.
+	CAFile string `toml:"ca_file"`
+	// MaxPerHour is the global ceiling of messages handed to the relay
+	// per hour; above it messages wait in the queue.
+	MaxPerHour int `toml:"max_per_hour"`
+}
+
+// Enabled reports whether a relay is configured.
+func (m Mail) Enabled() bool { return m.Host != "" }
 
 // Branding configures the level 2 branding of the self-service pages:
 // template overrides read from a directory. The level 1 branding (logo,
@@ -302,6 +342,7 @@ func Default() *Config {
 		Sync:      Sync{Socket: "/run/conductor-sync/api.sock"},
 		Files:     Files{KeyDir: "/var/lib/conductor/files"},
 		IDP:       IDP{Socket: "/run/conductor-idp/api.sock", MFASocketPath: "/run/conductor/mfa.sock"},
+		Mail:      Mail{Port: 587, Security: MailSTARTTLS, MaxPerHour: 200},
 	}
 }
 
@@ -461,7 +502,90 @@ func (c *Config) Validate() error {
 	if len(c.Files.Name) > 253 || strings.ContainsAny(c.Files.Name, " \t\r\n%\\\"") {
 		bad("files.name must be a host name")
 	}
+	errs = append(errs, c.Mail.validate()...)
 	return errors.Join(errs...)
+}
+
+// validate checks [mail]; nothing is checked while mail is off.
+func (m Mail) validate() []error {
+	if !m.Enabled() {
+		return nil
+	}
+	var errs []error
+	bad := func(format string, a ...any) { errs = append(errs, fmt.Errorf("config: "+format, a...)) }
+	if strings.ContainsAny(m.Host, " /:\\\r\n\t@") && !isIPv6(m.Host) {
+		bad("mail.host %q must be a host name or an IP address", m.Host)
+	}
+	if m.Port < 1 || m.Port > 65535 {
+		bad("mail.port must be 1-65535")
+	}
+	switch m.Security {
+	case MailSTARTTLS, MailTLS:
+	case MailNone:
+		if !isLoopback(m.Host) {
+			// Never credentials or reset links in clear text over a network.
+			bad("mail.security = \"none\" is only allowed with a loopback mail.host (got %q)", m.Host)
+		}
+	default:
+		bad("mail.security must be starttls, tls or none")
+	}
+	if hasControl(m.Username) || len(m.Username) > 256 {
+		bad("mail.username must be at most 256 characters without control characters")
+	}
+	if m.PasswordFile != "" && !filepath.IsAbs(m.PasswordFile) {
+		bad("mail.password_file must be an absolute path")
+	}
+	if m.PasswordFile != "" && m.Username == "" {
+		bad("mail.password_file needs mail.username")
+	}
+	if a, err := mail.ParseAddress(m.From); err != nil || hasControl(m.From) || !strings.Contains(a.Address, "@") {
+		bad("mail.from %q must be an e-mail address, optionally with a name (\"Name <address>\")", m.From)
+	}
+	if m.ReplyTo != "" {
+		if _, err := mail.ParseAddress(m.ReplyTo); err != nil || hasControl(m.ReplyTo) {
+			bad("mail.reply_to %q must be an e-mail address", m.ReplyTo)
+		}
+	}
+	if m.HelloName != "" && (len(m.HelloName) > 253 || strings.ContainsAny(m.HelloName, " \t\r\n/\\@<>")) {
+		bad("mail.hello_name must be a host name")
+	}
+	if m.CAFile != "" && !filepath.IsAbs(m.CAFile) {
+		bad("mail.ca_file must be an absolute path")
+	}
+	if m.MaxPerHour < 1 || m.MaxPerHour > 100000 {
+		bad("mail.max_per_hour must be 1-100000")
+	}
+	return errs
+}
+
+func isIPv6(host string) bool {
+	a, err := netip.ParseAddr(host)
+	return err == nil && a.Is6()
+}
+
+// hasControl reports control characters (header injection, log forging).
+func hasControl(s string) bool {
+	return strings.ContainsFunc(s, func(r rune) bool { return r < 0x20 || r == 0x7f })
+}
+
+// MailPasswordPath resolves where the SMTP password comes from:
+// mail.password_file, else the systemd credential smtp-password when
+// present. Empty with a nil error: no password (no username either).
+func (c *Config) MailPasswordPath() (string, error) {
+	m := c.Mail
+	if m.Username == "" {
+		return "", nil
+	}
+	if m.PasswordFile != "" {
+		return m.PasswordFile, nil
+	}
+	if dir := os.Getenv("CREDENTIALS_DIRECTORY"); dir != "" {
+		p := filepath.Join(dir, "smtp-password")
+		if _, err := os.Stat(p); err == nil {
+			return p, nil
+		}
+	}
+	return "", errors.New("config: mail.username is set but there is no password: add the systemd credential smtp-password or set mail.password_file")
 }
 
 // hostWithin reports whether host is rpID or a subdomain of it.

@@ -1,0 +1,6 @@
+{{template "mail-top" .}}
+<h1 style="margin:0 0 16px 0;font-size:20px">{{t "mail.subject.alternate_changed" .OrgName}}</h1>
+<p style="margin:0 0 16px 0">The recovery address of your account at {{.OrgName}} was changed or removed on {{.When}}{{if .From}}, from {{.From}}{{end}}. Password reset messages no longer go to this address.</p>
+<p style="margin:0 0 16px 0">Username: <strong>{{.Username}}</strong></p>
+<p style="margin:0 0 16px 0">If you made this change, nothing else needs to be done. If you did not, contact your support right away.</p>
+{{template "mail-bottom" .}}

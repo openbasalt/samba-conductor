@@ -1,0 +1,8 @@
+{{template "mail-top" .}}
+<h1 style="margin:0 0 16px 0;font-size:20px">{{t "mail.subject.reset" .OrgName}}</h1>
+<p style="margin:0 0 16px 0">A password reset was requested for your account at {{.OrgName}}.</p>
+<p style="margin:0 0 16px 0">Username: <strong>{{.Username}}</strong></p>
+<p style="margin:0 0 16px 0">To choose a new password, use the button below. The link is valid for {{.ExpiresIn}} (until {{.ExpiresAt}}) and works once.</p>
+{{template "mail-link" .}}
+<p style="margin:0 0 16px 0">If you did not ask for this, ignore this message: your password does not change.</p>
+{{template "mail-bottom" .}}
