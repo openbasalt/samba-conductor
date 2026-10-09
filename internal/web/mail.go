@@ -7,7 +7,6 @@ import (
 	"net/http"
 	"path/filepath"
 	"strconv"
-	"strings"
 	"time"
 
 	ad "github.com/openbasalt/samba-conductor-ad"
@@ -34,14 +33,9 @@ const (
 func (s *Server) MailEnabled() bool { return s.mailq != nil }
 
 // publicBase is the https base URL of the links and images in messages:
-// the first WebAuthn origin (the host users open), or "" when none is
+// server.public_url, else the first WebAuthn origin, or "" when neither is
 // configured.
-func (s *Server) publicBase() string {
-	if o := s.cfg.WebAuthnOrigins(); len(o) > 0 {
-		return strings.TrimRight(o[0], "/")
-	}
-	return ""
-}
+func (s *Server) publicBase() string { return s.cfg.PublicBaseURL() }
 
 // mailBrand is the branding part of a message's data in lang: the
 // organization name, the light logo as an absolute URL (only with a
