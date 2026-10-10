@@ -213,6 +213,18 @@ is set.
 | `ca_file` | `""` | Absolute path of an extra CA (PEM) trusted for the relay's certificate, in addition to the system roots. |
 | `max_per_hour` | `200` | Messages handed to the relay per hour, at most (1 to 100000). Above it messages wait in the queue and a warning is logged. |
 
+## `[provisioner]`
+
+conductor-provisioner, the local service behind invitations and password
+resets by e-mail ([passwords.md](passwords.md)). Both features also need
+`[mail]` and `server.public_url`; their settings are edited in Settings >
+Passwords.
+
+| Key | Default | Meaning |
+|---|---|---|
+| `enabled` | `false` | Use conductor-provisioner: the invitation section of the user pages, the creation of invited accounts, the public reset form and the link pages. |
+| `socket` | `"/run/conductor-provisioner/api.sock"` | The API socket (owner conductor-provisioner, group conductor, 0660; conductor-provisioner admits only the users it is configured for, SO_PEERCRED). |
+
 ## Files
 
 | Path | Owner / mode | What |

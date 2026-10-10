@@ -148,3 +148,12 @@ mfa_socket = false
 # hello_name = ""        # EHLO name; default the host name
 # ca_file = ""           # extra CA for the relay's certificate; default system roots
 # max_per_hour = 200     # global ceiling; above it messages wait in the queue
+
+[provisioner]
+# conductor-provisioner: the local service that holds the delegated AD
+# account behind invitations and password resets by e-mail
+# (docs/passwords.md). Both features also need [mail]. Their settings
+# (link lifetimes, the public reset form, second factor at reset,
+# notifications) are edited in Settings > Passwords.
+# enabled = false
+# socket = "/run/conductor-provisioner/api.sock"

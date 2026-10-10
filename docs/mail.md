@@ -145,7 +145,9 @@ elsewhere and every style is inline.
 | `alternate_verify` | a verification code and how long it is valid |
 | `alternate_changed` | the logon name, the time and the client address |
 
-Messages never carry a password or the state of an account.
+Messages never carry a password or the state of an account. Invitations,
+reset links, the notices after a password change and the recovery address
+messages are described in [passwords.md](passwords.md).
 
 ### Overrides
 
