@@ -140,6 +140,12 @@ full-forest restore: lab runs in [`docs/usage-p3.md`](docs/usage-p3.md),
   request, the second factor required when the user has one, privileged
   accounts never reset; an optional, verified recovery address, and a
   notice after every password change.
+- Google-first mode (`[sync]` and `[provisioner]` on, off by default):
+  Google Workspace becomes the source of truth for chosen OUs; the plan
+  from conductor-sync is reviewed and applied through
+  conductor-provisioner, privileged accounts are never touched, fields
+  Google owns are read only, and conductor-idp never serves Google while
+  it is on ([docs/google-first.md](docs/google-first.md)).
 - Audit log: append-only SQLite table (triggers refuse updates and
   deletes) with a hash chain; viewer with filters, JSON lines export,
   `conductor audit verify`. The chain detects accidental or partial edits.
@@ -184,6 +190,7 @@ full-forest restore: lab runs in [`docs/usage-p3.md`](docs/usage-p3.md),
 - Packaging, releases, CI: [packaging.md](https://github.com/openbasalt/samba-conductor-docs/blob/main/packaging.md); package files in [`packaging/`](packaging/)
 - [Configuration reference](docs/config.md)
 - [E-mail](docs/mail.md)
+- [Google-first mode](docs/google-first.md)
 - [Restore runbook](docs/restore.md)
 - [Design](docs/design.md)
 - Lab runs: [Single sign-on section](docs/usage-p4b.md), [Google Workspace sync section](docs/usage-p5b.md), [backups, drills, restore exercise](docs/usage-p3.md), [DNS, Group Policy, policies, bulk](docs/usage-p2.md), [core administration and self-service](docs/usage-p1.md) and [screenshots](docs/screenshots/)
