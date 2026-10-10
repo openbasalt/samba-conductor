@@ -58,8 +58,9 @@ fi
 rc=0
 for p in "${projects[@]}"; do
   echo "=== project $p"
-  # ssh joins its arguments into one remote command line: quote the grep.
-  ssh -o BatchMode=yes "$LAB_HOST" bash -s -- "$p" "$(printf '%q' "${E2E_GREP:-}")" "${E2E_NO_RESET:-0}" "${E2E_STALE:-}" "$snapshot" <<'REMOTE' || rc=$?
+  # ssh joins its arguments into one remote command line: quote the grep
+  # and E2E_STALE (an empty argument would vanish and shift the next ones).
+  ssh -o BatchMode=yes "$LAB_HOST" bash -s -- "$p" "$(printf '%q' "${E2E_GREP:-}")" "${E2E_NO_RESET:-0}" "$(printf '%q' "${E2E_STALE:-}")" "$snapshot" <<'REMOTE' || rc=$?
 set -euo pipefail
 project="$1" grep="${2:-}" noreset="${3:-0}" stale="${4:-}" snapshot="${5:-conductor-p4b}"
 LAB_HOME="$HOME/conductor-lab"
@@ -77,6 +78,10 @@ if [ "$snapshot" = conductor-gfa ]; then
   mailpit="http://127.0.0.1:8026"
 fi
 $SSH 'for i in $(seq 90); do ss -ltn | grep -q ":8443 " && exit 0; sleep 1; done; exit 1'
+# A DC just reverted to a snapshot can listen before its KDC answers (on a
+# busy lab host the first sign-ins then fail with "no KDC reachable"):
+# wait for a Kerberos-authenticated read.
+$SSH 'for i in $(seq 90); do sudo samba-tool user show lab.admin -H ldap://localhost -P >/dev/null 2>&1 && exit 0; sleep 2; done; exit 1'
 link="$($SSH 'sudo -u conductor conductor enroll-link --user lab.admin --base-url https://dc1.lab.conductor.test:8443' | tail -n 1)"
 spki="$(openssl x509 -in "$LAB_HOME/tls/conductor-dc1.pem" -pubkey -noout | openssl pkey -pubin -outform der | openssl dgst -sha256 -binary | base64)"
 rm -rf "$E2E/.auth" "$E2E/screenshots/$project" "$E2E/test-results"
