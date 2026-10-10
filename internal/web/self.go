@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"net/http"
+	"strings"
 
 	ad "github.com/openbasalt/samba-conductor-ad"
 	"github.com/openbasalt/samba-conductor/internal/config"
@@ -46,9 +47,11 @@ var adminFields = append([]selfField{
 	{"company", "attr.company", func(u ad.User) string { return u.Company }, func(x *ad.UserUpdate, v *string) { x.Company = v }},
 }, selfFields...)
 
-// fieldView is a field with its current value for templates.
+// fieldView is a field with its current value for templates. Managed
+// marks a field Google owns (read only, googlefirst_managed.go).
 type fieldView struct {
 	Attr, Label, Value string
+	Managed            bool
 }
 
 func fieldViews(fields []selfField, u ad.User) []fieldView {
@@ -90,7 +93,11 @@ func (s *Server) handleMe(rc *reqCtx) {
 		if err != nil {
 			return err
 		}
-		rc.render(http.StatusOK, "me", map[string]any{"U": u, "Fields": fieldViews(selfFields, u)})
+		m, err := s.gfManagedUser(ctx, rc, conn, u.DN)
+		if err != nil {
+			return err
+		}
+		rc.render(http.StatusOK, "me", map[string]any{"U": u, "Fields": gfFieldViews(selfFields, u, m), "Google": m})
 		return nil
 	})
 }
@@ -101,7 +108,11 @@ func (s *Server) handleMeEditPage(rc *reqCtx) {
 		if err != nil {
 			return err
 		}
-		rc.render(http.StatusOK, "me_edit", map[string]any{"U": u, "Fields": fieldViews(selfFields, u)})
+		m, err := s.gfManagedUser(ctx, rc, conn, u.DN)
+		if err != nil {
+			return err
+		}
+		rc.render(http.StatusOK, "me_edit", map[string]any{"U": u, "Fields": gfFieldViews(selfFields, u, m), "Google": m})
 		return nil
 	})
 }
@@ -112,6 +123,16 @@ func (s *Server) handleMeEdit(rc *reqCtx) {
 		if err != nil {
 			return err
 		}
+		m, err := s.gfManagedUser(ctx, rc, conn, u.DN)
+		if err != nil {
+			return err
+		}
+		if refused := gfRefused(m, changedAttrs(rc, selfFields, u)); len(refused) > 0 {
+			s.audit(ctx, rc, "self.update_profile", u.DN, "refused: managed by Google: "+strings.Join(refused, ", "), store.ResultDenied)
+			rc.render(http.StatusBadRequest, "me_edit", map[string]any{"U": u, "Fields": gfFieldViews(selfFields, u, m), "Google": m,
+				"Error": rc.T("err.managed_by_google", strings.Join(refused, ", "))})
+			return nil
+		}
 		upd, n := updateFromForm(rc, selfFields, u)
 		if n == 0 {
 			rc.flashOK("form.no_change")
@@ -120,7 +141,7 @@ func (s *Server) handleMeEdit(rc *reqCtx) {
 		}
 		op, err := ad.UpdateUser(u.DN, upd)
 		if err != nil {
-			rc.render(http.StatusBadRequest, "me_edit", map[string]any{"U": u, "Fields": fieldViews(selfFields, u), "Error": rc.T("form.invalid")})
+			rc.render(http.StatusBadRequest, "me_edit", map[string]any{"U": u, "Fields": gfFieldViews(selfFields, u, m), "Google": m, "Error": rc.T("form.invalid")})
 			return nil
 		}
 		rc.propose(&pendingOp{perm: PermSelf, action: "self.update_profile", target: u.DN, op: op,

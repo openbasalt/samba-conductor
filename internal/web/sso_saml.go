@@ -245,6 +245,12 @@ func (s *Server) proposeSP(ctx context.Context, rc *reqCtx, f spForm, in idpapi.
 	if f.Edit {
 		op, action, title = idpapi.OpSPUpdate, "sso.sp_update", rc.T("sso.sp.update_title", in.Name)
 	}
+	// P3: no application for Google while the Google-first mode is on.
+	if err := s.ssoGoogleFirstCheck(ctx, rc, &in, nil, f.Preset); err != nil {
+		s.audit(ctx, rc, action, in.EntityID, "refused: the Google-first mode is on (P3)", store.ResultDenied)
+		s.renderSPForm(ctx, rc, http.StatusConflict, f, map[string]any{"Error": s.errMessage(rc.T, err)})
+		return
+	}
 	lines := []string{"conductor-idp " + string(op), "entity_id: " + in.EntityID, "name: " + in.Name,
 		"acs_urls: " + strings.Join(in.ACSURLs, " "), "nameid: " + in.NameIDFormat + " <- " + in.NameIDSource,
 		"attributes: " + strings.ReplaceAll(formatAttrs(in.Attributes), "\n", ", "), "allowed_groups: " + strings.Join(groups, ", "),
@@ -266,6 +272,9 @@ func (s *Server) proposeSP(ctx context.Context, rc *reqCtx, f spForm, in idpapi.
 	rc.propose(&pendingOp{perm: PermSSOWrite, action: action, target: in.EntityID, reauth: true, title: title,
 		summary: rc.T("sso.sp.summary"), warning: warning, preview: strings.Join(lines, "\n"), back: back, done: rc.T("sso.saved"),
 		run: func(ctx context.Context, rc *reqCtx) error {
+			if err := s.ssoGoogleFirstCheck(ctx, rc, &in, nil, f.Preset); err != nil {
+				return err
+			}
 			if f.Edit {
 				return s.idpCall(ctx, rc, idpapi.OpSPUpdate, idpapi.SPUpdateParams{EntityID: in.EntityID, Input: in,
 					ClearEncryptionCert: f.ClearEnc, ClearSigningCert: f.ClearSign}, &idpapi.SP{})

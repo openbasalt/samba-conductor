@@ -166,6 +166,12 @@ type Server struct {
 	resetHourLimit    *ratelimit.Bucket
 	resetDayLimit     *ratelimit.Bucket
 	recoveryCodeLimit *ratelimit.Bucket
+
+	// g2a applies Google-first plans through conductor-provisioner's plan
+	// operations (nil when the provisioner is off); gfCache keeps the
+	// Google-first settings for the "Managed by Google" checks.
+	g2a     g2aApplier
+	gfCache gfCache
 }
 
 // New builds the server.
@@ -238,6 +244,9 @@ func New(d Deps) (*Server, error) {
 	}
 	s.mailTestLimit = ratelimit.NewBucket(mailTestsPerHour, time.Hour)
 	s.links = linkStore{byHash: map[string]*linkRecord{}}
+	if s.prov != nil {
+		s.g2a = provApplier{call: s.provCall}
+	}
 	s.linkFails = ratelimit.NewFailures(linkFailuresPerHour, time.Hour)
 	s.resetIPLimit = ratelimit.NewBucket(resetsPerAddress, resetAddressWindow)
 	s.resetHourLimit = ratelimit.NewBucket(resetsPerAccountHour, time.Hour)
