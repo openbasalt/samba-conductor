@@ -132,6 +132,14 @@ full-forest restore: lab runs in [`docs/usage-p3.md`](docs/usage-p3.md),
   SQLite with sealed content, retries and expiry, message templates in
   English and Brazilian Portuguese with the organization's branding, and
   Settings > E-mail with the queue, the recent messages and a test message.
+- Invitations (`[provisioner]` and `[mail]` on): a one-time link with
+  which the person sets the first password and enrolls a second factor;
+  the account is enabled when they finish
+  ([docs/passwords.md](docs/passwords.md)).
+- Password reset by e-mail: a public form with the same answer for every
+  request, the second factor required when the user has one, privileged
+  accounts never reset; an optional, verified recovery address, and a
+  notice after every password change.
 - Audit log: append-only SQLite table (triggers refuse updates and
   deletes) with a hash chain; viewer with filters, JSON lines export,
   `conductor audit verify`. The chain detects accidental or partial edits.
