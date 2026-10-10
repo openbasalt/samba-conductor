@@ -163,3 +163,105 @@ allowed_origins = ["https://cdn.example.com"]
 		}
 	}
 }
+
+func TestMailKeys(t *testing.T) {
+	c, err := load(t, base)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if c.Mail.Enabled() || c.Mail.Port != 587 || c.Mail.Security != MailSTARTTLS || c.Mail.MaxPerHour != 200 {
+		t.Fatalf("mail defaults %+v", c.Mail)
+	}
+	good := base + `
+[mail]
+host = "smtp.example.com"
+port = 465
+security = "tls"
+username = "relay-user"
+password_file = "/etc/conductor/smtp-password"
+from = "Samba Conductor <no-reply@example.com>"
+reply_to = "help@example.com"
+hello_name = "dc1.example.com"
+ca_file = "/etc/conductor/relay-ca.pem"
+max_per_hour = 50
+`
+	c, err = load(t, good)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !c.Mail.Enabled() || c.Mail.Port != 465 || c.Mail.MaxPerHour != 50 {
+		t.Fatalf("%+v", c.Mail)
+	}
+	if p, err := c.MailPasswordPath(); err != nil || p != "/etc/conductor/smtp-password" {
+		t.Fatalf("password path %q %v", p, err)
+	}
+	for _, host := range []string{"127.0.0.1", "localhost", "::1"} {
+		loopback := base + "[mail]\nhost = \"" + host + "\"\nport = 25\nsecurity = \"none\"\nfrom = \"no-reply@example.com\"\n"
+		if _, err := load(t, loopback); err != nil {
+			t.Errorf("plain SMTP to %s refused: %v", host, err)
+		}
+	}
+	cases := map[string]string{
+		"none to a remote host": "host = \"smtp.example.com\"\nsecurity = \"none\"\nfrom = \"a@example.com\"",
+		"unknown security":      "host = \"smtp.example.com\"\nsecurity = \"ssl\"\nfrom = \"a@example.com\"",
+		"port out of range":     "host = \"smtp.example.com\"\nport = 70000\nfrom = \"a@example.com\"",
+		"no from":               "host = \"smtp.example.com\"",
+		"from not an address":   "host = \"smtp.example.com\"\nfrom = \"nobody\"",
+		"from with a newline":   "host = \"smtp.example.com\"\nfrom = \"a@example.com\\r\\nBcc: x@example.com\"",
+		"bad reply_to":          "host = \"smtp.example.com\"\nfrom = \"a@example.com\"\nreply_to = \"x\"",
+		"relative ca_file":      "host = \"smtp.example.com\"\nfrom = \"a@example.com\"\nca_file = \"ca.pem\"",
+		"relative password":     "host = \"smtp.example.com\"\nfrom = \"a@example.com\"\nusername = \"u\"\npassword_file = \"pw\"",
+		"password w/o username": "host = \"smtp.example.com\"\nfrom = \"a@example.com\"\npassword_file = \"/etc/pw\"",
+		"ceiling zero":          "host = \"smtp.example.com\"\nfrom = \"a@example.com\"\nmax_per_hour = 0",
+		"host with a port":      "host = \"smtp.example.com:25\"\nfrom = \"a@example.com\"",
+		"hello with a space":    "host = \"smtp.example.com\"\nfrom = \"a@example.com\"\nhello_name = \"a b\"",
+		"unknown key":           "host = \"smtp.example.com\"\nfrom = \"a@example.com\"\npassword = \"inline\"",
+		"none to a LAN address": "host = \"192.168.1.10\"\nsecurity = \"none\"\nfrom = \"a@example.com\"",
+		"reply_to injection":    "host = \"smtp.example.com\"\nfrom = \"a@example.com\"\nreply_to = \"b@example.com\\nBcc: c@example.com\"",
+		"username control":      "host = \"smtp.example.com\"\nfrom = \"a@example.com\"\nusername = \"u\\r\\nx\"",
+		"ceiling too high":      "host = \"smtp.example.com\"\nfrom = \"a@example.com\"\nmax_per_hour = 100001",
+	}
+	for name, body := range cases {
+		if _, err := load(t, base+"[mail]\n"+body+"\n"); err == nil {
+			t.Errorf("%s: accepted", name)
+		}
+	}
+}
+
+func TestMailPasswordPath(t *testing.T) {
+	c := Default()
+	if p, err := c.MailPasswordPath(); err != nil || p != "" {
+		t.Fatalf("no username: %q %v", p, err)
+	}
+	c.Mail.Username = "relay"
+	dir := t.TempDir()
+	t.Setenv("CREDENTIALS_DIRECTORY", dir)
+	if _, err := c.MailPasswordPath(); err == nil {
+		t.Fatal("missing credential accepted")
+	}
+	if err := os.WriteFile(filepath.Join(dir, "smtp-password"), []byte("pw\n"), 0o400); err != nil {
+		t.Fatal(err)
+	}
+	if p, err := c.MailPasswordPath(); err != nil || p != filepath.Join(dir, "smtp-password") {
+		t.Fatalf("%q %v", p, err)
+	}
+}
+
+func TestProvisionerKeys(t *testing.T) {
+	c, err := load(t, base)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if c.Provisioner.Enabled || c.Provisioner.Socket != "/run/conductor-provisioner/api.sock" {
+		t.Fatalf("provisioner defaults %+v", c.Provisioner)
+	}
+	c, err = load(t, base+"[provisioner]\nenabled = true\nsocket = \"/run/p/api.sock\"\n")
+	if err != nil || !c.Provisioner.Enabled || c.Provisioner.Socket != "/run/p/api.sock" {
+		t.Fatalf("%+v %v", c.Provisioner, err)
+	}
+	for _, bad := range []string{"enabled = true\nsocket = \"rel.sock\"", "token = \"x\""} {
+		if _, err := load(t, base+"[provisioner]\n"+bad+"\n"); err == nil {
+			t.Errorf("%q accepted", bad)
+		}
+	}
+}

@@ -1,0 +1,55 @@
+{{define "title"}}{{t "settings.mail.title"}}{{end}}
+{{define "content"}}<h1>{{t "settings.mail.title"}}</h1>
+<p class="hint">{{t "settings.mail.intro"}}</p>
+{{template "error-alert" .D.Error}}
+{{if not .D.Enabled}}<section class="card" data-e2e="mail-card-off">
+  <h2>{{t "settings.mail.off.title"}}</h2>
+  <p>{{t "settings.mail.off.text"}}</p>
+</section>{{else}}{{$m := .D.M}}
+<section class="card" aria-labelledby="mail-relay">
+  <h2 id="mail-relay">{{t "settings.mail.relay"}}</h2>
+  <dl class="props" data-e2e="mail-list-config">
+    <dt>{{t "settings.mail.relay"}}</dt><dd class="mono" data-e2e="mail-text-relay">{{.D.Relay}}</dd>
+    <dt>{{t "settings.mail.security"}}</dt><dd data-e2e="mail-text-security">{{if eq $m.Security "tls"}}{{t "settings.mail.security.tls"}}{{else if eq $m.Security "none"}}{{t "settings.mail.security.none"}}{{else}}{{t "settings.mail.security.starttls"}}{{end}}</dd>
+    <dt>{{t "settings.mail.auth"}}</dt><dd data-e2e="mail-text-auth">{{if $m.Username}}{{t "settings.mail.auth.user" $m.Username}}{{if eq .D.PasswordFrom "file"}} · {{t "settings.mail.password.file"}}{{else}} · {{t "settings.mail.password.credential"}}{{end}}{{else}}{{t "settings.mail.auth.none"}}{{end}}</dd>
+    <dt>{{t "settings.mail.from"}}</dt><dd data-e2e="mail-text-from">{{$m.From}}</dd>
+    {{if $m.ReplyTo}}<dt>{{t "settings.mail.reply_to"}}</dt><dd data-e2e="mail-text-reply-to">{{$m.ReplyTo}}</dd>{{end}}
+    {{if $m.HelloName}}<dt>{{t "settings.mail.hello"}}</dt><dd class="mono" data-e2e="mail-text-hello">{{$m.HelloName}}</dd>{{end}}
+    <dt>{{t "settings.mail.ca"}}</dt><dd data-e2e="mail-text-ca">{{if $m.CAFile}}<span class="mono">{{$m.CAFile}}</span> · {{end}}{{t "settings.mail.ca.system"}}</dd>
+    <dt>{{t "settings.mail.ceiling"}}</dt><dd data-e2e="mail-text-ceiling">{{t "settings.mail.ceiling.value" $m.MaxPerHour}}</dd>
+    <dt>{{t "settings.mail.templates"}}</dt><dd data-e2e="mail-text-templates">{{if .D.Overrides}}{{t "settings.mail.templates.overridden" (len .D.Overrides)}} <span class="mono small">{{join .D.Overrides ", "}}</span>{{else}}{{t "settings.mail.templates.builtin"}}{{end}}</dd>
+  </dl>
+</section>
+{{end}}
+<div class="stats">
+  <div class="stat" data-e2e="mail-card-pending"><b data-e2e="mail-text-pending">{{.D.Stats.Pending}}</b><span>{{t "settings.mail.stats.pending"}}</span></div>
+  <div class="stat" data-e2e="mail-card-retrying"><b data-e2e="mail-text-retrying">{{.D.Stats.Retrying}}</b><span>{{t "settings.mail.stats.retrying"}}</span></div>
+  <div class="stat" data-e2e="mail-card-sent"><b data-e2e="mail-text-sent">{{.D.Stats.Sent}}</b><span>{{t "settings.mail.stats.sent"}}</span></div>
+  <div class="stat" data-e2e="mail-card-failed"><b data-e2e="mail-text-failed">{{.D.Stats.Failed}}</b><span>{{t "settings.mail.stats.failed"}}</span></div>
+</div>
+{{if .D.Enabled}}<section class="card" aria-labelledby="mail-test">
+  <h2 id="mail-test">{{t "settings.mail.test"}}</h2>
+  <p class="hint">{{t "settings.mail.test.hint" .D.Max}}</p>
+  <form method="post" action="/admin/settings/mail/test">
+    {{template "csrf" .}}
+    <div class="field"><label for="mail-to">{{t "settings.mail.test.to"}}</label><input id="mail-to" name="to" type="email" value="{{.D.To}}" required maxlength="254" autocomplete="email" data-e2e="mail-input-to"></div>
+    <div class="actions">
+      <button class="btn btn-primary" type="submit" data-e2e="mail-btn-test">{{t "settings.mail.test.button"}}</button>
+    </div>
+  </form>
+</section>{{end}}
+<section class="card" aria-labelledby="mail-log">
+  <h2 id="mail-log">{{t "settings.mail.log"}}</h2>
+  <p class="hint">{{t "settings.mail.log.hint" 20}}</p>
+  {{if .D.Log}}<table class="table" data-e2e="mail-table-log">
+    <thead><tr><th>{{t "settings.mail.col.when"}}</th><th>{{t "settings.mail.col.kind"}}</th><th>{{t "settings.mail.col.domain"}}</th><th>{{t "settings.mail.col.status"}}</th><th>{{t "settings.mail.col.attempts"}}</th><th>{{t "settings.mail.col.error"}}</th></tr></thead>
+    <tbody>{{range .D.Log}}<tr data-e2e="mail-row-{{e2e .ID}}">
+      <td data-label="{{t "settings.mail.col.when"}}"><span class="small">{{time .CreatedAt}}</span>{{if not .SentAt.IsZero}}<br><span class="muted small">{{t "settings.mail.sent_at" (time .SentAt)}}</span>{{end}}</td>
+      <td data-label="{{t "settings.mail.col.kind"}}">{{if .KindKey}}{{t .KindKey}}{{else}}<span class="mono">{{.Kind}}</span>{{end}}{{if .Reference}}<br><span class="muted small mono">{{.Reference}}</span>{{end}}</td>
+      <td data-label="{{t "settings.mail.col.domain"}}" class="mono">{{.RecipientDomain}}</td>
+      <td data-label="{{t "settings.mail.col.status"}}" data-e2e="mail-status-{{e2e .ID}}">{{if eq .Status "sent"}}<span class="badge badge-ok">{{t "settings.mail.status.sent"}}</span>{{else if eq .Status "failed"}}<span class="badge badge-danger">{{t "settings.mail.status.failed"}}</span>{{else if eq .Status "expired"}}<span class="badge badge-danger">{{t "settings.mail.status.expired"}}</span>{{else if eq .Status "retrying"}}<span class="badge badge-warn">{{t "settings.mail.status.retrying"}}</span>{{else}}<span class="badge">{{t "settings.mail.status.queued"}}</span>{{end}}</td>
+      <td data-label="{{t "settings.mail.col.attempts"}}">{{.Attempts}}</td>
+      <td data-label="{{t "settings.mail.col.error"}}" class="small muted">{{.Error}}</td>
+    </tr>{{end}}</tbody>
+  </table>{{else}}<p class="muted" data-e2e="mail-text-no-log">{{t "settings.mail.log.none"}}</p>{{end}}
+</section>{{end}}

@@ -1,0 +1,5 @@
+{{template "mail-top" .}}
+<h1 style="margin:0 0 16px 0;font-size:20px">{{t "mail.subject.test" .OrgName}}</h1>
+<p style="margin:0 0 16px 0">Esta é uma mensagem de teste de {{.OrgName}}, enviada em {{.When}}.</p>
+<p style="margin:0 0 16px 0">Se você consegue lê-la, as mensagens chegam ao seu servidor de e-mail e ele as entrega neste endereço. Não é preciso fazer mais nada.</p>
+{{template "mail-bottom" .}}

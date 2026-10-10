@@ -1,0 +1,6 @@
+{{template "mail-top" .}}
+<h1 style="margin:0 0 16px 0;font-size:20px">{{t "mail.subject.alternate_verify" .OrgName}}</h1>
+<p style="margin:0 0 16px 0">Your verification code for a recovery address at {{.OrgName}} is:</p>
+<p style="margin:0 0 16px 0;font-size:28px;font-weight:600;letter-spacing:4px;font-family:Menlo,Consolas,monospace">{{.Code}}</p>
+<p style="margin:0 0 16px 0">It is valid for {{.ExpiresIn}}. Type it on the page where you added this address. If you did not ask for it, ignore this message: the address will not be used.</p>
+{{template "mail-bottom" .}}

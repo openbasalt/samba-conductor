@@ -18,6 +18,9 @@ const (
 	PermPreAuth Perm = "preauth"
 	// PermSelf: any fully signed-in user (self-service).
 	PermSelf Perm = "self"
+	// PermLink: a visitor of an invitation or reset link whose token moved
+	// into a link record (the __Host-link cookie); no sign-in.
+	PermLink Perm = "link"
 
 	PermDashboard     Perm = "dashboard"
 	PermUsersRead     Perm = "users.read"
@@ -51,16 +54,18 @@ const (
 	PermSSOWrite Perm = "sso.write" // register and change applications, rotate keys, settings (administrators only)
 
 	PermBranding Perm = "branding" // look of the user-facing pages: edit, preview, save, revert (administrators only)
+
+	PermSettings Perm = "settings" // Settings > E-mail: relay status, queue, log, test message (administrators only)
 )
 
 // allPerms lists every privileged permission (navigation, tests).
 var allPerms = []Perm{PermDashboard, PermUsersRead, PermUsersHelpdesk, PermUsersWrite, PermDirRead, PermDirWrite,
 	PermAuditRead, PermDomainRead, PermMFAManage, PermDNSRead, PermDNSWrite, PermGPORead, PermGPOWrite,
-	PermPolicyRead, PermPolicyWrite, PermHealthRead, PermBulk, PermBackupRead, PermBackupWrite, PermSyncRead, PermSyncWrite, PermFilesRead, PermFilesWrite, PermSSORead, PermSSOWrite, PermBranding}
+	PermPolicyRead, PermPolicyWrite, PermHealthRead, PermBulk, PermBackupRead, PermBackupWrite, PermSyncRead, PermSyncWrite, PermFilesRead, PermFilesWrite, PermSSORead, PermSSOWrite, PermBranding, PermSettings}
 
 // privileged reports whether p is beyond self-service.
 func (p Perm) privileged() bool {
-	return p != PermPublic && p != PermPreAuth && p != PermSelf
+	return p != PermPublic && p != PermPreAuth && p != PermSelf && p != PermLink
 }
 
 // Roles of a signed-in user, from AD group SIDs.

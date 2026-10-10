@@ -1,0 +1,6 @@
+{{.OrgName}}
+
+This is a test message from {{.OrgName}}, sent on {{.When}}.
+
+If you can read it, messages reach your mail relay and the relay delivers them to this address. Nothing else needs to be done.
+{{template "text-bottom" .}}

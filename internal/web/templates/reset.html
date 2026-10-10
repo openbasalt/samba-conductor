@@ -1,0 +1,14 @@
+{{define "title"}}{{t "reset.title"}}{{end}}
+{{define "content"}}<div class="card narrow">
+  <h1>{{t "reset.title"}}</h1>
+  <p>{{t "reset.intro"}}</p>
+  <form method="post" action="/reset" autocomplete="on">
+    {{template "csrf" .}}
+    <div class="field">
+      <label for="identifier">{{t "reset.identifier"}}</label>
+      <input id="identifier" name="identifier" type="text" autocomplete="username" autocapitalize="none" spellcheck="false" required maxlength="256" data-e2e="reset-input-identifier">
+    </div>
+    <button class="btn btn-primary btn-block" type="submit" data-e2e="reset-btn-submit">{{t "reset.submit"}}</button>
+  </form>
+  <div class="actions"><a class="btn btn-block" href="/signin" data-e2e="reset-link-signin">{{t "link.signin"}}</a></div>
+</div>{{end}}

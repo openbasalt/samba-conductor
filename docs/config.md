@@ -191,8 +191,39 @@ nonce and Subresource Integrity; it makes no requests of its own
 
 | Key | Default | Meaning |
 |---|---|---|
-| `templates_dir` | `""` | Directory of template overrides of the self-service pages (`header.html`, `footer.html`, `self-home.html`, an optional `custom.css`), read at startup; empty: none. Suggested: `/etc/conductor/templates`. Check it with `conductor templates check` ([branding.md](branding.md)). The organization name, logos, colors and texts are not here: they are edited in Settings > Branding. |
+| `templates_dir` | `""` | Directory of template overrides of the self-service pages (`header.html`, `footer.html`, `self-home.html`, an optional `custom.css`) and, in its `mail/` directory, of the messages ([mail.md](mail.md#overrides)), read at startup; empty: none. Suggested: `/etc/conductor/templates`. Check it with `conductor templates check` ([branding.md](branding.md)). The organization name, logos, colors and texts are not here: they are edited in Settings > Branding. |
 | `allowed_origins` | `[]` | Origins (`https://host[:port]`) the branded pages may load images and fonts from, added to `img-src` and `font-src` of those pages only. |
+
+## `[mail]`
+
+The SMTP relay conductor sends its messages through ([mail.md](mail.md)).
+Unset `host`: e-mail is off. The other keys are checked only when `host`
+is set.
+
+| Key | Default | Meaning |
+|---|---|---|
+| `host` | `""` | Relay host name or IP address. Empty: e-mail off. |
+| `port` | `587` | Relay port (465 for `tls`). |
+| `security` | `"starttls"` | `starttls` (required, never downgraded to plain text), `tls` (TLS from the first byte) or `none` (plain SMTP, accepted only when `host` is a loopback address). |
+| `username` | `""` | User for AUTH PLAIN, sent only over TLS or to a loopback relay. Empty: no authentication. |
+| `password_file` | `""` | Absolute path of a file with the relay password (one line, mode 0600 or 0640). Empty: the systemd credential `smtp-password`. Needs `username`. |
+| `from` | `""` | Sender, an address or `Name <address>`. Required when `host` is set. |
+| `reply_to` | `""` | Optional Reply-To address. |
+| `hello_name` | `""` | Name sent in EHLO. Empty: the machine's host name. |
+| `ca_file` | `""` | Absolute path of an extra CA (PEM) trusted for the relay's certificate, in addition to the system roots. |
+| `max_per_hour` | `200` | Messages handed to the relay per hour, at most (1 to 100000). Above it messages wait in the queue and a warning is logged. |
+
+## `[provisioner]`
+
+conductor-provisioner, the local service behind invitations and password
+resets by e-mail ([passwords.md](passwords.md)). Both features also need
+`[mail]` and `server.public_url`; their settings are edited in Settings >
+Passwords.
+
+| Key | Default | Meaning |
+|---|---|---|
+| `enabled` | `false` | Use conductor-provisioner: the invitation section of the user pages, the creation of invited accounts, the public reset form and the link pages. |
+| `socket` | `"/run/conductor-provisioner/api.sock"` | The API socket (owner conductor-provisioner, group conductor, 0660; conductor-provisioner admits only the users it is configured for, SO_PEERCRED). |
 
 ## Files
 
@@ -205,7 +236,8 @@ nonce and Subresource Integrity; it makes no requests of its own
 | `/var/lib/conductor/conductor.db` | conductor 0600 | state |
 | `/run/conductor-helper/helper.sock` | root:conductor 0660 | helper socket |
 | `/etc/conductor/helper.toml` | root:conductor 0640 | helper configuration (backups) |
-| `/etc/conductor/templates/` | root:conductor 0750 | template overrides (optional, `[branding] templates_dir`) |
+| `/etc/conductor/templates/` | root:conductor 0750 | template overrides (optional, `[branding] templates_dir`); message templates in its `mail/` directory |
+| `/etc/conductor/credentials/smtp-password` | root 0600 | relay password (optional systemd credential, [mail.md](mail.md#the-relay-password)) |
 | `/run/conductor-helper/backup.sock` | root:conductor-backup 0660 | helper socket for conductor-backup (with backups) |
 | `/run/conductor-sync/api.sock` | conductor-sync:conductor 0660 | conductor-sync's management API (with `[sync]`) |
 | `/var/lib/conductor/files/` | conductor 0700 | conductor's key pair for the conductor-files agents (with `[files]`) |

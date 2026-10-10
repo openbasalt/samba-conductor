@@ -1,0 +1,8 @@
+{{template "mail-top" .}}
+<h1 style="margin:0 0 16px 0;font-size:20px">{{t "mail.subject.invitation" .OrgName}}</h1>
+<p style="margin:0 0 16px 0">An account was created for you at {{.OrgName}}.</p>
+<p style="margin:0 0 16px 0">Username: <strong>{{.Username}}</strong></p>
+<p style="margin:0 0 16px 0">To start using it, set your password with the button below. The link is valid for {{.ExpiresIn}} (until {{.ExpiresAt}}) and works once.</p>
+{{template "mail-link" .}}
+<p style="margin:0 0 16px 0">If you were not expecting this message, you can ignore it.</p>
+{{template "mail-bottom" .}}

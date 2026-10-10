@@ -130,3 +130,30 @@ mfa_socket = false
 # Origins the branded pages may load images and fonts from (CSP img-src
 # and font-src of those pages only). Unset: this origin only.
 # allowed_origins = ["https://cdn.example.com"]
+
+[mail]
+# The SMTP relay conductor sends its messages through (docs/mail.md).
+# Unset host: e-mail is off.
+# host = "smtp.example.com"
+# port = 587
+# starttls (required, never downgraded), tls (port 465) or none (plain
+# SMTP, only to a relay on this machine: localhost, 127.0.0.1, ::1).
+# security = "starttls"
+# AUTH PLAIN user; empty: no authentication. The password comes from the
+# systemd credential "smtp-password" or from password_file.
+# username = ""
+# password_file = ""
+# from = "Samba Conductor <no-reply@example.com>"
+# reply_to = ""
+# hello_name = ""        # EHLO name; default the host name
+# ca_file = ""           # extra CA for the relay's certificate; default system roots
+# max_per_hour = 200     # global ceiling; above it messages wait in the queue
+
+[provisioner]
+# conductor-provisioner: the local service that holds the delegated AD
+# account behind invitations and password resets by e-mail
+# (docs/passwords.md). Both features also need [mail]. Their settings
+# (link lifetimes, the public reset form, second factor at reset,
+# notifications) are edited in Settings > Passwords.
+# enabled = false
+# socket = "/run/conductor-provisioner/api.sock"

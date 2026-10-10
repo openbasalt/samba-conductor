@@ -1,0 +1,12 @@
+{{.OrgName}}
+
+Uma conta foi criada para você em {{.OrgName}}.
+
+Usuário: {{.Username}}
+
+Para começar a usá-la, defina sua senha no endereço abaixo. O link vale por {{.ExpiresIn}} (até {{.ExpiresAt}}) e funciona uma única vez.
+
+{{.Link}}
+
+Se você não esperava esta mensagem, pode ignorá-la.
+{{template "text-bottom" .}}

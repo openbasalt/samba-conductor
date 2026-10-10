@@ -616,8 +616,12 @@ func (s *Server) buildSelected(ctx context.Context, rc *reqCtx, conn *ad.Conn, a
 		default:
 			return nil, []rowError{{Msg: rc.T("form.invalid")}}, false, nil
 		}
-		rows = append(rows, &bulkRow{No: no, Label: u.SAMAccountName, Target: u.DN, Input: cloneInput(in), ops: ops,
-			Preview: rowPreview(ops), password: pw})
+		row := &bulkRow{No: no, Label: u.SAMAccountName, Target: u.DN, Input: cloneInput(in), ops: ops,
+			Preview: rowPreview(ops), password: pw}
+		if action == "reset" {
+			row.notify = &pwChange{SID: u.SID.String(), SAM: u.SAMAccountName, Mail: u.Mail, ByAdmin: true}
+		}
+		rows = append(rows, row)
 	}
 	return rows, sortedErrors(errs), reauth, nil
 }

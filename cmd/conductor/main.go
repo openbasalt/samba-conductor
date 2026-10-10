@@ -6,7 +6,8 @@
 //	conductor enroll-link  issue a one-time 2FA enrollment link for an administrator
 //	conductor audit verify check the audit log's hash chain
 //	conductor audit export write the audit log as JSON lines
-//	conductor templates    list, show and check the self-service template overrides
+//	conductor templates    list, show and check the self-service and message template overrides
+//	conductor mail         test the relay, show the queue
 //	conductor healthcheck  container healthcheck (TLS handshake pinned to its certificate)
 //	conductor version
 package main
@@ -32,9 +33,11 @@ import (
 	"github.com/openbasalt/samba-conductor-ad/helper"
 	"github.com/openbasalt/samba-conductor-files/filesapi"
 	"github.com/openbasalt/samba-conductor-idp/idpapi"
+	"github.com/openbasalt/samba-conductor-provisioner/provapi"
 	"github.com/openbasalt/samba-conductor-sync/syncapi"
 	"github.com/openbasalt/samba-conductor/internal/config"
 	"github.com/openbasalt/samba-conductor/internal/directory"
+	"github.com/openbasalt/samba-conductor/internal/mail"
 	"github.com/openbasalt/samba-conductor/internal/secret"
 	"github.com/openbasalt/samba-conductor/internal/store"
 	"github.com/openbasalt/samba-conductor/internal/web"
@@ -60,6 +63,8 @@ func main() {
 		err = cmdAudit(os.Args[2:])
 	case "templates":
 		err = cmdTemplates(os.Args[2:])
+	case "mail":
+		err = cmdMail(os.Args[2:])
 	case "healthcheck":
 		err = cmdHealthcheck(os.Args[2:])
 	case "version", "--version", "-v":
@@ -85,7 +90,8 @@ commands:
   enroll-link  issue a one-time 2FA enrollment link (as the conductor user)
   audit verify check the audit log hash chain (as the conductor user)
   audit export write the audit log as JSON lines
-  templates    list | show NAME | check: template overrides of the self-service pages
+  templates    list | show NAME | check: template overrides of the self-service pages and messages
+  mail         test --to ADDRESS | status: e-mail relay test, queue and recent messages
   healthcheck  exit 0 when the listener answers with conductor's certificate (containers)
   version      print the version
 `)
@@ -165,13 +171,33 @@ func cmdServe(args []string) error {
 	if cfg.IDP.Enabled {
 		ic = idpClient{socket: cfg.IDP.Socket}
 	}
+	var mq *mail.Queue
+	if cfg.Mail.Enabled() {
+		sender, err := newMailSender(cfg, "")
+		if err != nil {
+			return err
+		}
+		mq = mail.NewQueue(st, box, sender, mail.QueueOptions{MaxPerHour: cfg.Mail.MaxPerHour, Logger: log})
+		log.Info("e-mail on", "relay", sender.Describe(), "max_per_hour", cfg.Mail.MaxPerHour)
+	}
+	var pc web.ProvisionerClient
+	if cfg.Provisioner.Enabled {
+		pc = provisionerClient{socket: cfg.Provisioner.Socket}
+		if mq == nil {
+			log.Warn("[provisioner] is on but [mail] is off: invitations and password resets by e-mail stay unavailable")
+		}
+	}
 	srv, err := web.New(web.Deps{Config: cfg, Store: st, Backend: dir, MFABox: box, Helper: hc, Sync: sc, Files: fc, IDP: ic,
-		Logger: log, Version: buildVersion()})
+		Mail: mq, Provisioner: pc, Logger: log, Version: buildVersion()})
 	if err != nil {
 		return err
 	}
 	if err := srv.Start(ctx); err != nil {
 		return err
+	}
+	if mq != nil {
+		// The delivery worker: only when [mail] is configured.
+		go mq.Run(ctx)
 	}
 	fds := activationFiles()
 	if cfg.IDP.MFASocket {
@@ -339,6 +365,13 @@ type idpClient struct{ socket string }
 
 func (c idpClient) Call(ctx context.Context, req idpapi.Request) (idpapi.Response, error) {
 	return idpapi.Call(ctx, c.socket, req)
+}
+
+// provisionerClient calls conductor-provisioner's API.
+type provisionerClient struct{ socket string }
+
+func (c provisionerClient) Call(ctx context.Context, req provapi.Request) (provapi.Response, error) {
+	return provapi.Call(ctx, c.socket, req)
 }
 
 // syncClient calls conductor-sync's management API.

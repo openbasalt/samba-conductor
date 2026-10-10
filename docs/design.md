@@ -180,6 +180,52 @@ and the AD access layer in the
 - The helper unit keeps only the file capabilities it needs and may reach
   localhost only.
 
+## First password and reset by e-mail
+
+Every other write in conductor uses the signed-in user's own identity.
+An invitation or a reset by e-mail has no signed-in user with the right
+to set the password, so that right lives in a separate service,
+conductor-provisioner, with a delegated account limited to the managed OUs
+(Reset Password, `lockoutTime`, `pwdLastSet`, `userAccountControl`, nothing
+else). conductor asks it over a local socket; it checks every request on
+its own: the target is a user below a managed OU, read fresh from AD by
+SID, and not privileged (membership of the administrative and operator
+groups or conductor's role groups, `adminCount`, or an access entry that
+grants more than read on the domain, an OU, AdminSDHolder or a Group
+Policy object). Hourly ceilings bound what a compromised conductor could
+do.
+
+- Token model: 32 random bytes, single use, bound to the account's SID,
+  objectGUID and `pwdLastSet` at issue (a password set elsewhere voids
+  it), stored by conductor-provisioner as a hash. conductor never stores
+  it: the raw token is in the sealed mail queue until the relay accepts
+  the message, and in a link record's memory, sealed, during the flow.
+  conductor keeps its own expiry next to the token's id, and the shorter
+  of the two lifetimes wins.
+- Opening a link only validates it (a mail scanner consumes nothing); the
+  button moves the token into a `__Host-` cookie and a server-side record
+  (10 minutes), so it leaves the address bar and the history. The link
+  pages run on that record only, never on a signed-in session, and send no
+  Referer.
+- Uniform answers: every unusable link gets the same page with the same
+  status after the same check; the reset form answers before doing
+  anything, the lookup and the message run in the background, and the
+  audit log keeps a hash of what was typed.
+- Second factor at reset: a user who has one must use it before the new
+  password is accepted (optionally, resets need one). This is what
+  separates reading the mailbox from owning the account. Five wrong
+  answers revoke the link.
+- An invitation enables the account only at the end, after the password
+  and, when the policy requires it, the enrollment of a second factor; an
+  abandoned flow leaves it disabled. conductor-provisioner enables only an
+  account that was disabled when the invitation was issued, so it never
+  re-enables an account an administrator disabled.
+- After a reset every conductor session of the user ends. Any password
+  change is followed by a notice to the account's address and the
+  verified recovery address, with no link.
+- Privileged accounts are never invited or reset by e-mail; their
+  passwords are changed by an administrator, as before.
+
 ## Areas
 
 - Users, groups, OUs, computers: server-side sorted search and

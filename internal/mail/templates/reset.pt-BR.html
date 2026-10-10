@@ -1,0 +1,8 @@
+{{template "mail-top" .}}
+<h1 style="margin:0 0 16px 0;font-size:20px">{{t "mail.subject.reset" .OrgName}}</h1>
+<p style="margin:0 0 16px 0">Foi pedida a redefinição da senha da sua conta em {{.OrgName}}.</p>
+<p style="margin:0 0 16px 0">Usuário: <strong>{{.Username}}</strong></p>
+<p style="margin:0 0 16px 0">Para escolher uma nova senha, use o botão abaixo. O link vale por {{.ExpiresIn}} (até {{.ExpiresAt}}) e funciona uma única vez.</p>
+{{template "mail-link" .}}
+<p style="margin:0 0 16px 0">Se você não fez esse pedido, ignore esta mensagem: sua senha não muda.</p>
+{{template "mail-bottom" .}}

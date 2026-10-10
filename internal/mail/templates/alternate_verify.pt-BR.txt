@@ -1,0 +1,8 @@
+{{.OrgName}}
+
+Seu código de verificação de endereço de recuperação em {{.OrgName}} é:
+
+{{.Code}}
+
+Ele vale por {{.ExpiresIn}}. Digite-o na página em que você adicionou este endereço. Se você não pediu este código, ignore esta mensagem: o endereço não será usado.
+{{template "text-bottom" .}}
