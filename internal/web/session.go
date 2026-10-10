@@ -119,6 +119,8 @@ type Session struct {
 	// brandDraft is the branding edit waiting for its preview and
 	// confirmation (it holds the uploaded images until then).
 	brandDraft *brandDraft
+	// recoveryPending is a recovery address waiting for its code.
+	recoveryPending *recoveryPending
 }
 
 type flash struct {

@@ -20,4 +20,6 @@
   {{if .D.KeyOptions}}<h2>{{if .D.KeyOnly}}{{t "keys.register_title"}}{{else}}{{t "enroll.or_key"}}{{end}}</h2>
   <p class="small">{{t "keys.register_hint"}}</p>
   {{template "key-register" (dict "P" $ "Action" .D.KeyAction "Options" .D.KeyOptions)}}{{end}}
+  {{if .D.Skip}}<form method="post" action="{{.D.SkipAction}}" class="actions">{{template "csrf" .}}<button class="btn btn-block" type="submit" data-e2e="enroll-btn-skip">{{t "link.enroll.skip"}}</button></form>
+  <p class="hint">{{t "link.enroll.skip_hint"}}</p>{{end}}
 </div>{{end}}

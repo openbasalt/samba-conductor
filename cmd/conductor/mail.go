@@ -134,6 +134,11 @@ func cmdMailStatus(args []string) error {
 		}
 		fmt.Printf("e-mail: on\nrelay: %s:%d (%s)\nauthentication: %s\nfrom: %s\nceiling: %d per hour\n", m.Host, m.Port, m.Security, auth, m.From, m.MaxPerHour)
 	}
+	if _, err := os.Stat(cfg.State.Database); errors.Is(err, os.ErrNotExist) {
+		// conductor has not started yet: there is no queue to show.
+		fmt.Println("queue: no database yet (conductor creates it when it starts)")
+		return nil
+	}
 	if err := checkDBOwner(cfg.State.Database); err != nil {
 		return err
 	}

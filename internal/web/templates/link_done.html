@@ -1,0 +1,8 @@
+{{define "title"}}{{t "link.done.title"}}{{end}}
+{{define "content"}}<div class="card narrow" data-e2e="link-card-done">
+  <h1>{{t "link.done.title"}}</h1>
+  <p data-e2e="link-text-done">{{if eq .D.Purpose "invite"}}{{t "link.done.invite" .D.SAM}}{{else}}{{t "link.done.reset" .D.SAM}}{{end}}</p>
+  {{if .D.Codes}}<div class="alert-warn" role="alert">{{t "recovery.warn"}}</div>
+  <ul class="codes" data-e2e="link-list-codes">{{range .D.Codes}}<li data-e2e="link-text-code">{{.}}</li>{{end}}</ul>{{end}}
+  <div class="actions"><a class="btn btn-primary btn-block" href="/signin" data-e2e="link-link-signin">{{t "link.signin"}}</a></div>
+</div>{{end}}

@@ -1,0 +1,9 @@
+{{define "title"}}{{t "link.invalid.title"}}{{end}}
+{{define "content"}}<div class="card narrow" data-e2e="link-card-invalid">
+  <h1>{{t "link.invalid.title"}}</h1>
+  <p data-e2e="link-text-invalid">{{t "link.invalid.text"}}</p>
+  <div class="actions">
+    <a class="btn" href="/signin" data-e2e="link-link-signin">{{t "link.signin"}}</a>
+    {{if .D.Reset}}<a class="btn" href="/reset" data-e2e="link-link-reset">{{t "reset.link"}}</a>{{end}}
+  </div>
+</div>{{end}}

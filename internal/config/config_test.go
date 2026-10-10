@@ -246,3 +246,22 @@ func TestMailPasswordPath(t *testing.T) {
 		t.Fatalf("%q %v", p, err)
 	}
 }
+
+func TestProvisionerKeys(t *testing.T) {
+	c, err := load(t, base)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if c.Provisioner.Enabled || c.Provisioner.Socket != "/run/conductor-provisioner/api.sock" {
+		t.Fatalf("provisioner defaults %+v", c.Provisioner)
+	}
+	c, err = load(t, base+"[provisioner]\nenabled = true\nsocket = \"/run/p/api.sock\"\n")
+	if err != nil || !c.Provisioner.Enabled || c.Provisioner.Socket != "/run/p/api.sock" {
+		t.Fatalf("%+v %v", c.Provisioner, err)
+	}
+	for _, bad := range []string{"enabled = true\nsocket = \"rel.sock\"", "token = \"x\""} {
+		if _, err := load(t, base+"[provisioner]\n"+bad+"\n"); err == nil {
+			t.Errorf("%q accepted", bad)
+		}
+	}
+}

@@ -45,6 +45,8 @@ type bulkRow struct {
 	Note string
 	// password generated for the row (create, reset), memory only.
 	password string
+	// notify: the row resets a password; the user is told once it is done.
+	notify *pwChange
 }
 
 // bulkJob is a job held in memory while it can still be applied, run or
@@ -493,6 +495,9 @@ func (s *Server) runJob(job *bulkJob, cred *directory.Credential, actx *reqCtx) 
 			detail += "\n# error: " + msg
 		}
 		s.audit(bg, actx, "bulk."+job.Kind, row.Target, detail, result)
+		if status == store.RowOK && row.notify != nil {
+			s.notifyPasswordChanged(bg, *row.notify)
+		}
 	}
 	job.mu.Lock()
 	job.Status = store.JobDone

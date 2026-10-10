@@ -22,6 +22,27 @@ func (s *Server) routeTable() []route {
 		{method: "GET", pattern: "/signin/enroll/qr.png", perm: PermPreAuth, stages: []stage{stageEnroll}, h: s.handleEnrollQR},
 		{method: "POST", pattern: "/signout", perm: PermPreAuth, stages: allStages, h: s.handleSignout},
 
+		// Invitation and reset links (no sign-in). GET /link/{token} only
+		// validates; its POST moves the token into a link record (the
+		// __Host-link cookie), on which the steps run (PermLink).
+		{method: "GET", pattern: "/link/{token}", perm: PermPublic, anonymous: true, h: s.handleLinkPage},
+		{method: "POST", pattern: "/link/{token}/start", perm: PermPublic, anonymous: true, h: s.handleLinkStart},
+		{method: "GET", pattern: "/link/2fa", perm: PermLink, h: s.handleLinkMFAPage, script: true},
+		{method: "POST", pattern: "/link/2fa", perm: PermLink, h: s.handleLinkMFA},
+		{method: "POST", pattern: "/link/2fa/key", perm: PermLink, h: s.handleLinkMFAKey},
+		{method: "GET", pattern: "/link/password", perm: PermLink, h: s.handleLinkPasswordPage},
+		{method: "POST", pattern: "/link/password", perm: PermLink, h: s.handleLinkPassword},
+		{method: "GET", pattern: "/link/enroll", perm: PermLink, h: s.handleLinkEnrollPage, script: true},
+		{method: "POST", pattern: "/link/enroll", perm: PermLink, h: s.handleLinkEnroll},
+		{method: "POST", pattern: "/link/enroll/key", perm: PermLink, h: s.handleLinkEnrollKey},
+		{method: "POST", pattern: "/link/enroll/skip", perm: PermLink, h: s.handleLinkEnrollSkip},
+		{method: "GET", pattern: "/link/enroll/qr.png", perm: PermLink, h: s.handleLinkEnrollQR},
+		{method: "GET", pattern: "/link/done", perm: PermLink, h: s.handleLinkDone},
+		// The public password reset form (when enabled in Settings >
+		// Passwords): always the same answer.
+		{method: "GET", pattern: "/reset", perm: PermPublic, anonymous: true, h: s.handleResetPage},
+		{method: "POST", pattern: "/reset", perm: PermPublic, anonymous: true, h: s.handleReset},
+
 		// Self-service.
 		{method: "GET", pattern: "/{$}", perm: PermSelf, h: s.handleRoot},
 		{method: "GET", pattern: "/me", perm: PermSelf, h: s.handleMe},
@@ -37,6 +58,10 @@ func (s *Server) routeTable() []route {
 		{method: "POST", pattern: "/me/2fa/disable", perm: PermSelf, h: s.handleSelfDisable},
 		{method: "POST", pattern: "/me/2fa/recovery-codes", perm: PermSelf, h: s.handleNewRecoveryCodes},
 		{method: "POST", pattern: "/me/sessions/signout-all", perm: PermSelf, h: s.handleSignoutEverywhere},
+		{method: "GET", pattern: "/me/recovery-email", perm: PermSelf, h: s.handleRecoveryEmailPage},
+		{method: "POST", pattern: "/me/recovery-email", perm: PermSelf, h: s.handleRecoveryEmailSet},
+		{method: "POST", pattern: "/me/recovery-email/verify", perm: PermSelf, h: s.handleRecoveryEmailVerify},
+		{method: "POST", pattern: "/me/recovery-email/remove", perm: PermSelf, h: s.handleRecoveryEmailRemove},
 		{method: "POST", pattern: "/me/2fa/keys/register", perm: PermSelf, h: s.handleKeyRegister},
 		{method: "GET", pattern: "/me/2fa/keys/{id}/remove", perm: PermSelf, h: s.handleKeyRemovePage, script: true},
 		{method: "POST", pattern: "/me/2fa/keys/{id}/remove", perm: PermSelf, h: s.handleKeyRemove},
@@ -78,6 +103,9 @@ func (s *Server) routeTable() []route {
 		{method: "POST", pattern: "/admin/users/{guid}/groups/remove", perm: PermUsersWrite, h: s.handleUserGroupRemove},
 		{method: "POST", pattern: "/admin/users/{guid}/mfa/reset", perm: PermMFAManage, h: s.handleUserMFAReset},
 		{method: "POST", pattern: "/admin/users/{guid}/mfa/link", perm: PermMFAManage, h: s.handleUserEnrollLink},
+		// Invitations and the account's open links (conductor-provisioner).
+		{method: "POST", pattern: "/admin/users/{guid}/invite", perm: PermUsersHelpdesk, h: s.handleUserInvite},
+		{method: "POST", pattern: "/admin/users/{guid}/tokens/revoke", perm: PermUsersHelpdesk, h: s.handleUserTokenRevoke},
 
 		{method: "GET", pattern: "/admin/groups", perm: PermDirRead, h: s.handleGroups},
 		{method: "GET", pattern: "/admin/groups/new", perm: PermDirWrite, h: s.handleGroupNewPage},
@@ -272,6 +300,9 @@ func (s *Server) routeTable() []route {
 		// the queue, the log and a test message. Administrators only.
 		{method: "GET", pattern: "/admin/settings/mail", perm: PermSettings, h: s.handleMailSettings},
 		{method: "POST", pattern: "/admin/settings/mail/test", perm: PermSettings, h: s.handleMailTest},
+		// Settings > Passwords: invitations, reset by e-mail, notifications.
+		{method: "GET", pattern: "/admin/settings/passwords", perm: PermSettings, h: s.handlePasswordSettings},
+		{method: "POST", pattern: "/admin/settings/passwords", perm: PermSettings, h: s.handlePasswordSettingsPost},
 
 		// WebAuthn related origins (other sites that may use conductor's
 		// security keys), when configured.

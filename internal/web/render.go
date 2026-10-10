@@ -132,7 +132,7 @@ func (s *Server) funcs(lang string) template.FuncMap {
 		// inAccounts: the pages of the Connected accounts entry.
 		"inAccounts": func(path string) bool { return path == "/me/accounts" || strings.HasPrefix(path, "/me/accounts/") },
 		"inSecurity": func(path string) bool {
-			for _, p := range []string{"/me/security", "/me/2fa", "/me/recovery-codes"} {
+			for _, p := range []string{"/me/security", "/me/2fa", "/me/recovery-codes", "/me/recovery-email"} {
 				if path == p || strings.HasPrefix(path, p+"/") {
 					return true
 				}
