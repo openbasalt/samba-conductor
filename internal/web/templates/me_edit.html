@@ -5,9 +5,10 @@
   {{template "error-alert" .D.Error}}
   <form method="post" action="/me/edit">
     {{template "csrf" .}}
+    {{with .D.Google}}{{template "gf-managed-note" .}}{{end}}
     {{range .D.Fields}}<div class="field">
-      <label for="f-{{.Attr}}">{{t .Label}}</label>
-      <input id="f-{{.Attr}}" name="{{.Attr}}" type="text" maxlength="256" value="{{.Value}}" data-e2e="me-edit-input-{{e2e .Attr}}">
+      <label for="f-{{.Attr}}">{{t .Label}}{{if .Managed}} <span class="badge" data-e2e="me-edit-managed-{{e2e .Attr}}">{{t "gf.managed.label"}}</span>{{end}}</label>
+      <input id="f-{{.Attr}}" name="{{.Attr}}" type="text" maxlength="256" value="{{.Value}}"{{if .Managed}} readonly aria-readonly="true"{{end}} data-e2e="me-edit-input-{{e2e .Attr}}">
     </div>{{end}}
     <div class="actions">
       <button class="btn btn-primary" type="submit" data-e2e="me-edit-btn-preview">{{t "form.preview"}}</button>

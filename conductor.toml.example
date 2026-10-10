@@ -154,6 +154,8 @@ mfa_socket = false
 # account behind invitations and password resets by e-mail
 # (docs/passwords.md). Both features also need [mail]. Their settings
 # (link lifetimes, the public reset form, second factor at reset,
-# notifications) are edited in Settings > Passwords.
+# notifications) are edited in Settings > Passwords. With [sync] too, it
+# also applies the plans of the Google-first mode (docs/google-first.md),
+# whose settings live in conductor-sync and are edited in the sync section.
 # enabled = false
 # socket = "/run/conductor-provisioner/api.sock"

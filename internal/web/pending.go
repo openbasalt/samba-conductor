@@ -296,6 +296,10 @@ func (s *Server) adErrorKey(err error) string {
 	if errors.As(err, &be) {
 		return be.key
 	}
+	var ge *gfError
+	if errors.As(err, &ge) {
+		return ge.key
+	}
 	var pe *provapi.Error
 	if errors.As(err, &pe) || errors.Is(err, errProvisionerOff) {
 		return provErrKey(err)

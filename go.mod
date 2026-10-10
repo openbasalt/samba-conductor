@@ -12,11 +12,11 @@ require (
 	github.com/fxamacker/cbor/v2 v2.9.4
 	github.com/go-ldap/ldap/v3 v3.4.14
 	github.com/go-webauthn/webauthn v0.18.2
-	github.com/openbasalt/samba-conductor-ad v0.0.0-20261009230719-813b733ae855
+	github.com/openbasalt/samba-conductor-ad v0.0.0-20261010151852-5de1a78d1cfa
 	github.com/openbasalt/samba-conductor-files v0.0.0-20261009012130-1ff33f4cb0c6
 	github.com/openbasalt/samba-conductor-idp v0.0.0-20261009022042-5d3f9f8e1f25
-	github.com/openbasalt/samba-conductor-provisioner v0.0.0-20261009232731-bc6b8b7913aa
-	github.com/openbasalt/samba-conductor-sync v0.0.0-20261009022047-f5f8a11975ac
+	github.com/openbasalt/samba-conductor-provisioner v0.0.0-20261010152020-369b392897e2
+	github.com/openbasalt/samba-conductor-sync v0.1.1-0.20261010150604-6625e31e5fd0
 	golang.org/x/term v0.46.0
 	modernc.org/sqlite v1.60.1
 	rsc.io/qr v0.2.0
