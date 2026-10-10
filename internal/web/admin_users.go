@@ -85,8 +85,12 @@ func (s *Server) handleUser(rc *reqCtx) {
 		rc.sess.issuedLink = ""
 		self := rc.sess.userSID.Equal(u.SID)
 		rc.sess.mu.Unlock()
+		m, err := s.gfManagedUser(ctx, rc, conn, u.DN)
+		if err != nil {
+			return err
+		}
 		d := map[string]any{"U": u, "Groups": groups, "Protected": protected,
-			"MFA": mfaErr == nil, "Link": link, "Self": self, "Fields": fieldViews(adminFields, u)}
+			"MFA": mfaErr == nil, "Link": link, "Self": self, "Fields": gfFieldViews(adminFields, u, m), "Google": m}
 		if rc.roles.Has(PermUsersHelpdesk) {
 			// Invitations and the account's open links (conductor-provisioner).
 			d["Inv"] = s.inviteInfo(ctx, rc, u.SID.String(), protected)
@@ -293,13 +297,28 @@ func (s *Server) handleUserEditPage(rc *reqCtx) {
 		if err != nil {
 			return err
 		}
-		rc.render(http.StatusOK, "user_edit", map[string]any{"U": u, "Fields": fieldViews(adminFields, u)})
+		m, err := s.gfManagedUser(ctx, rc, conn, u.DN)
+		if err != nil {
+			return err
+		}
+		rc.render(http.StatusOK, "user_edit", map[string]any{"U": u, "Fields": gfFieldViews(adminFields, u, m), "Google": m})
 		return nil
 	})
 }
 
 func (s *Server) handleUserEdit(rc *reqCtx) {
 	s.userAction(rc, PermUsersWrite, func(ctx context.Context, conn *ad.Conn, u ad.User) (*pendingOp, error) {
+		m, err := s.gfManagedUser(ctx, rc, conn, u.DN)
+		if err != nil {
+			return nil, err
+		}
+		if refused := gfRefused(m, changedAttrs(rc, adminFields, u)); len(refused) > 0 {
+			// P2: Google owns these fields; the next run would revert them.
+			s.audit(ctx, rc, "user.update", u.DN, "refused: managed by Google: "+strings.Join(refused, ", "), store.ResultDenied)
+			rc.render(http.StatusBadRequest, "user_edit", map[string]any{"U": u, "Fields": gfFieldViews(adminFields, u, m), "Google": m,
+				"Error": rc.T("err.managed_by_google", strings.Join(refused, ", "))})
+			return nil, nil
+		}
 		upd, n := updateFromForm(rc, adminFields, u)
 		if n == 0 {
 			rc.flashOK("form.no_change")
@@ -308,7 +327,7 @@ func (s *Server) handleUserEdit(rc *reqCtx) {
 		}
 		op, err := ad.UpdateUser(u.DN, upd)
 		if err != nil {
-			rc.render(http.StatusBadRequest, "user_edit", map[string]any{"U": u, "Fields": fieldViews(adminFields, u), "Error": rc.T("form.invalid")})
+			rc.render(http.StatusBadRequest, "user_edit", map[string]any{"U": u, "Fields": gfFieldViews(adminFields, u, m), "Google": m, "Error": rc.T("form.invalid")})
 			return nil, nil
 		}
 		return &pendingOp{action: "user.update", op: op, title: rc.T("user.edit.title", u.SAMAccountName),

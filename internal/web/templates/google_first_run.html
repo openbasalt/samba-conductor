@@ -1,0 +1,77 @@
+{{define "title"}}{{t "gf.run.title_plain"}}{{end}}
+{{define "content"}}{{template "error-alert" .D.Error}}{{with .D.R}}{{$r := .Run}}{{$pl := .G2A}}
+<h1 data-e2e="gf-run-title">{{t "gf.run.label" $r.ID}} {{template "sync-status" $r.Status}}</h1>
+<p class="muted small" data-e2e="gf-run-meta">{{t "gf.run.meta" $r.Actor (time $r.StartedAt) $pl.GoogleDomain}}</p>
+<div class="stats">
+  <div class="stat"><b class="mono" title="{{$pl.Digest}}" data-e2e="gf-run-digest">{{$.D.Short}}</b><span>{{t "sync.run.digest"}}</span></div>
+  <div class="stat"><b data-e2e="gf-run-applicable">{{$.D.Applicable}}</b><span>{{t "gf.run.applicable"}}</span></div>
+  <div class="stat"><b data-e2e="gf-run-latest">{{if $.D.Latest}}{{t "gf.run.latest_yes"}}{{else}}{{t "gf.run.latest_no"}}{{end}}</b><span>{{t "gf.run.latest"}}</span></div>
+</div>
+{{with $.D.P3}}{{template "gf-p3" .}}{{end}}
+
+{{range $.D.Scopes}}{{$sc := .}}<section class="card" aria-labelledby="gf-scope-{{e2e .Name}}" data-e2e="gf-plan-scope-{{e2e .Name}}">
+  <h2 id="gf-scope-{{e2e .Name}}">{{t "gf.run.scope" .Name}} {{template "gf-mode" .Mode}}{{if .Blocked}} <span class="badge badge-danger" data-e2e="gf-plan-blocked-{{e2e .Name}}">{{t "gf.blocked"}}</span>{{end}}</h2>
+  <p class="small muted">{{t "gf.run.scope_meta" .SourceSize .Managed .Count}}{{if ne .CurrentMode .Mode}} · {{if .CurrentMode}}{{t "gf.run.mode_now" .CurrentMode}}{{else}}{{t "gf.run.scope_removed"}}{{end}}{{end}}</p>
+  {{if .Applies}}<p class="alert-warn" data-e2e="gf-plan-applies-{{e2e .Name}}">{{t "gf.run.applies"}}</p>{{else}}<p class="hint" data-e2e="gf-plan-preview-only-{{e2e .Name}}">{{t "gf.run.preview_only"}}</p>{{end}}
+
+  {{if .Privileged}}<div class="alert-error" role="alert" data-e2e="gf-plan-privileged-{{e2e .Name}}">
+    <b>{{t "gf.run.privileged" (len .Privileged)}}</b>
+    <p class="small">{{t "gf.run.privileged_hint"}}</p>
+    <ul>{{range .Privileged}}<li data-e2e="gf-plan-skip-privileged-{{e2e .SAM}}"><b class="mono">{{.SAM}}</b> <span class="mono small muted">{{.DN}}</span>{{if .Detail}}: {{join .Detail ", "}}{{end}}</li>{{end}}</ul>
+  </div>{{end}}
+
+  <table class="table" data-e2e="gf-plan-limits-{{e2e .Name}}">
+    <thead><tr><th>{{t "sync.limit"}}</th><th>{{t "sync.limit.plan"}}</th><th>{{t "sync.limit.max"}}</th></tr></thead>
+    <tbody>{{range .Limits}}<tr data-e2e="gf-plan-limit-{{e2e $sc.Name}}-{{e2e .Limit}}">
+      <td>{{t (print "gf.limit." .Limit)}}</td>
+      <td data-label="{{t "sync.limit.plan"}}">{{.Value}}{{if .Exceeded}} <span class="badge badge-danger" data-e2e="gf-plan-limit-exceeded-{{e2e $sc.Name}}-{{e2e .Limit}}">{{t "sync.limit.exceeded"}}</span>{{end}}</td>
+      <td data-label="{{t "sync.limit.max"}}">{{if eq .Max -1.0}}{{t "sync.limit.none"}}{{else}}{{.Max}}{{end}}</td>
+    </tr>{{end}}</tbody>
+  </table>
+  {{if .Blocked}}<p class="hint" data-e2e="gf-plan-blocked-hint-{{e2e .Name}}">{{t "gf.run.blocked_hint"}}</p>{{end}}
+
+  {{range .Groups}}<h3 data-e2e="gf-plan-kind-{{e2e $sc.Name}}-{{e2e .Kind}}">{{t (print "gf.kind." .Kind)}} <span class="badge">{{.Count}}</span></h3>
+  <table class="table" data-e2e="gf-plan-ops-{{e2e $sc.Name}}-{{e2e .Kind}}">
+    <thead><tr><th>{{t "gf.op.account"}}</th><th>{{t "sync.op.details"}}</th><th>{{t "sync.op.status"}}</th></tr></thead>
+    <tbody>{{range .Ops}}<tr data-e2e="gf-plan-op-{{.Seq}}">
+      <td><b class="mono">{{.SAM}}</b>{{if .DN}}<br><span class="mono small muted">{{.DN}}</span>{{end}}<br><span class="small muted">{{t "gf.op.google_id" .GoogleID}}</span></td>
+      <td data-label="{{t "sync.op.details"}}" class="small">{{range .Changes}}<div><b>{{.Field}}</b>: <span class="muted">{{if .Before}}{{.Before}}{{else}}—{{end}}</span> → {{if .After}}{{.After}}{{else}}—{{end}}</div>{{end}}
+        {{if .MoveTo}}<div>{{t "gf.op.move_to"}} <code>{{.MoveTo}}</code></div>{{end}}
+        {{if .Invite}}<div>{{t "gf.op.invite"}}</div>{{end}}
+        <div class="muted">{{t (print "gf.reason." .Reason)}}</div>
+        {{range .Warnings}}<div><span class="badge badge-warn">{{.}}</span></div>{{end}}</td>
+      <td data-label="{{t "sync.op.status"}}">{{with .Result}}<span class="badge{{if eq .Status "done"}} badge-ok{{else if eq .Status "failed"}} badge-danger{{else}} badge-warn{{end}}" data-e2e="gf-plan-op-status-{{.Seq}}">{{t (print "sync.op.st." .Status)}}</span>{{with .Error}}<br><span class="small">{{.}}</span>{{end}}{{else}}—{{end}}</td>
+    </tr>{{end}}</tbody>
+  </table>
+  {{if .More}}<p class="hint">{{t "gf.run.more" .More}}</p>{{end}}{{else}}<p class="muted" data-e2e="gf-plan-no-ops-{{e2e .Name}}">{{t "sync.no_changes"}}</p>{{end}}
+
+  {{if .Skips}}<details data-e2e="gf-plan-skips-{{e2e .Name}}"><summary>{{t "gf.run.skips" (len .Skips)}}</summary>
+    <ul class="small">{{range .Skips}}<li data-e2e="gf-plan-skip-{{e2e .Reason}}-{{e2e .GoogleID}}"><span class="badge">{{t (print "gf.skip." .Reason)}}</span> {{with .SAM}}<b class="mono">{{.}}</b>{{end}} {{with .DN}}<span class="mono muted">{{.}}</span>{{end}}{{with .GoogleID}} <span class="muted">{{t "gf.op.google_id" .}}</span>{{end}}{{if .Detail}}: {{join .Detail ", "}}{{end}}</li>{{end}}</ul></details>{{end}}
+  {{if .Warnings}}<details data-e2e="gf-plan-warnings-{{e2e .Name}}"><summary>{{t "sync.run.warnings" (len .Warnings)}}</summary>
+    <ul class="small">{{range .Warnings}}<li><span class="badge">{{.Code}}</span> <code>{{.Key}}</code> {{.Message}}</li>{{end}}</ul></details>{{end}}
+
+  {{if and $.D.CanWrite $.D.Latest (eq .Mode "dry-run") (eq .CurrentMode "dry-run") $.D.GF.Enabled}}<details data-e2e="gf-plan-mode-{{e2e .Name}}"><summary data-e2e="gf-plan-btn-mode-open-{{e2e .Name}}">{{t "gf.mode.to_apply"}}</summary>
+    <p class="small">{{t "gf.mode.to_apply_text"}}</p>
+    <form method="post" action="/admin/google-first/scopes/{{.Name}}/mode" autocomplete="off" data-e2e="gf-plan-form-mode-{{e2e .Name}}">{{template "csrf" $}}
+      <input type="hidden" name="mode" value="apply"><input type="hidden" name="run" value="{{$r.ID}}">
+      <div class="field"><label for="mode-{{.Name}}">{{t "gf.mode.type" .Confirmation}}</label>
+        <input id="mode-{{.Name}}" name="confirm" type="text" required autocomplete="off" spellcheck="false" data-e2e="gf-plan-input-mode-{{e2e .Name}}">
+        <span class="hint"><code data-e2e="gf-plan-text-mode-confirmation-{{e2e .Name}}">{{.Confirmation}}</code></span></div>
+      <button class="btn btn-danger" type="submit" data-e2e="gf-plan-btn-mode-{{e2e .Name}}">{{t "gf.mode.to_apply"}}</button>
+    </form></details>{{end}}
+</section>{{end}}
+
+{{if $.D.CanWrite}}{{if not $.D.NotApply}}<section class="card" aria-labelledby="gf-apply" data-e2e="gf-plan-card-apply">
+  <h2 id="gf-apply">{{t "gf.apply.heading"}}</h2>
+  <p>{{t "gf.apply.text" $.D.Applicable}}</p>
+  <form method="post" action="/admin/google-first/runs/{{$r.ID}}/apply" autocomplete="off" data-e2e="gf-plan-form-apply">
+    {{template "csrf" $}}
+    <input type="hidden" name="digest" value="{{$pl.Digest}}">
+    <div class="field"><label for="confirm">{{t "gf.apply.type"}}</label>
+      <input id="confirm" name="confirm" type="text" required autocomplete="off" spellcheck="false" maxlength="8" data-e2e="gf-plan-input-confirm">
+      <span class="hint">{{t "gf.apply.type_hint"}} <code data-e2e="gf-plan-text-confirmation">{{$.D.Confirm}}</code></span></div>
+    <div class="actions"><button class="btn btn-primary" type="submit" data-e2e="gf-plan-btn-apply">{{t "gf.apply.button"}}</button></div>
+  </form>
+</section>{{else}}<p class="hint" data-e2e="gf-plan-not-applicable">{{t (print "gf.notapply." $.D.NotApply)}}</p>{{end}}{{end}}
+{{end}}
+<div class="actions"><a class="btn btn-small" href="/admin/google-first" data-e2e="gf-run-link-back">{{t "gf.back"}}</a></div>{{end}}

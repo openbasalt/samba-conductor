@@ -388,6 +388,10 @@ func (s *Server) errMessage(t func(string, ...any) string, err error) string {
 	if errors.As(err, &be) {
 		return t(be.key)
 	}
+	var ge *gfError
+	if errors.As(err, &ge) {
+		return t(ge.key, ge.args...)
+	}
 	var de *dcApplyError
 	if errors.As(err, &de) {
 		if ok := de.hosts(true); len(ok) > 0 {

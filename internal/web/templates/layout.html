@@ -65,6 +65,7 @@
           <li><a href="/admin/sync" data-e2e="nav-link-sync"{{if or (eq .Path "/admin/sync") (active .Path "/admin/sync/jobs")}} aria-current="page"{{end}}>{{t "nav.sync.overview"}}</a></li>
           <li><a href="/admin/sync/runs" data-e2e="nav-link-sync-runs"{{if active .Path "/admin/sync/runs"}} aria-current="page"{{end}}>{{t "nav.sync.runs"}}</a></li>
           <li><a href="/admin/sync/setup" data-e2e="nav-link-sync-setup"{{if or (active .Path "/admin/sync/setup") (active .Path "/admin/sync/config")}} aria-current="page"{{end}}>{{t "nav.sync.setup"}}</a></li>
+          {{if has .Nav "google_first"}}<li><a href="/admin/google-first" data-e2e="nav-link-google-first"{{if active .Path "/admin/google-first"}} aria-current="page"{{end}}>{{t "nav.google_first"}}</a></li>{{end}}
         </ul>
       </div>{{end}}
       {{if has .Nav "files"}}<div class="nav-group" data-e2e="nav-group-files">

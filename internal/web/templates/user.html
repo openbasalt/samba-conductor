@@ -11,7 +11,9 @@
     <dt>DN</dt><dd><code data-e2e="user-text-dn">{{$u.DN}}</code></dd>
     <dt>SID</dt><dd><code>{{$u.SID}}</code></dd>
     <dt>{{t "attr.userPrincipalName"}}</dt><dd>{{$u.UserPrincipalName}}</dd>
-    {{range .D.Fields}}{{if .Value}}<dt>{{t .Label}}</dt><dd data-e2e="user-text-{{e2e .Attr}}">{{.Value}}</dd>{{end}}{{end}}
+    {{range .D.Fields}}{{if .Value}}<dt>{{t .Label}}</dt><dd data-e2e="user-text-{{e2e .Attr}}">{{.Value}}{{if .Managed}} <span class="badge" data-e2e="user-managed-{{e2e .Attr}}">{{t "gf.managed.label"}}</span>{{end}}</dd>{{end}}{{end}}
+    {{with .D.Google}}{{if .GoogleID}}<dt>{{t "gf.user.google_id"}}</dt><dd><code data-e2e="user-text-google-id">{{.GoogleID}}</code></dd>
+    <dt>{{t "gf.user.scope"}}</dt><dd data-e2e="user-text-google-scope">{{if .Scope}}<span class="mono">{{.Scope}}</span>{{else if .Unverified}}{{t "gf.user.scope_unknown"}}{{else}}{{t "gf.user.scope_removed"}}{{end}}</dd>{{end}}{{end}}
     <dt>{{t "attr.pwdLastSet"}}</dt><dd>{{filetime $u.PwdLastSet}}</dd>
     <dt>{{t "attr.lastLogon"}}</dt><dd>{{filetime $u.LastLogon}}</dd>
     <dt>{{t "attr.accountExpires"}}</dt><dd>{{filetime $u.AccountExpires}}</dd>

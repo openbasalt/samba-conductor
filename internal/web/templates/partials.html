@@ -204,3 +204,12 @@
   {{if $v.HasLinks}}<p class="brand-links">{{if $v.HelpURL}}<a href="{{$v.HelpURL}}">{{t "brand.help"}}</a>{{end}}{{if $v.TermsURL}}<a href="{{$v.TermsURL}}">{{t "brand.terms"}}</a>{{end}}{{if $v.PrivacyURL}}<a href="{{$v.PrivacyURL}}">{{t "brand.privacy"}}</a>{{end}}</p>{{end}}
   {{if $v.HasSupport}}<p class="brand-support"><span>{{t "brand.support"}}:</span>{{with $v.SupportEmail}} <span>{{.}}</span>{{end}}{{with $v.SupportPhone}} <span>{{.}}</span>{{end}}{{with $v.SupportURL}} <span>{{.}}</span>{{end}}</p>{{end}}
 </div>{{end}}
+{{define "gf-mode"}}{{if eq . "apply"}}<span class="badge badge-warn" data-e2e="gf-badge-apply">{{t "gf.mode.apply"}}</span>{{else}}<span class="badge" data-e2e="gf-badge-dry-run">{{t "gf.mode.dry_run"}}</span>{{end}}{{end}}
+
+{{define "gf-p3"}}{{if .Err}}<div class="alert-error" role="alert" data-e2e="gf-p3-unverified"><b>{{t "gf.p3.title"}}</b> {{t "gf.p3.unverified" .Err}}</div>
+{{else if .Hits}}<div class="alert-error" role="alert" data-e2e="gf-p3-refused"><b>{{t "gf.p3.title"}}</b> {{t "gf.p3.hits"}}
+  <ul>{{range .Hits}}<li data-e2e="gf-p3-hit-{{e2e .ID}}">{{if eq .Kind "saml"}}{{t "gf.p3.saml"}}{{else}}{{t "gf.p3.oidc"}}{{end}} <b>{{.Name}}</b> <code>{{.Match}}</code>{{if not .Enabled}} <span class="badge">{{t "status.disabled"}}</span>{{end}}</li>{{end}}</ul></div>
+{{else if .Off}}<div class="alert-info" data-e2e="gf-p3-off"><b>{{t "gf.p3.title"}}</b> {{t "gf.p3.off"}}</div>
+{{else}}<div class="alert-info" data-e2e="gf-p3-ok"><b>{{t "gf.p3.title"}}</b> {{t "gf.p3.ok"}}</div>{{end}}{{end}}
+
+{{define "gf-managed-note"}}{{if .Managed}}<div class="alert-info" data-e2e="gf-managed-note">{{t "gf.managed.note"}}{{if .Unverified}} {{t "gf.managed.unverified"}}{{end}}</div>{{end}}{{end}}
