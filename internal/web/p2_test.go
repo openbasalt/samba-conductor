@@ -81,8 +81,8 @@ func TestCSPScriptOnlyOnSecondFactorPages(t *testing.T) {
 			t.Errorf("%s: inline style or handler", rt.pattern)
 		}
 	}
-	if scripted != 7 {
-		t.Fatalf("script routes: %d (the second-factor pages and the generated password page only)", scripted)
+	if scripted != 9 {
+		t.Fatalf("script routes: %d (the second-factor pages, those of the link pages, and the generated password page only)", scripted)
 	}
 	// The script itself matches its SRI hash and makes no requests.
 	w := h.do("GET", "/static/webauthn.js", "", nil)

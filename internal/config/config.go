@@ -34,23 +34,32 @@ const (
 
 // Config is the whole file.
 type Config struct {
-	Server    Server    `toml:"server"`
-	Domain    Domain    `toml:"domain"`
-	Roles     Roles     `toml:"roles"`
-	MFA       MFA       `toml:"mfa"`
-	Session   Session   `toml:"session"`
-	RateLimit RateLimit `toml:"ratelimit"`
-	State     State     `toml:"state"`
-	Helper    Helper    `toml:"helper"`
-	UI        UI        `toml:"ui"`
-	WebAuthn  WebAuthn  `toml:"webauthn"`
-	Bulk      Bulk      `toml:"bulk"`
-	Tools     Tools     `toml:"tools"`
-	Sync      Sync      `toml:"sync"`
-	Files     Files     `toml:"files"`
-	IDP       IDP       `toml:"idp"`
-	Branding  Branding  `toml:"branding"`
-	Mail      Mail      `toml:"mail"`
+	Server      Server      `toml:"server"`
+	Domain      Domain      `toml:"domain"`
+	Roles       Roles       `toml:"roles"`
+	MFA         MFA         `toml:"mfa"`
+	Session     Session     `toml:"session"`
+	RateLimit   RateLimit   `toml:"ratelimit"`
+	State       State       `toml:"state"`
+	Helper      Helper      `toml:"helper"`
+	UI          UI          `toml:"ui"`
+	WebAuthn    WebAuthn    `toml:"webauthn"`
+	Bulk        Bulk        `toml:"bulk"`
+	Tools       Tools       `toml:"tools"`
+	Sync        Sync        `toml:"sync"`
+	Files       Files       `toml:"files"`
+	IDP         IDP         `toml:"idp"`
+	Branding    Branding    `toml:"branding"`
+	Mail        Mail        `toml:"mail"`
+	Provisioner Provisioner `toml:"provisioner"`
+}
+
+// Provisioner connects conductor with conductor-provisioner, the local
+// service that holds the delegated AD account for invitations and
+// password resets by e-mail. Off by default.
+type Provisioner struct {
+	Enabled bool   `toml:"enabled"`
+	Socket  string `toml:"socket"`
 }
 
 // Mail security modes of the SMTP connection.
@@ -328,21 +337,22 @@ func Load(path string) (*Config, error) {
 // Default returns the defaults every file starts from.
 func Default() *Config {
 	return &Config{
-		Server:    Server{Listen: ":8443"},
-		Roles:     Roles{CacheSeconds: 60},
-		MFA:       MFA{Policy: MFAOptional, Issuer: "Samba Conductor"},
-		Session:   Session{IdleMinutes: 15, AbsoluteHours: 8},
-		RateLimit: RateLimit{PerIPPerMinute: 30, AccountFailures: 5, AccountWindowMinutes: 15},
-		State:     State{Database: "/var/lib/conductor/conductor.db"},
-		Helper:    Helper{Enabled: true, Socket: "/run/conductor-helper/helper.sock"},
-		UI:        UI{DefaultLanguage: "en"},
-		WebAuthn:  WebAuthn{DisplayName: "Samba Conductor"},
-		Bulk:      Bulk{MaxRows: 1000},
-		Tools:     Tools{SambaTool: "/usr/bin/samba-tool"},
-		Sync:      Sync{Socket: "/run/conductor-sync/api.sock"},
-		Files:     Files{KeyDir: "/var/lib/conductor/files"},
-		IDP:       IDP{Socket: "/run/conductor-idp/api.sock", MFASocketPath: "/run/conductor/mfa.sock"},
-		Mail:      Mail{Port: 587, Security: MailSTARTTLS, MaxPerHour: 200},
+		Server:      Server{Listen: ":8443"},
+		Roles:       Roles{CacheSeconds: 60},
+		MFA:         MFA{Policy: MFAOptional, Issuer: "Samba Conductor"},
+		Session:     Session{IdleMinutes: 15, AbsoluteHours: 8},
+		RateLimit:   RateLimit{PerIPPerMinute: 30, AccountFailures: 5, AccountWindowMinutes: 15},
+		State:       State{Database: "/var/lib/conductor/conductor.db"},
+		Helper:      Helper{Enabled: true, Socket: "/run/conductor-helper/helper.sock"},
+		UI:          UI{DefaultLanguage: "en"},
+		WebAuthn:    WebAuthn{DisplayName: "Samba Conductor"},
+		Bulk:        Bulk{MaxRows: 1000},
+		Tools:       Tools{SambaTool: "/usr/bin/samba-tool"},
+		Sync:        Sync{Socket: "/run/conductor-sync/api.sock"},
+		Files:       Files{KeyDir: "/var/lib/conductor/files"},
+		IDP:         IDP{Socket: "/run/conductor-idp/api.sock", MFASocketPath: "/run/conductor/mfa.sock"},
+		Mail:        Mail{Port: 587, Security: MailSTARTTLS, MaxPerHour: 200},
+		Provisioner: Provisioner{Socket: "/run/conductor-provisioner/api.sock"},
 	}
 }
 
@@ -503,6 +513,9 @@ func (c *Config) Validate() error {
 		bad("files.name must be a host name")
 	}
 	errs = append(errs, c.Mail.validate()...)
+	if c.Provisioner.Enabled && !filepath.IsAbs(c.Provisioner.Socket) {
+		bad("provisioner.socket must be absolute")
+	}
 	return errors.Join(errs...)
 }
 

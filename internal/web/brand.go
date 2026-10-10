@@ -190,7 +190,9 @@ func (s *Server) loadBranding(ctx context.Context) {
 // branded reports whether the page is part of the self-service portal.
 func (rc *reqCtx) branded() bool {
 	p := rc.r.URL.Path
-	return p == "/me" || strings.HasPrefix(p, "/me/")
+	// Self-service, and the invitation, reset and recovery pages users
+	// reach from a message.
+	return p == "/me" || strings.HasPrefix(p, "/me/") || strings.HasPrefix(p, "/link/") || p == "/reset"
 }
 
 // brandView is the page's {{.B}}, or nil for the product look.

@@ -18,6 +18,9 @@ const (
 	PermPreAuth Perm = "preauth"
 	// PermSelf: any fully signed-in user (self-service).
 	PermSelf Perm = "self"
+	// PermLink: a visitor of an invitation or reset link whose token moved
+	// into a link record (the __Host-link cookie); no sign-in.
+	PermLink Perm = "link"
 
 	PermDashboard     Perm = "dashboard"
 	PermUsersRead     Perm = "users.read"
@@ -62,7 +65,7 @@ var allPerms = []Perm{PermDashboard, PermUsersRead, PermUsersHelpdesk, PermUsers
 
 // privileged reports whether p is beyond self-service.
 func (p Perm) privileged() bool {
-	return p != PermPublic && p != PermPreAuth && p != PermSelf
+	return p != PermPublic && p != PermPreAuth && p != PermSelf && p != PermLink
 }
 
 // Roles of a signed-in user, from AD group SIDs.

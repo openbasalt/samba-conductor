@@ -33,6 +33,7 @@ import (
 	"github.com/openbasalt/samba-conductor-ad/helper"
 	"github.com/openbasalt/samba-conductor-files/filesapi"
 	"github.com/openbasalt/samba-conductor-idp/idpapi"
+	"github.com/openbasalt/samba-conductor-provisioner/provapi"
 	"github.com/openbasalt/samba-conductor-sync/syncapi"
 	"github.com/openbasalt/samba-conductor/internal/config"
 	"github.com/openbasalt/samba-conductor/internal/directory"
@@ -179,8 +180,15 @@ func cmdServe(args []string) error {
 		mq = mail.NewQueue(st, box, sender, mail.QueueOptions{MaxPerHour: cfg.Mail.MaxPerHour, Logger: log})
 		log.Info("e-mail on", "relay", sender.Describe(), "max_per_hour", cfg.Mail.MaxPerHour)
 	}
+	var pc web.ProvisionerClient
+	if cfg.Provisioner.Enabled {
+		pc = provisionerClient{socket: cfg.Provisioner.Socket}
+		if mq == nil {
+			log.Warn("[provisioner] is on but [mail] is off: invitations and password resets by e-mail stay unavailable")
+		}
+	}
 	srv, err := web.New(web.Deps{Config: cfg, Store: st, Backend: dir, MFABox: box, Helper: hc, Sync: sc, Files: fc, IDP: ic,
-		Mail: mq, Logger: log, Version: buildVersion()})
+		Mail: mq, Provisioner: pc, Logger: log, Version: buildVersion()})
 	if err != nil {
 		return err
 	}
@@ -357,6 +365,13 @@ type idpClient struct{ socket string }
 
 func (c idpClient) Call(ctx context.Context, req idpapi.Request) (idpapi.Response, error) {
 	return idpapi.Call(ctx, c.socket, req)
+}
+
+// provisionerClient calls conductor-provisioner's API.
+type provisionerClient struct{ socket string }
+
+func (c provisionerClient) Call(ctx context.Context, req provapi.Request) (provapi.Response, error) {
+	return provapi.Call(ctx, c.socket, req)
 }
 
 // syncClient calls conductor-sync's management API.

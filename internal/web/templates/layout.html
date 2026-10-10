@@ -85,7 +85,8 @@
         <h2 class="nav-heading">{{t "nav.group.settings"}}</h2>
         <ul>
           {{if has .Nav "branding"}}<li><a href="/admin/branding" data-e2e="nav-link-branding"{{if active .Path "/admin/branding"}} aria-current="page"{{end}}>{{t "nav.branding"}}</a></li>{{end}}
-          {{if has .Nav "settings"}}<li><a href="/admin/settings/mail" data-e2e="nav-link-mail"{{if active .Path "/admin/settings/mail"}} aria-current="page"{{end}}>{{t "nav.mail"}}</a></li>{{end}}
+          {{if has .Nav "settings"}}<li><a href="/admin/settings/mail" data-e2e="nav-link-mail"{{if active .Path "/admin/settings/mail"}} aria-current="page"{{end}}>{{t "nav.mail"}}</a></li>
+          <li><a href="/admin/settings/passwords" data-e2e="nav-link-passwords"{{if active .Path "/admin/settings/passwords"}} aria-current="page"{{end}}>{{t "nav.passwords"}}</a></li>{{end}}
         </ul>
       </div>{{end}}
       {{if or (has .Nav "audit.read") (has .Nav "domain.read")}}<div class="nav-group" data-e2e="nav-group-audit">

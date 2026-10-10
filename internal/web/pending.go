@@ -9,6 +9,7 @@ import (
 	ad "github.com/openbasalt/samba-conductor-ad"
 	"github.com/openbasalt/samba-conductor-ad/helper"
 	"github.com/openbasalt/samba-conductor-ad/sambatool"
+	"github.com/openbasalt/samba-conductor-provisioner/provapi"
 	"github.com/openbasalt/samba-conductor-sync/syncapi"
 	"github.com/openbasalt/samba-conductor/internal/directory"
 	"github.com/openbasalt/samba-conductor/internal/store"
@@ -34,8 +35,15 @@ type pendingOp struct {
 	// a non-LDAP action (2FA reset, enrollment link). Exactly one is set.
 	op  *ad.Operation
 	run func(ctx context.Context, rc *reqCtx) error
+	// after runs once the operation succeeded (a notification, the
+	// invitation of a new account); it audits itself, and its error is
+	// shown as a message without undoing the operation.
+	after func(ctx context.Context, rc *reqCtx) error
 	// preview text shown and audited (LDIF with secrets redacted).
 	preview string
+	// previewNote is appended to the preview of an LDAP write (what the
+	// after step will do).
+	previewNote string
 	// reauth requires password + TOTP again (writes to administrators).
 	reauth bool
 	// back is where to go after confirming or cancelling.
@@ -59,7 +67,7 @@ func (rc *reqCtx) propose(p *pendingOp) {
 	p.id = newToken()[:22]
 	p.created = rc.s.now()
 	if p.op != nil {
-		p.preview = p.op.Preview().String()
+		p.preview = p.op.Preview().String() + p.previewNote
 	}
 	rc.sess.mu.Lock()
 	if rc.sess.pending == nil {
@@ -261,6 +269,12 @@ func (s *Server) handleConfirm(rc *reqCtx) {
 	if p.done != "" {
 		rc.sess.addFlash("ok", p.done)
 	}
+	if p.after != nil {
+		if err := p.after(ctx, rc); err != nil {
+			s.log.Warn("follow-up of an operation failed", "action", p.action, "target", p.target, "err", err)
+			rc.sess.addFlash("error", s.errMessage(rc.T, err))
+		}
+	}
 	rc.redirect(p.back)
 }
 
@@ -282,7 +296,15 @@ func (s *Server) adErrorKey(err error) string {
 	if errors.As(err, &be) {
 		return be.key
 	}
+	var pe *provapi.Error
+	if errors.As(err, &pe) || errors.Is(err, errProvisionerOff) {
+		return provErrKey(err)
+	}
 	switch {
+	case errors.Is(err, errMailOff), errors.Is(err, errNoPublicURL):
+		return "invite.err.off"
+	case errors.Is(err, errNoAddress):
+		return "invite.reason.no_mail"
 	case errors.Is(err, errForbiddenTarget):
 		return "err.protected"
 	case errors.Is(err, ad.ErrAccessDenied):
