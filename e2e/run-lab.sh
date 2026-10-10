@@ -6,6 +6,9 @@
 # dc1, once per project (desktop, mobile), each on a freshly reset lab.
 #
 #   e2e/run-lab.sh                    # deploy + snapshot conductor-p4b, run both
+#   E2E_SNAPSHOT=conductor-gfa e2e/run-lab.sh --no-deploy
+#                                     # the snapshot with conductor-provisioner and mail
+#                                     # (lab-deploy.sh --snapshot-gfa): the password specs run
 #   e2e/run-lab.sh --no-deploy        # reuse the conductor-p4b snapshot
 #   e2e/run-lab.sh --no-deploy desktop
 #   E2E_GREP='administrator|WebAuthn' e2e/run-lab.sh --no-deploy desktop   # a subset
@@ -44,8 +47,9 @@ for a in "$@"; do
 done
 [ ${#projects[@]} -gt 0 ] || projects=(desktop mobile)
 
+snapshot="${E2E_SNAPSHOT:-conductor-p4b}"
 if [ "$deploy" = 1 ]; then
-  ./scripts/lab-deploy.sh --snapshot
+  if [ "$snapshot" = conductor-gfa ]; then ./scripts/lab-deploy.sh --snapshot-gfa; else ./scripts/lab-deploy.sh --snapshot; fi
 else
   rsync -a --delete --exclude node_modules/ --exclude test-results/ --exclude playwright-report/ --exclude screenshots/ --exclude .auth/ \
     e2e/ "$LAB_HOST:samba-conductor/conductor/e2e/"
@@ -55,16 +59,23 @@ rc=0
 for p in "${projects[@]}"; do
   echo "=== project $p"
   # ssh joins its arguments into one remote command line: quote the grep.
-  ssh -o BatchMode=yes "$LAB_HOST" bash -s -- "$p" "$(printf '%q' "${E2E_GREP:-}")" "${E2E_NO_RESET:-0}" "${E2E_STALE:-}" <<'REMOTE' || rc=$?
+  ssh -o BatchMode=yes "$LAB_HOST" bash -s -- "$p" "$(printf '%q' "${E2E_GREP:-}")" "${E2E_NO_RESET:-0}" "${E2E_STALE:-}" "$snapshot" <<'REMOTE' || rc=$?
 set -euo pipefail
-project="$1" grep="${2:-}" noreset="${3:-0}" stale="${4:-}"
+project="$1" grep="${2:-}" noreset="${3:-0}" stale="${4:-}" snapshot="${5:-conductor-p4b}"
 LAB_HOME="$HOME/conductor-lab"
 E2E="$HOME/samba-conductor/conductor/e2e"
 SSH="ssh -n -i $LAB_HOME/id_ed25519 -o BatchMode=yes -o UserKnownHostsFile=$LAB_HOME/known_hosts -o LogLevel=ERROR debian@10.93.0.10"
 cd "$HOME/samba-conductor/planning/lab"
 SSH_FS="ssh -n -i $LAB_HOME/id_ed25519 -o BatchMode=yes -o UserKnownHostsFile=$LAB_HOME/known_hosts -o LogLevel=ERROR debian@10.93.0.20"
 SSH_DC2="ssh -i $LAB_HOME/id_ed25519 -o BatchMode=yes -o UserKnownHostsFile=$LAB_HOME/known_hosts -o LogLevel=ERROR debian@10.93.0.11"
-[ "$noreset" = 1 ] || ./reset.sh conductor-p4b </dev/null >/dev/null 2>&1
+[ "$noreset" = 1 ] || ./reset.sh "$snapshot" </dev/null >/dev/null 2>&1
+# The password specs need conductor-provisioner and the mail sink (mailpit's
+# API on the lab host); other snapshots skip them.
+mailpit=""
+if [ "$snapshot" = conductor-gfa ]; then
+  docker start conductor-lab-mailpit >/dev/null
+  mailpit="http://127.0.0.1:8026"
+fi
 $SSH 'for i in $(seq 90); do ss -ltn | grep -q ":8443 " && exit 0; sleep 1; done; exit 1'
 link="$($SSH 'sudo -u conductor conductor enroll-link --user lab.admin --base-url https://dc1.lab.conductor.test:8443' | tail -n 1)"
 spki="$(openssl x509 -in "$LAB_HOME/tls/conductor-dc1.pem" -pubkey -noout | openssl pkey -pubin -outform der | openssl dgst -sha256 -binary | base64)"
@@ -120,8 +131,8 @@ docker run -d --name conductor-lab-example-sp --network host --add-host dc1.lab.
 for i in $(seq 60); do curl -fsS -o /dev/null http://localhost:8000/saml/metadata && break; sleep 1; done
 ( set -a; . "$LAB_HOME/secrets.env"; set +a
   umask 077
-  printf 'E2E_USER_PASSWORD=%s\nE2E_ADMIN_PASSWORD=%s\nE2E_HELPDESK_PASSWORD=%s\nE2E_ADMIN_ENROLL_URL=%s\nE2E_CERT_SPKI=%s\nE2E_STALE=%s\nE2E_FILES_CODE=%s\nE2E_SYNC_PASSWORD=%s\n' \
-    "$LAB_USER_PASSWORD" "$LAB_TESTADMIN_PASSWORD" "$LAB_HELPDESK_PASSWORD" "$link" "$spki" "$stale" "$files_code" "${LAB_SYNC_PASSWORD:-}" >"$envf" )
+  printf 'E2E_USER_PASSWORD=%s\nE2E_ADMIN_PASSWORD=%s\nE2E_HELPDESK_PASSWORD=%s\nE2E_ADMIN_ENROLL_URL=%s\nE2E_CERT_SPKI=%s\nE2E_STALE=%s\nE2E_FILES_CODE=%s\nE2E_SYNC_PASSWORD=%s\nE2E_MAILPIT_URL=%s\n' \
+    "$LAB_USER_PASSWORD" "$LAB_TESTADMIN_PASSWORD" "$LAB_HELPDESK_PASSWORD" "$link" "$spki" "$stale" "$files_code" "${LAB_SYNC_PASSWORD:-}" "$mailpit" >"$envf" )
 docker run --rm --network host --add-host dc1.lab.conductor.test:10.93.0.10 --security-opt label=disable \
   -u "$(id -u):$(id -g)" -e HOME=/tmp -e CI=1 -e NODE_EXTRA_CA_CERTS=/work/.auth/lab-ca.pem --env-file "$envf" \
   -e E2E_GREP="$grep" -v "$E2E:/work" -w /work mcr.microsoft.com/playwright:v1.63.0-noble </dev/null \
