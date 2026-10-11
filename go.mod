@@ -9,7 +9,7 @@ go 1.27.2
 require (
 	filippo.io/age v1.3.2
 	github.com/BurntSushi/toml v1.6.0
-	github.com/fxamacker/cbor/v2 v2.9.4
+	github.com/fxamacker/cbor/v2 v2.9.6
 	github.com/go-ldap/ldap/v3 v3.4.15
 	github.com/go-webauthn/webauthn v0.18.2
 	github.com/openbasalt/samba-conductor-ad v0.0.0-20261009012208-17469fcb3764
