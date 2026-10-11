@@ -1,15 +1,28 @@
 # Dependency update pull requests (Go modules, GitHub Actions, the e2e suite).
+# One grouped pull request per ecosystem per week: every update of an
+# ecosystem lands in a single pull request instead of one per dependency.
 version: 2
 updates:
   - package-ecosystem: gomod
     directory: /
     schedule:
       interval: weekly
+    groups:
+      go-modules:
+        patterns: ["*"]
   - package-ecosystem: github-actions
     directory: /
     schedule:
       interval: weekly
+    groups:
+      github-actions:
+        patterns: ["*"]
   - package-ecosystem: npm
     directory: /e2e
+    # @playwright/test must match the mcr.microsoft.com/playwright image tag
+    # in e2e/run-lab.sh: bump the tag on the same pull request.
     schedule:
       interval: weekly
+    groups:
+      npm:
+        patterns: ["*"]
