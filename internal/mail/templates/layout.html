@@ -1,0 +1,32 @@
+{{/* Shared parts of the HTML messages. Every style is inline (mail
+clients drop style sheets); nothing is loaded from elsewhere except the
+organization's logo. */}}
+{{define "mail-top"}}<!DOCTYPE html>
+<html lang="{{.Lang}}">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{.Subject}}</title>
+</head>
+<body style="margin:0;padding:0;background-color:#f6f7f9;color:#17202a;font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:15px;line-height:1.5">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#f6f7f9">
+<tr><td align="center" style="padding:24px 12px">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:560px;background-color:#ffffff;border:1px solid #d5dbe1;border-top:4px solid {{.Primary}};border-radius:6px">
+<tr><td style="padding:24px 24px 8px 24px">{{if .Logo}}<img src="{{.Logo}}" alt="{{.OrgName}}" height="40" style="display:block;height:40px;max-width:220px;border:0">{{else}}<span style="font-size:18px;font-weight:600">{{.OrgName}}</span>{{end}}</td></tr>
+<tr><td style="padding:8px 24px 24px 24px">{{end}}
+
+{{define "mail-link"}}<p style="margin:24px 0"><a href="{{.Link}}" style="display:inline-block;padding:12px 20px;background-color:{{.Primary}};color:#ffffff;text-decoration:none;border-radius:6px;font-weight:600">{{t "mail.button.open"}}</a></p>
+<p style="margin:0 0 16px 0;font-size:13px;color:#5b6673">{{t "mail.link_hint"}}<br><a href="{{.Link}}" style="color:{{.Primary}};word-break:break-all">{{.Link}}</a></p>{{end}}
+
+{{define "mail-bottom"}}</td></tr>
+<tr><td style="padding:16px 24px;border-top:1px solid #d5dbe1;font-size:12px;color:#5b6673">
+{{if .Support.Any}}<p style="margin:0 0 8px 0">{{t "mail.footer.support"}}:{{with .Support.Email}} <a href="mailto:{{.}}" style="color:#5b6673">{{.}}</a>{{end}}{{with .Support.Phone}} {{.}}{{end}}{{with .Support.URL}} <a href="{{.}}" style="color:#5b6673">{{.}}</a>{{end}}</p>{{end}}
+{{with .Support.Text}}<p style="margin:0 0 8px 0;white-space:pre-line">{{.}}</p>{{end}}
+<p style="margin:0">{{t "mail.footer.automatic" .OrgName}}</p>
+</td></tr>
+</table>
+</td></tr>
+</table>
+</body>
+</html>
+{{end}}

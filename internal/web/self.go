@@ -173,6 +173,18 @@ func (s *Server) handleMePassword(rc *reqCtx) {
 		return
 	}
 	s.audit(ctx, rc, "self.change_password", dn, op.Preview().String(), store.ResultOK)
+	// The notification goes to the account's mail (read with the
+	// session's ticket, still valid) and the recovery address.
+	var addr string
+	_ = rc.withConn(ctx, func(conn *ad.Conn) error {
+		u, err := s.me(ctx, rc, conn)
+		addr = u.Mail
+		return err
+	})
+	rc.sess.mu.Lock()
+	userSID := rc.sess.userSID.String()
+	rc.sess.mu.Unlock()
+	s.notifyPasswordChanged(ctx, pwChange{SID: userSID, SAM: sam, Mail: addr, Lang: rc.lang, From: rc.ip})
 	rc.flashOK("password.done")
 	rc.redirect("/me")
 }
@@ -200,6 +212,8 @@ func (s *Server) handleSecurity(rc *reqCtx) {
 	// TOTP can be turned off when 2FA is optional, or when keys remain.
 	d["CanDisable"] = enrolled && (!required || len(keys) > 0)
 	d["HasCodes"] = enrolled || len(keys) > 0
+	// The recovery address needs e-mail (its verification code).
+	d["Recovery"] = s.mailq != nil
 	if s.wa != nil && allowed && (enrolled || len(keys) > 0 || !(rc.roles.Admin && s.cfg.AdminEnrollmentLinkRequired())) {
 		if opts, err := s.beginCeremony(ctx, rc.sess, waRegister); err == nil {
 			d["KeyOptions"] = opts

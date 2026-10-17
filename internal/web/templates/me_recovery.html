@@ -1,0 +1,34 @@
+{{define "title"}}{{t "recaddr.title"}}{{end}}
+{{define "content"}}<h1>{{t "recaddr.title"}}</h1>
+<p class="hint">{{t "recaddr.intro"}}</p>
+{{template "error-alert" .D.Error}}
+{{if not .D.Mail}}<section class="card" data-e2e="recovery-card-off"><p>{{t "recaddr.off"}}</p></section>{{else}}
+<section class="card" aria-labelledby="ra-current">
+  <h2 id="ra-current">{{t "recaddr.current"}}</h2>
+  {{if .D.Current}}<p data-e2e="recovery-text-current"><span class="mono">{{.D.Current}}</span> · {{t "recaddr.since" (time .D.Since)}}</p>
+  {{if .D.Blocked}}<p class="hint" data-e2e="recovery-text-blocked">{{t "recaddr.blocked" (time .D.Until)}}</p>{{end}}
+  <form method="post" action="/me/recovery-email/remove" class="actions">{{template "csrf" .}}<button class="btn btn-danger" type="submit" data-e2e="recovery-btn-remove">{{t "recaddr.remove"}}</button></form>
+  {{else}}<p class="muted" data-e2e="recovery-text-none">{{t "recaddr.none"}}</p>{{end}}
+</section>
+{{if .D.Pending}}<section class="card" aria-labelledby="ra-verify">
+  <h2 id="ra-verify">{{t "recaddr.verify"}}</h2>
+  <p data-e2e="recovery-text-pending">{{t "recaddr.verify_intro" .D.Pending}}</p>
+  <form method="post" action="/me/recovery-email/verify" autocomplete="off">
+    {{template "csrf" .}}
+    <div class="field"><label for="ra-code">{{t "recaddr.code"}}</label><input id="ra-code" name="code" type="text" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9 ]{6,7}" maxlength="7" required data-e2e="recovery-input-code"></div>
+    <button class="btn btn-primary" type="submit" data-e2e="recovery-btn-verify">{{t "recaddr.verify_submit"}}</button>
+  </form>
+</section>{{end}}
+<section class="card" aria-labelledby="ra-set">
+  <h2 id="ra-set">{{if .D.Current}}{{t "recaddr.change"}}{{else}}{{t "recaddr.set"}}{{end}}</h2>
+  <p class="hint">{{t "recaddr.set_hint"}}</p>
+  <form method="post" action="/me/recovery-email" autocomplete="off">
+    {{template "csrf" .}}
+    <div class="field"><label for="ra-address">{{t "recaddr.address"}}</label><input id="ra-address" name="address" type="email" maxlength="254" required data-e2e="recovery-input-address"></div>
+    <div class="field"><label for="ra-password">{{t "signin.password"}}</label><input id="ra-password" name="password" type="password" autocomplete="current-password" required data-e2e="recovery-input-password"></div>
+    {{if .D.HasMFA}}<div class="field"><label for="ra-mfa">{{t "mfa.code"}}</label><input id="ra-mfa" name="code" type="text" autocomplete="one-time-code" maxlength="16" required data-e2e="recovery-input-mfa"><span class="hint">{{t "mfa.code_hint"}}</span></div>{{end}}
+    <button class="btn btn-primary" type="submit" data-e2e="recovery-btn-send">{{t "recaddr.send_code"}}</button>
+  </form>
+</section>
+{{end}}
+<div class="actions"><a class="btn" href="/me/security" data-e2e="recovery-link-back">{{t "form.back"}}</a></div>{{end}}

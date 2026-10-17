@@ -1,0 +1,17 @@
+{{define "title"}}{{t "link.mfa.title"}}{{end}}
+{{define "content"}}<div class="card narrow">
+  <h1>{{t "link.mfa.title"}}</h1>
+  <p data-e2e="link-text-mfa">{{t "link.mfa.intro"}}</p>
+  {{template "error-alert" .D.Error}}
+  {{if .D.KeyOptions}}{{template "key-assert" (dict "P" $ "Action" "/link/2fa/key" "Options" .D.KeyOptions "Password" false)}}
+  <h2>{{t "mfa.or_code"}}</h2>{{end}}
+  <form method="post" action="/link/2fa" autocomplete="off">
+    {{template "csrf" .}}
+    <div class="field">
+      <label for="code">{{t "mfa.code"}}</label>
+      <input id="code" name="code" type="text" inputmode="text" autocomplete="one-time-code" autocapitalize="none" spellcheck="false" required maxlength="16" data-e2e="link-input-code">
+      <span class="hint">{{t "mfa.code_hint"}}</span>
+    </div>
+    <button class="btn btn-primary btn-block" type="submit" data-e2e="link-btn-code">{{t "mfa.submit"}}</button>
+  </form>
+</div>{{end}}

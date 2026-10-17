@@ -9,6 +9,7 @@ import (
 
 	ad "github.com/openbasalt/samba-conductor-ad"
 	"github.com/openbasalt/samba-conductor-ad/escape"
+	"github.com/openbasalt/samba-conductor-provisioner/provapi"
 	"github.com/openbasalt/samba-conductor/internal/store"
 )
 
@@ -84,8 +85,13 @@ func (s *Server) handleUser(rc *reqCtx) {
 		rc.sess.issuedLink = ""
 		self := rc.sess.userSID.Equal(u.SID)
 		rc.sess.mu.Unlock()
-		rc.render(http.StatusOK, "user", map[string]any{"U": u, "Groups": groups, "Protected": protected,
-			"MFA": mfaErr == nil, "Link": link, "Self": self, "Fields": fieldViews(adminFields, u)})
+		d := map[string]any{"U": u, "Groups": groups, "Protected": protected,
+			"MFA": mfaErr == nil, "Link": link, "Self": self, "Fields": fieldViews(adminFields, u)}
+		if rc.roles.Has(PermUsersHelpdesk) {
+			// Invitations and the account's open links (conductor-provisioner).
+			d["Inv"] = s.inviteInfo(ctx, rc, u.SID.String(), protected)
+		}
+		rc.render(http.StatusOK, "user", d)
 		return nil
 	})
 }
@@ -216,8 +222,12 @@ func (s *Server) handleUserReset(rc *reqCtx) {
 		if mustChange {
 			summary = rc.T("confirm.summary.reset_must_change", u.SAMAccountName)
 		}
+		change := pwChange{SID: u.SID.String(), SAM: u.SAMAccountName, Mail: u.Mail, ByAdmin: true}
 		return &pendingOp{action: "user.reset_password", op: op, title: rc.T("user.reset.title", u.SAMAccountName),
-			summary: summary, done: rc.T("user.reset.done")}, nil
+			summary: summary, done: rc.T("user.reset.done"), after: func(ctx context.Context, _ *reqCtx) error {
+				s.notifyPasswordChanged(ctx, change)
+				return nil
+			}}, nil
 	})
 }
 
@@ -356,16 +366,33 @@ func (s *Server) handleUserNewPage(rc *reqCtx) {
 		if err != nil {
 			return err
 		}
-		rc.render(http.StatusOK, "user_new", map[string]any{"OUs": opts, "Realm": strings.ToLower(s.backend.Realm()),
-			"F": map[string]string{"must_change": "1"}})
+		rc.render(http.StatusOK, "user_new", s.userNewData(ctx, rc, opts, map[string]string{"must_change": "1"}, ""))
 		return nil
 	})
+}
+
+// userNewData is the data of the creation page; the invitation option is
+// offered when invitations work, with the OUs where they are delegated.
+func (s *Server) userNewData(ctx context.Context, rc *reqCtx, opts []ouOption, f map[string]string, errKey string) map[string]any {
+	d := map[string]any{"OUs": opts, "Realm": strings.ToLower(s.backend.Realm()), "F": f}
+	if errKey != "" {
+		d["Error"] = rc.T(errKey)
+	}
+	if len(s.missingForLinks()) == 0 {
+		d["Invite"] = true
+		var st provapi.StatusResult
+		if err := s.provCall(ctx, sessionActor(rc), provapi.OpStatus, nil, &st); err == nil {
+			d["InviteOUs"] = st.ScopeOUs
+		}
+		d["InviteHours"] = s.passwordSettings(ctx).InviteHours
+	}
+	return d
 }
 
 func (s *Server) handleUserNew(rc *reqCtx) {
 	rc.view(func(ctx context.Context, conn *ad.Conn) error {
 		f := map[string]string{}
-		for _, k := range []string{"parent", "given", "sn", "display", "sam", "mail", "description", "must_change", "disabled"} {
+		for _, k := range []string{"parent", "given", "sn", "display", "sam", "mail", "description", "must_change", "disabled", "invite"} {
 			f[k] = rc.form(k)
 		}
 		pw, confirm := rc.rawForm("password"), rc.rawForm("confirm")
@@ -374,11 +401,22 @@ func (s *Server) handleUserNew(rc *reqCtx) {
 			if err != nil {
 				return err
 			}
-			rc.render(http.StatusBadRequest, "user_new", map[string]any{"OUs": opts, "Realm": strings.ToLower(s.backend.Realm()), "F": f, "Error": rc.T(key)})
+			rc.render(http.StatusBadRequest, "user_new", s.userNewData(ctx, rc, opts, f, key))
 			return nil
 		}
 		if !validParent(f["parent"], conn.BaseDN()) {
 			return fail("form.invalid_parent")
+		}
+		invite := f["invite"] == "1"
+		if invite {
+			// The account is created disabled with a random password
+			// nobody sees; the invited person sets the first one.
+			if key := s.inviteNewCheck(ctx, rc, f); key != "" {
+				return fail(key)
+			}
+			pw = newPasswordLen(32)
+			confirm = pw
+			f["must_change"], f["disabled"] = "", "1"
 		}
 		if pw != confirm {
 			return fail("password.err.mismatch")
@@ -397,10 +435,37 @@ func (s *Server) handleUserNew(rc *reqCtx) {
 		if err != nil {
 			return fail("form.invalid")
 		}
-		rc.propose(&pendingOp{perm: PermUsersWrite, action: "user.create", target: op.Preview().Changes[0].DN, op: op,
-			title: rc.T("user.new.title"), summary: rc.T("confirm.summary.create_user", f["sam"], ouPath(f["parent"], conn.BaseDN())), back: "/admin/users?q=" + url.QueryEscape(f["sam"]), done: rc.T("user.new.done")})
+		dn := op.Preview().Changes[0].DN
+		p := &pendingOp{perm: PermUsersWrite, action: "user.create", target: dn, op: op,
+			title: rc.T("user.new.title"), summary: rc.T("confirm.summary.create_user", f["sam"], ouPath(f["parent"], conn.BaseDN())), back: "/admin/users?q=" + url.QueryEscape(f["sam"]), done: rc.T("user.new.done")}
+		if invite {
+			hours := s.passwordSettings(ctx).InviteHours
+			p.summary = rc.T("invite.new.summary", f["sam"], ouPath(f["parent"], conn.BaseDN()), f["mail"], hours)
+			p.previewNote = "\n# then: " + strings.ReplaceAll(invitePreview(f["sam"], "the new account's SID", f["mail"], hours), "\n", "\n# ")
+			p.after = s.inviteAfterCreate(f["sam"], f["mail"], dn, hours)
+		}
+		rc.propose(p)
 		return nil
 	})
+}
+
+// inviteNewCheck validates the invitation option of the creation page
+// (a message key, or "" when it can be used).
+func (s *Server) inviteNewCheck(ctx context.Context, rc *reqCtx, f map[string]string) string {
+	if len(s.missingForLinks()) > 0 {
+		return "invite.err.off"
+	}
+	if len(recipients(f["mail"])) == 0 {
+		return "invite.err.mail_required"
+	}
+	ok, err := s.inviteScopeOK(ctx, rc, f["parent"])
+	if err != nil {
+		return provErrKey(err)
+	}
+	if !ok {
+		return "invite.reason.out_of_scope"
+	}
+	return ""
 }
 
 // ---- 2FA administration ----

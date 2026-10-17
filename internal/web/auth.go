@@ -90,7 +90,7 @@ func (s *Server) handleSigninPage(rc *reqCtx) {
 		}
 	}
 	rc.ensurePreCookie()
-	d := map[string]any{"Enroll": cleanLinkToken(rc.r.URL.Query().Get("enroll"))}
+	d := map[string]any{"Enroll": cleanLinkToken(rc.r.URL.Query().Get("enroll")), "Reset": s.resetOffered(rc.ctx())}
 	if k, ok := signinMessages[rc.r.URL.Query().Get("m")]; ok {
 		d["Notice"] = rc.T(k)
 	}

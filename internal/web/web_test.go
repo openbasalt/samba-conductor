@@ -265,7 +265,13 @@ func TestRouteGuards(t *testing.T) {
 			case PermPublic:
 				// An anonymous POST also needs the pre-session cookie
 				// (double-submit CSRF); TestCSRF covers it.
-				want = !(rt.method == "POST" && a.tok == "")
+				// The anonymous pages (link, reset) ignore the session, so
+				// its CSRF token does not count there either.
+				want = !(rt.method == "POST" && (a.tok == "" || rt.anonymous))
+			case PermLink:
+				// Only a link record (never a session) reaches these;
+				// TestLinkFlow covers them with one.
+				want = false
 			case PermPreAuth:
 				want = a.tok != "" && contains2(rt.stages, a.stage)
 			default:
@@ -279,7 +285,11 @@ func TestRouteGuards(t *testing.T) {
 				t.Errorf("%s %s as %s: handler reached=%v, want %v (status %d)", rt.method, rt.pattern, a.name, got, want, w.Code)
 				continue
 			}
-			if !want && rt.perm != PermPublic {
+			if rt.perm == PermLink && w.Code != http.StatusOK {
+				// Without a record: the neutral page, like an invalid link.
+				t.Errorf("%s %s as %s: status %d, want the neutral page", rt.method, rt.pattern, a.name, w.Code)
+			}
+			if !want && rt.perm != PermPublic && rt.perm != PermLink {
 				if w.Code != http.StatusSeeOther && w.Code != http.StatusForbidden {
 					t.Errorf("%s %s as %s: status %d, want a redirect or 403", rt.method, rt.pattern, a.name, w.Code)
 				}

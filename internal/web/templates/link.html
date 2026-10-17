@@ -1,0 +1,10 @@
+{{define "title"}}{{if eq .D.Purpose "invite"}}{{t "link.invite.title"}}{{else}}{{t "link.reset.title"}}{{end}}{{end}}
+{{define "content"}}<div class="card narrow" data-e2e="link-card">
+  <h1>{{if eq .D.Purpose "invite"}}{{t "link.invite.title"}}{{else}}{{t "link.reset.title"}}{{end}}</h1>
+  <p data-e2e="link-text-intro">{{if eq .D.Purpose "invite"}}{{t "link.invite.intro" .D.SAM}}{{else}}{{t "link.reset.intro" .D.SAM}}{{end}}</p>
+  <form method="post" action="{{.D.Action}}">
+    {{template "csrf" .}}
+    <button class="btn btn-primary btn-block" type="submit" data-e2e="link-btn-start">{{t "link.start"}}</button>
+  </form>
+  <p class="hint">{{t "link.start_hint"}}</p>
+</div>{{end}}
