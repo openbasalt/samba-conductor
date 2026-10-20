@@ -14,9 +14,9 @@ require (
 	github.com/go-webauthn/webauthn v0.18.2
 	github.com/openbasalt/samba-conductor-ad v0.0.0-20261009012208-17469fcb3764
 	github.com/openbasalt/samba-conductor-files v0.0.0-20261009012130-1ff33f4cb0c6
-	github.com/openbasalt/samba-conductor-idp v0.0.0-20261009022042-5d3f9f8e1f25
-	github.com/openbasalt/samba-conductor-sync v0.0.0-20261009022047-f5f8a11975ac
-	golang.org/x/term v0.46.0
+	github.com/openbasalt/samba-conductor-idp v0.1.1
+	github.com/openbasalt/samba-conductor-sync v0.1.0
+	golang.org/x/term v0.47.0
 	modernc.org/sqlite v1.60.1
 	rsc.io/qr v0.2.0
 )
@@ -41,7 +41,7 @@ require (
 	github.com/tinylib/msgp v1.6.4 // indirect
 	github.com/x448/float16 v0.8.4 // indirect
 	golang.org/x/crypto v0.57.0 // indirect
-	golang.org/x/sys v0.48.0 // indirect
+	golang.org/x/sys v0.49.0 // indirect
 	modernc.org/libc v1.77.1 // indirect
 	modernc.org/mathutil v1.7.1 // indirect
 	modernc.org/memory v1.12.1 // indirect
