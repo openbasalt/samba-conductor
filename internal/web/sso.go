@@ -371,6 +371,12 @@ func (s *Server) proposeClient(ctx context.Context, rc *reqCtx, f clientForm, in
 	if f.ID != "" {
 		op, action, title = idpapi.OpClientUpdate, "sso.client_update", rc.T("sso.client.update_title", in.Name)
 	}
+	// P3: no application for Google while the Google-first mode is on.
+	if err := s.ssoGoogleFirstCheck(ctx, rc, nil, &in, f.Preset); err != nil {
+		s.audit(ctx, rc, action, in.Name, "refused: the Google-first mode is on (P3)", store.ResultDenied)
+		s.renderClientForm(ctx, rc, http.StatusConflict, f, map[string]any{"Error": s.errMessage(rc.T, err)})
+		return
+	}
 	lines := []string{"conductor-idp " + string(op)}
 	if f.ID != "" {
 		lines = append(lines, "client_id: "+f.ID)
@@ -388,6 +394,9 @@ func (s *Server) proposeClient(ctx context.Context, rc *reqCtx, f clientForm, in
 		summary: rc.T("sso.client.summary"), warning: warning, preview: strings.Join(lines, "\n"), back: "/admin/sso/oidc",
 		done: rc.T("sso.saved")}
 	p.run = func(ctx context.Context, rc *reqCtx) error {
+		if err := s.ssoGoogleFirstCheck(ctx, rc, nil, &in, f.Preset); err != nil {
+			return err
+		}
 		if f.ID != "" {
 			var c idpapi.Client
 			if err := s.idpCall(ctx, rc, idpapi.OpClientUpdate, idpapi.ClientUpdateParams{ID: f.ID, Input: in}, &c); err != nil {
@@ -501,6 +510,13 @@ func (s *Server) handleSSOClientEnabled(rc *reqCtx) {
 		title: rc.T(key+"_title", c.Name), summary: rc.T(key + "_summary"),
 		preview: fmt.Sprintf("conductor-idp client.set_enabled\nclient_id: %s\nenabled: %v", c.ID, enable),
 		run: func(ctx context.Context, rc *reqCtx) error {
+			// P3: a disabled application for Google stays disabled while
+			// the Google-first mode is on.
+			if enable {
+				if err := s.ssoGoogleFirstCheck(ctx, rc, nil, &c.ClientInput, ""); err != nil {
+					return err
+				}
+			}
 			return s.idpCall(ctx, rc, idpapi.OpClientEnable, idpapi.ClientEnableParams{ID: c.ID, Enabled: enable}, &idpapi.Client{})
 		}, back: "/admin/sso/oidc/" + c.ID, done: rc.T("sso.saved")})
 }

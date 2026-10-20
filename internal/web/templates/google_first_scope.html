@@ -1,0 +1,54 @@
+{{define "title"}}{{if .D.F.Edit}}{{t "gf.scope.update_title" .D.F.Name}}{{else}}{{t "gf.scope.new_title"}}{{end}}{{end}}
+{{define "content"}}{{$f := .D.F}}<div class="card narrow">
+  <h1>{{if $f.Edit}}{{t "gf.scope.update_title" $f.Name}}{{else}}{{t "gf.scope.new_title"}}{{end}}</h1>
+  <p class="hint">{{t "gf.scope.intro"}}</p>
+  {{template "error-alert" .D.Error}}
+  <form method="post" action="/admin/google-first/scopes" autocomplete="off" data-e2e="gf-form-scope">
+    {{template "csrf" .}}
+    {{if $f.Edit}}<input type="hidden" name="edit" value="1"><input type="hidden" name="name" value="{{$f.Name}}">
+    <p>{{t "gf.scope.name"}}: <b class="mono" data-e2e="gf-text-scope-name">{{$f.Name}}</b> {{template "gf-mode" $f.Mode}}</p>
+    {{else}}<div class="field"><label for="name">{{t "gf.scope.name"}}</label>
+      <input id="name" name="name" type="text" required maxlength="32" pattern="[a-z0-9][a-z0-9_\-]{0,31}" spellcheck="false" value="{{$f.Name}}" data-e2e="gf-input-scope-name">
+      <span class="hint">{{t "gf.scope.name_hint"}}</span></div>{{end}}
+    <h2>{{t "gf.scope.ad"}}</h2>
+    <div class="field"><label for="managed_ou">{{t "gf.scope.managed_ou"}}</label>
+      <input id="managed_ou" name="managed_ou" type="text" required maxlength="1024" spellcheck="false" value="{{$f.ManagedOU}}" placeholder="OU=People,OU=Google,DC=example,DC=com" data-e2e="gf-input-managed-ou">
+      <span class="hint">{{t "gf.scope.managed_ou_hint"}}</span></div>
+    <div class="field"><label for="groups_ou">{{t "gf.scope.groups_ou"}}</label>
+      <input id="groups_ou" name="groups_ou" type="text" required maxlength="1024" spellcheck="false" value="{{$f.GroupsOU}}" data-e2e="gf-input-groups-ou"></div>
+    <div class="field"><label for="quarantine_ou">{{t "gf.scope.quarantine_ou"}}</label>
+      <input id="quarantine_ou" name="quarantine_ou" type="text" required maxlength="1024" spellcheck="false" value="{{$f.QuarantineOU}}" data-e2e="gf-input-quarantine-ou">
+      <span class="hint">{{t "gf.scope.quarantine_hint"}}</span></div>
+    <h2>{{t "gf.scope.google"}}</h2>
+    <div class="field"><label for="org_units">{{t "gf.scope.org_units"}}</label>
+      <textarea id="org_units" name="org_units" rows="3" spellcheck="false" data-e2e="gf-input-org-units">{{$f.OrgUnitsText}}</textarea>
+      <span class="hint">{{t "gf.scope.org_units_hint"}}</span></div>
+    <div class="check"><input id="sub_org_units" name="sub_org_units" type="checkbox" value="1"{{if $f.SubOrgUnits}} checked{{end}} data-e2e="gf-check-sub-org-units"><label for="sub_org_units">{{t "gf.scope.sub_org_units"}}</label></div>
+    <div class="field"><label for="member_of">{{t "gf.scope.member_of"}}</label>
+      <textarea id="member_of" name="member_of" rows="2" spellcheck="false" data-e2e="gf-input-member-of">{{$f.MemberOfText}}</textarea>
+      <span class="hint">{{t "gf.scope.member_of_hint"}}</span></div>
+    <fieldset><legend>{{t "gf.scope.fields"}}</legend>
+      <p class="hint">{{t "gf.scope.fields_hint"}}</p>
+      {{range .D.Fields}}<div class="check"><input id="field-{{.Field}}" name="fields" type="checkbox" value="{{.Field}}"{{if inList $f.Fields .Field}} checked{{end}} data-e2e="gf-check-field-{{e2e .Field}}"><label for="field-{{.Field}}">{{t (print "gf.field." .Field)}} <span class="muted small mono">{{.Attr}}</span></label></div>{{end}}
+    </fieldset>
+    <div class="field"><label for="logon_template">{{t "gf.scope.logon_template"}}</label>
+      <input id="logon_template" name="logon_template" type="text" maxlength="64" spellcheck="false" value="{{$f.LogonTemplate}}" placeholder="{given}.{family}" data-e2e="gf-input-logon-template">
+      <span class="hint">{{t "gf.scope.logon_template_hint"}}</span></div>
+    <h2>{{t "gf.scope.limits"}}</h2>
+    <p class="hint">{{t "gf.scope.limits_hint"}}</p>
+    <div class="grid grid-2">
+      <div class="field"><label for="max_creates">{{t "gf.limit.max_creates"}}</label><input id="max_creates" name="max_creates" type="number" min="-1" required value="{{$f.L.MaxCreates}}" data-e2e="gf-input-max-creates"></div>
+      <div class="field"><label for="max_disables">{{t "gf.limit.max_disables"}}</label><input id="max_disables" name="max_disables" type="number" min="-1" required value="{{$f.L.MaxDisables}}" data-e2e="gf-input-max-disables"></div>
+      <div class="field"><label for="max_reenables">{{t "gf.limit.max_reenables"}}</label><input id="max_reenables" name="max_reenables" type="number" min="-1" required value="{{$f.L.MaxReenables}}" data-e2e="gf-input-max-reenables"></div>
+      <div class="field"><label for="max_updates">{{t "gf.limit.max_updates"}}</label><input id="max_updates" name="max_updates" type="number" min="-1" required value="{{$f.L.MaxUpdates}}" data-e2e="gf-input-max-updates"></div>
+      <div class="field"><label for="max_renames">{{t "gf.limit.max_renames"}}</label><input id="max_renames" name="max_renames" type="number" min="-1" required value="{{$f.L.MaxRenames}}" data-e2e="gf-input-max-renames"></div>
+      <div class="field"><label for="max_touched_percent">{{t "gf.limit.max_touched_percent"}}</label><input id="max_touched_percent" name="max_touched_percent" type="number" min="-1" max="100" step="0.1" required value="{{$f.L.MaxTouchedPercent}}" data-e2e="gf-input-max-touched-percent"></div>
+      <div class="field"><label for="min_source_size">{{t "gf.limit.min_source_size"}}</label><input id="min_source_size" name="min_source_size" type="number" min="-1" required value="{{$f.L.MinSourceSize}}" data-e2e="gf-input-min-source-size"></div>
+      <div class="field"><label for="max_source_drop_percent">{{t "gf.limit.max_source_drop_percent"}}</label><input id="max_source_drop_percent" name="max_source_drop_percent" type="number" min="-1" max="100" step="0.1" required value="{{$f.L.MaxSourceDropPercent}}" data-e2e="gf-input-max-source-drop-percent"></div>
+    </div>
+    <div class="actions">
+      <button class="btn btn-primary" type="submit" data-e2e="gf-btn-scope-preview">{{t "form.preview"}}</button>
+      <a class="btn" href="/admin/google-first" data-e2e="gf-link-scope-cancel">{{t "form.cancel"}}</a>
+    </div>
+  </form>
+</div>{{end}}

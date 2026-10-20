@@ -241,6 +241,7 @@ func (rc *reqCtx) render(status int, page string, d map[string]any) {
 			pd.Nav["admin"] = rc.roles.Privileged()
 			// The sync section appears only where it is enabled.
 			pd.Nav["sync"] = rc.s.sync != nil && rc.roles.Has(PermSyncRead)
+			pd.Nav["google_first"] = rc.s.gfOn() && rc.roles.Has(PermSyncRead)
 			// Connected accounts: every signed-in user, when the sync is
 			// enabled.
 			pd.Nav["accounts"] = rc.s.sync != nil

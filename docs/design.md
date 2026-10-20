@@ -226,6 +226,34 @@ do.
 - Privileged accounts are never invited or reset by e-mail; their
   passwords are changed by an administrator, as before.
 
+## Google-first mode
+
+In the Google-first mode Google Workspace is the source of truth for the
+people of chosen scopes and AD follows ([google-first.md](google-first.md)).
+conductor never talks to Google and holds no write right for it: conductor-sync
+reads Google and AD read-only and returns a deterministic plan bound to a
+digest; conductor shows it and applies the operations an administrator
+approves through conductor-provisioner, which re-checks each one (scope,
+privilege, the account's marker, the values the plan saw) before writing.
+
+- Nothing from Google grants anything privileged: privileged accounts are
+  skipped by the plan (and audited by conductor), refused again by the
+  provisioner, and Google admin roles are ignored.
+- Google owns its fields: conductor shows them read only on every page
+  that edits users and refuses to write them; an account whose scope was
+  removed is AD-managed again, and an unreadable configuration makes every
+  field Google may own read only (fail closed).
+- Google keeps its own sign-in: enabling the mode, every plan and every
+  apply check through conductor-idp's API that no application serves
+  Google, and the Single sign-on section refuses such an application while
+  the mode is on; an unanswered check refuses.
+- A scope starts in dry-run. Switching it to apply needs the latest plan,
+  the scope name and the digest prefix typed, and a fresh second factor;
+  applying needs the digest prefix and a fresh second factor; limits are
+  never overridden. Each operation is audited with the run, the digest and
+  the values before and after, and the results are reported back so the
+  run is closed exactly once.
+
 ## Areas
 
 - Users, groups, OUs, computers: server-side sorted search and

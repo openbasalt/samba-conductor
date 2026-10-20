@@ -1,0 +1,75 @@
+{{define "title"}}{{t "gf.title"}}{{end}}
+{{define "content"}}<h1>{{t "gf.title"}}</h1>
+<p class="hint">{{t "gf.intro"}}</p>
+{{if .D.Missing}}<section class="card" data-e2e="gf-card-disabled">
+  <h2>{{t "gf.disabled.title"}}</h2>
+  <ul>{{range .D.Missing}}<li data-e2e="gf-text-missing-{{e2e .}}">{{t (print "gf.missing." .)}}</li>{{end}}</ul>
+</section>{{else}}{{template "error-alert" .D.Error}}{{with .D.GF}}{{$gf := .}}
+<div class="stats">
+  <div class="stat" data-e2e="gf-card-state"><b data-e2e="gf-text-state">{{if .Enabled}}{{t "gf.state.on"}}{{else}}{{t "gf.state.off"}}{{end}}</b><span>{{t "gf.state"}}</span></div>
+  <div class="stat" data-e2e="gf-card-domain"><b class="mono" data-e2e="gf-text-domain">{{with .GoogleDomain}}{{.}}{{else}}—{{end}}</b><span>{{t "gf.domain"}}</span></div>
+  <div class="stat" data-e2e="gf-card-scopes"><b data-e2e="gf-text-scopes">{{len .Scopes}}</b><span>{{t "gf.scopes"}}</span></div>
+  <div class="stat" data-e2e="gf-card-last"><b data-e2e="gf-text-last">{{with $.D.Last}}{{template "sync-status" .Run.Status}}{{else}}—{{end}}</b><span>{{t "gf.last_plan"}}{{with $.D.Last}} · {{time .Run.StartedAt}}{{end}}</span></div>
+</div>
+{{with $.D.P3}}{{template "gf-p3" .}}{{end}}
+
+{{if $.D.CanWrite}}<section class="card" aria-labelledby="gf-enable" data-e2e="gf-card-settings">
+  <h2 id="gf-enable">{{t "gf.settings.heading"}}</h2>
+  <div class="alert-warn" data-e2e="gf-text-what-admins-can-do">
+    <p><b>{{t "gf.enable.explain_title"}}</b></p>
+    <ul>
+      <li>{{t "gf.enable.explain_create"}}</li>
+      <li>{{t "gf.enable.explain_update"}}</li>
+      <li>{{t "gf.enable.explain_disable"}}</li>
+      <li>{{t "gf.enable.explain_never"}}</li>
+      <li>{{t "gf.enable.explain_sso"}}</li>
+    </ul>
+    <p class="small">{{t "gf.enable.explain_preview"}}</p>
+  </div>
+  <form method="post" action="/admin/google-first/settings" data-e2e="gf-form-settings">
+    {{template "csrf" $}}
+    <div class="field"><label for="google_domain">{{t "gf.domain"}}</label>
+      <input id="google_domain" name="google_domain" type="text" maxlength="253" autocomplete="off" spellcheck="false" value="{{.GoogleDomain}}" placeholder="example.com" data-e2e="gf-input-domain">
+      <span class="hint">{{t "gf.domain_hint"}}</span></div>
+    <div class="check"><input id="gf_enabled" name="enabled" type="checkbox" value="1"{{if .Enabled}} checked{{end}} data-e2e="gf-check-enabled"><label for="gf_enabled">{{t "gf.enabled"}}</label></div>
+    <div class="actions"><button class="btn btn-primary" type="submit" data-e2e="gf-btn-settings-preview">{{t "form.preview"}}</button></div>
+  </form>
+</section>{{end}}
+
+<section class="card" aria-labelledby="gf-scopes" data-e2e="gf-card-scopes-list">
+  <h2 id="gf-scopes">{{t "gf.scopes"}}</h2>
+  {{if $.D.Scopes}}<table class="table" data-e2e="gf-table-scopes">
+    <thead><tr><th>{{t "gf.scope.name"}}</th><th>{{t "gf.scope.mode"}}</th><th>{{t "gf.scope.managed_ou"}}</th><th>{{t "gf.scope.org_units"}}</th><th>{{t "gf.last_plan"}}</th>{{if $.D.CanWrite}}<th>{{t "gf.actions"}}</th>{{end}}</tr></thead>
+    <tbody>{{range $.D.Scopes}}<tr data-e2e="gf-scope-{{e2e .Name}}">
+      <td class="mono">{{.Name}}</td>
+      <td data-label="{{t "gf.scope.mode"}}">{{template "gf-mode" .Mode}}</td>
+      <td data-label="{{t "gf.scope.managed_ou"}}" class="mono small">{{.ManagedOU}}</td>
+      <td data-label="{{t "gf.scope.org_units"}}" class="small">{{join .OrgUnits ", "}}{{if .SubOrgUnits}} <span class="muted">{{t "gf.scope.and_below"}}</span>{{end}}</td>
+      <td data-label="{{t "gf.last_plan"}}" class="small">{{with .Last}}{{t "gf.scope.last_counts" (len .Ops) .SourceSize .Managed}}{{if .Blocked}} <span class="badge badge-danger" data-e2e="gf-scope-blocked-{{e2e .Name}}">{{t "gf.blocked"}}</span>{{end}}{{if .Skipped}} <span class="badge badge-warn">{{t "gf.skipped_n" (len .Skipped)}}</span>{{end}}{{else}}—{{end}}</td>
+      {{if $.D.CanWrite}}<td data-label="{{t "gf.actions"}}"><div class="actions">
+        <a class="btn btn-small" href="/admin/google-first/scopes/{{.Name}}" data-e2e="gf-link-scope-edit-{{e2e .Name}}">{{t "gf.scope.edit"}}</a>
+        {{if $gf.Enabled}}<form method="post" action="/admin/google-first/plan">{{template "csrf" $}}<input type="hidden" name="scope" value="{{.Name}}"><button class="btn btn-small" type="submit" data-e2e="gf-btn-plan-{{e2e .Name}}">{{t "gf.plan.scope_button"}}</button></form>{{end}}
+        {{if eq .Mode "apply"}}<form method="post" action="/admin/google-first/scopes/{{.Name}}/mode">{{template "csrf" $}}<input type="hidden" name="mode" value="dry-run"><button class="btn btn-small" type="submit" data-e2e="gf-btn-dry-run-{{e2e .Name}}">{{t "gf.mode.to_dry_run"}}</button></form>{{end}}
+        <details><summary data-e2e="gf-btn-remove-open-{{e2e .Name}}">{{t "gf.scope.remove"}}</summary>
+          <form method="post" action="/admin/google-first/scopes/{{.Name}}/remove" autocomplete="off">{{template "csrf" $}}
+            <div class="field"><label for="rm-{{.Name}}">{{t "gf.scope.remove_type" .Name}}</label><input id="rm-{{.Name}}" name="confirm" type="text" required autocomplete="off" spellcheck="false" data-e2e="gf-input-remove-{{e2e .Name}}"></div>
+            <button class="btn btn-small btn-danger" type="submit" data-e2e="gf-btn-remove-{{e2e .Name}}">{{t "gf.scope.remove"}}</button>
+          </form></details>
+      </div></td>{{end}}
+    </tr>{{end}}</tbody>
+  </table>{{else}}<p class="muted" data-e2e="gf-text-no-scopes">{{t "gf.no_scopes"}}</p>{{end}}
+  {{if $.D.CanWrite}}<div class="actions">
+    <a class="btn" href="/admin/google-first/new-scope" data-e2e="gf-link-scope-new">{{t "gf.scope.add"}}</a>
+    {{if and .Enabled .Scopes}}<form method="post" action="/admin/google-first/plan">{{template "csrf" $}}<button class="btn btn-primary" type="submit" data-e2e="gf-btn-plan">{{t "gf.plan.button"}}</button></form>{{end}}
+  </div>
+  {{if not .Enabled}}<p class="hint" data-e2e="gf-text-plan-off">{{t "gf.plan.err_off"}}</p>{{end}}{{end}}
+</section>
+
+<section class="card" aria-labelledby="gf-runs">
+  <h2 id="gf-runs">{{t "gf.runs"}}</h2>
+  {{with $.D.RunsError}}<div class="alert-error" role="alert" data-e2e="gf-text-runs-error">{{.}}</div>{{end}}
+  {{if $.D.Runs}}<ul data-e2e="gf-list-runs">{{range $.D.Runs}}<li><a href="/admin/google-first/runs/{{.ID}}" data-e2e="gf-link-run-{{.ID}}">{{t "gf.run.label" .ID}}</a> {{template "sync-status" .Status}} <span class="muted small">{{time .StartedAt}} · {{.Actor}}</span></li>{{end}}</ul>
+  {{else}}<p class="muted" data-e2e="gf-text-no-runs">{{t "gf.no_runs"}}</p>{{end}}
+</section>
+{{end}}{{end}}{{end}}
+

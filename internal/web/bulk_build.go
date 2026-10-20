@@ -8,11 +8,13 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"slices"
 	"strings"
 	"unicode/utf8"
 
 	ad "github.com/openbasalt/samba-conductor-ad"
 	"github.com/openbasalt/samba-conductor-ad/escape"
+	"github.com/openbasalt/samba-conductor-sync/syncapi"
 )
 
 // CSV templates. The header must match exactly (same names, same order):
@@ -181,22 +183,51 @@ func splitList(v string) []string {
 
 // existingUsers looks up which usernames exist, 100 per search.
 func existingUsers(ctx context.Context, conn *ad.Conn, names []string) (map[string]ad.User, error) {
-	out := map[string]ad.User{}
+	out, _, err := existingUsersMarked(ctx, conn, names)
+	return out, err
+}
+
+// existingUsersMarked is existingUsers with each account's Google-first
+// marker value (by lower-case username; "" when unmarked).
+func existingUsersMarked(ctx context.Context, conn *ad.Conn, names []string) (map[string]ad.User, map[string]string, error) {
+	out, markers := map[string]ad.User{}, map[string]string{}
+	attrs := append(slices.Clone(ad.UserAttributes), syncapi.G2AMarkerAttribute)
 	for i := 0; i < len(names); i += 100 {
 		batch := names[i:min(i+100, len(names))]
 		ors := make([]escape.Filter, len(batch))
 		for j, n := range batch {
 			ors[j] = escape.Eq("sAMAccountName", n)
 		}
-		for e, err := range conn.Search(ctx, ad.SearchRequest{Filter: andFilters(userFilter, escape.Or(ors...)), Attributes: ad.UserAttributes}) {
+		for e, err := range conn.Search(ctx, ad.SearchRequest{Filter: andFilters(userFilter, escape.Or(ors...)), Attributes: attrs}) {
 			if err != nil {
-				return nil, err
+				return nil, nil, err
 			}
 			u := ad.UserFromEntry(e)
 			out[strings.ToLower(u.SAMAccountName)] = u
+			markers[strings.ToLower(u.SAMAccountName)] = e.GetAttributeValue(syncapi.G2AMarkerAttribute)
 		}
 	}
-	return out, nil
+	return out, markers, nil
+}
+
+// gfBulkRefused lists the columns of an update row that would change a
+// field Google owns on the account.
+func gfBulkRefused(m gfManaged, in map[string]string, u ad.User) []string {
+	var out []string
+	for _, f := range updateFields {
+		attr, ok := gfBulkAttrs[f.col]
+		v := in[f.col]
+		if !ok || v == "" || !m.Owns(attr) {
+			continue
+		}
+		if v == clearValue {
+			v = ""
+		}
+		if v != f.get(u) {
+			out = append(out, f.col)
+		}
+	}
+	return out
 }
 
 func lineOf(in map[string]string, i int) int {
@@ -339,7 +370,7 @@ func (s *Server) buildImportUpdate(ctx context.Context, rc *reqCtx, conn *ad.Con
 	for _, in := range inputs {
 		names = append(names, in["username"])
 	}
-	existing, err := existingUsers(ctx, conn, names)
+	existing, markers, err := existingUsersMarked(ctx, conn, names)
 	if err != nil {
 		return nil, nil, false, err
 	}
@@ -361,6 +392,11 @@ func (s *Server) buildImportUpdate(ctx context.Context, rc *reqCtx, conn *ad.Con
 			continue
 		}
 		seen[strings.ToLower(sam)] = true
+		// P2: a row may not change a field Google owns.
+		if refused := gfBulkRefused(s.gfManagedFor(ctx, rc, markers[strings.ToLower(sam)], u.DN), in, u); len(refused) > 0 {
+			bad(rc.T("err.managed_by_google", strings.Join(refused, ", ")))
+			continue
+		}
 		protected, err := s.accountProtected(ctx, conn, u.DN, u.SID)
 		if err != nil {
 			return nil, nil, false, err

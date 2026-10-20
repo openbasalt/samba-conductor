@@ -231,6 +231,21 @@ func (s *Server) routeTable() []route {
 		{method: "GET", pattern: "/admin/sync/import", perm: PermSyncWrite, h: s.handleSyncImport},
 		{method: "POST", pattern: "/admin/sync/import", perm: PermSyncWrite, h: s.handleSyncImportPost},
 
+		// Google-first mode (Google Workspace to AD): the plan from
+		// conductor-sync, applied through conductor-provisioner. Views for
+		// PermSyncRead, changes for PermSyncWrite (administrators only);
+		// every change is previewed and confirmed with re-authentication.
+		{method: "GET", pattern: "/admin/google-first", perm: PermSyncRead, h: s.handleGoogleFirst},
+		{method: "POST", pattern: "/admin/google-first/settings", perm: PermSyncWrite, h: s.handleGoogleFirstSettings},
+		{method: "GET", pattern: "/admin/google-first/new-scope", perm: PermSyncWrite, h: s.handleGoogleFirstScopeNew},
+		{method: "POST", pattern: "/admin/google-first/scopes", perm: PermSyncWrite, h: s.handleGoogleFirstScopePost},
+		{method: "GET", pattern: "/admin/google-first/scopes/{name}", perm: PermSyncWrite, h: s.handleGoogleFirstScope},
+		{method: "POST", pattern: "/admin/google-first/scopes/{name}/remove", perm: PermSyncWrite, h: s.handleGoogleFirstScopeRemove},
+		{method: "POST", pattern: "/admin/google-first/scopes/{name}/mode", perm: PermSyncWrite, h: s.handleGoogleFirstScopeMode},
+		{method: "POST", pattern: "/admin/google-first/plan", perm: PermSyncWrite, h: s.handleGoogleFirstPlan},
+		{method: "GET", pattern: "/admin/google-first/runs/{id}", perm: PermSyncRead, h: s.handleGoogleFirstRun},
+		{method: "POST", pattern: "/admin/google-first/runs/{id}/apply", perm: PermSyncWrite, h: s.handleGoogleFirstRunApply},
+
 		// File servers (conductor-files agents): status, shares and
 		// sessions for administrators and auditors; enrollment, removal
 		// and share changes for administrators, each previewed with the
