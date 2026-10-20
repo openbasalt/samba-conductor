@@ -186,6 +186,8 @@ type gfSave struct {
 	back, done           string
 	// note is a translated line added to the preview.
 	note string
+	// recheck, when set, runs again at confirmation, before the save.
+	recheck func(ctx context.Context, rc *reqCtx) error
 }
 
 // gfPropose validates next with conductor-sync (the whole settings with
@@ -231,6 +233,11 @@ func (s *Server) gfPropose(ctx context.Context, rc *reqCtx, cfg syncapi.ConfigVi
 	rc.propose(&pendingOp{perm: PermSyncWrite, action: sv.action, target: sv.target, reauth: true, reauthKey: sv.reauthKey,
 		title: sv.title, summary: sv.summary, warning: sv.warn, preview: strings.TrimRight(b.String(), "\n"),
 		run: func(ctx context.Context, rc *reqCtx) error {
+			if sv.recheck != nil {
+				if err := sv.recheck(ctx, rc); err != nil {
+					return err
+				}
+			}
 			if next.Enabled {
 				if r := s.p3Check(ctx, rc, next.GoogleDomain); !r.OK() {
 					s.audit(ctx, rc, "g2a.p3_refused", sv.target, r.summary(), store.ResultDenied)
@@ -554,11 +561,20 @@ func (s *Server) handleGoogleFirstScopeMode(rc *reqCtx) {
 		}
 		back = fmt.Sprintf("/admin/google-first/runs/%d", runID)
 		sv.back = back
-		if key := s.modeGate(ctx, rc, name, runID); key != "" {
+		confirm := rc.form("confirm")
+		if key := s.modeGate(ctx, rc, name, runID, confirm); key != "" {
 			s.audit(ctx, rc, "google_first.mode", "scope "+name, key, store.ResultDenied)
 			rc.flashErr(key, name)
 			rc.redirect(back)
 			return
+		}
+		// The reviewed plan must still be the latest at confirmation.
+		sv.recheck = func(ctx context.Context, rc *reqCtx) error {
+			if key := s.modeGate(ctx, rc, name, runID, confirm); key != "" {
+				s.audit(ctx, rc, "google_first.mode", "scope "+name, "at confirmation: "+key, store.ResultDenied)
+				return &gfError{key: key, args: []any{name}}
+			}
+			return nil
 		}
 		if !next.Enabled {
 			rc.flashErr("gf.mode.err_off")
@@ -580,7 +596,7 @@ func (s *Server) handleGoogleFirstScopeMode(rc *reqCtx) {
 
 // modeGate checks the typed confirmation of a switch to apply against a
 // fresh read of the latest plan ("" when it holds, else a message key).
-func (s *Server) modeGate(ctx context.Context, rc *reqCtx, scope string, runID int64) string {
+func (s *Server) modeGate(ctx context.Context, rc *reqCtx, scope string, runID int64, confirm string) string {
 	last, _, err := s.g2aLatest(ctx, rc)
 	if err != nil || last == nil {
 		return "gf.mode.err_no_plan"
@@ -592,7 +608,7 @@ func (s *Server) modeGate(ctx context.Context, rc *reqCtx, scope string, runID i
 	if !covered {
 		return "gf.mode.err_not_covered"
 	}
-	if rc.form("confirm") != modeConfirmation(scope, last.G2A.Digest) {
+	if confirm != modeConfirmation(scope, last.G2A.Digest) {
 		return "gf.mode.err_confirm"
 	}
 	return ""

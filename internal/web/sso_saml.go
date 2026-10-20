@@ -361,6 +361,13 @@ func (s *Server) handleSSOSPEnabled(rc *reqCtx) {
 		title: rc.T(key+"_title", sp.Name), summary: rc.T(key + "_summary"),
 		preview: fmt.Sprintf("conductor-idp sp.set_enabled\nentity_id: %s\nenabled: %v", sp.EntityID, enable),
 		run: func(ctx context.Context, rc *reqCtx) error {
+			// P3: a disabled application for Google stays disabled while
+			// the Google-first mode is on.
+			if enable {
+				if err := s.ssoGoogleFirstCheck(ctx, rc, &sp.SPInput, nil, ""); err != nil {
+					return err
+				}
+			}
 			return s.idpCall(ctx, rc, idpapi.OpSPEnable, idpapi.SPEnableParams{EntityID: sp.EntityID, Enabled: enable}, &idpapi.SP{})
 		}, back: "/admin/sso/saml/sp?id=" + url.QueryEscape(sp.EntityID), done: rc.T("sso.saved")})
 }

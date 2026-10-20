@@ -1181,3 +1181,100 @@ func TestG2AErrorMessages(t *testing.T) {
 		t.Fatal("no provisioner applier")
 	}
 }
+
+// The confirmation of an apply checks the plan again: still the latest,
+// still open, same Google domain; a second preview of the same plan
+// applies nothing once the first one ran.
+func TestGoogleFirstApplyRechecksAtConfirmation(t *testing.T) {
+	back := "/admin/google-first/runs/42"
+	form := func() url.Values { return url.Values{"digest": {gfDigest}, "confirm": {"01234567"}} }
+
+	// A newer plan between the preview and the confirmation.
+	h := newGFHarness(t, syncapi.G2AModeApply)
+	h.fs.status = syncapi.StatusPlanned
+	loc := h.do("POST", back+"/apply", h.admin, form()).Header().Get("Location")
+	h.fs.newerRuns = []syncapi.Run{{ID: 43, Action: syncapi.RunActionG2A, Status: syncapi.StatusPlanned}}
+	h.confirm(t, loc)
+	if len(h.ap.called()) != 0 || len(h.fs.confirms) != 0 {
+		t.Fatal("applied a plan that is not the latest any more")
+	}
+
+	// The Google domain changed between the preview and the confirmation.
+	h = newGFHarness(t, syncapi.G2AModeApply)
+	h.fs.status = syncapi.StatusPlanned
+	loc = h.do("POST", back+"/apply", h.admin, form()).Header().Get("Location")
+	gf := gfSettings(syncapi.G2AModeApply)
+	gf.GoogleDomain = "example.org"
+	h.fs.setGF(gf)
+	h.confirm(t, loc)
+	if len(h.ap.called()) != 0 || len(h.fs.confirms) != 0 {
+		t.Fatal("applied a plan made for another Google domain")
+	}
+	if loc := h.do("POST", back+"/apply", h.admin, form()).Header().Get("Location"); loc != back {
+		t.Fatalf("domain changed, at preview: %q", loc)
+	}
+
+	// Two previews of the same plan: only the first confirmation applies.
+	h = newGFHarness(t, syncapi.G2AModeApply)
+	h.fs.status = syncapi.StatusPlanned
+	first := h.do("POST", back+"/apply", h.admin, form()).Header().Get("Location")
+	second := h.do("POST", back+"/apply", h.admin, form()).Header().Get("Location")
+	if !strings.HasPrefix(first, "/confirm/") || !strings.HasPrefix(second, "/confirm/") || first == second {
+		t.Fatalf("previews %q %q", first, second)
+	}
+	h.confirm(t, first)
+	calls := len(h.ap.called())
+	if calls == 0 || len(h.fs.confirms) != 1 {
+		t.Fatal("first confirmation did not apply")
+	}
+	h.confirm(t, second)
+	if len(h.ap.called()) != calls || len(h.fs.confirms) != 1 {
+		t.Fatal("the same plan applied twice")
+	}
+}
+
+// The switch of a scope to apply checks again at confirmation that the
+// reviewed plan is the latest.
+func TestGoogleFirstModeGateAtConfirmation(t *testing.T) {
+	h := newGFHarness(t, syncapi.G2AModeDryRun)
+	h.fs.status = syncapi.StatusPlanned
+	loc := h.do("POST", "/admin/google-first/scopes/people/mode", h.admin,
+		url.Values{"mode": {"apply"}, "run": {"42"}, "confirm": {"people 01234567"}}).Header().Get("Location")
+	if !strings.HasPrefix(loc, "/confirm/") {
+		t.Fatalf("gate: %q", loc)
+	}
+	h.fs.newerRuns = []syncapi.Run{{ID: 43, Action: syncapi.RunActionG2A, Status: syncapi.StatusPlanned}}
+	h.confirm(t, loc)
+	if h.fs.updated != nil {
+		t.Fatal("switched to apply on a plan that is not the latest any more")
+	}
+	evs := h.audits(t, "google_first.mode")
+	if !slices.ContainsFunc(evs, func(e store.AuditEvent) bool {
+		return e.Result == store.ResultDenied && strings.Contains(e.Detail, "at confirmation")
+	}) {
+		t.Fatalf("refusal not audited %+v", evs)
+	}
+}
+
+// A disabled application for Google is not enabled again while the
+// Google-first mode is on (P3).
+func TestSSOReenableRefusedWhileGoogleFirst(t *testing.T) {
+	h := newGFHarness(t, syncapi.G2AModeDryRun)
+	h.idp.clients["g1"] = idpapi.Client{ID: "g1", ClientInput: idpapi.ClientInput{Name: "G", Kind: "confidential",
+		RedirectURIs: []string{"https://accounts.google.com/cb"}, Scopes: []string{"profile"}, AllowAllUsers: true}}
+	loc := h.do("POST", "/admin/sso/oidc/g1/enabled", h.admin, url.Values{"enabled": {"1"}}).Header().Get("Location")
+	if !strings.HasPrefix(loc, "/confirm/") {
+		t.Fatalf("propose: %q", loc)
+	}
+	h.confirm(t, loc)
+	if h.idp.clients["g1"].Enabled {
+		t.Fatal("Google client enabled while the mode is on")
+	}
+	// Disabling stays possible.
+	h.idp.clients["g1"] = idpapi.Client{ID: "g1", ClientInput: h.idp.clients["g1"].ClientInput, Enabled: true}
+	loc = h.do("POST", "/admin/sso/oidc/g1/enabled", h.admin, url.Values{"enabled": {"0"}}).Header().Get("Location")
+	h.confirm(t, loc)
+	if h.idp.clients["g1"].Enabled {
+		t.Fatal("disable refused")
+	}
+}

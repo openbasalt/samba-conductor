@@ -2433,6 +2433,7 @@
   "gf.apply.err_changed": "O plano mudou nesse meio tempo: revise-o de novo.",
   "gf.apply.err_confirm": "A confirmação não conferiu. Digite exatamente: {0}",
   "gf.apply.err_not_latest": "Só o plano mais recente pode ser aplicado: peça um novo plano.",
+  "gf.apply.err_domain": "O domínio do Google mudou desde este plano: peça um novo plano.",
   "gf.apply.err_nothing": "Nada a aplicar: nenhum escopo deste plano está em aplicação dentro dos limites.",
   "gf.notapply.closed": "Este plano está fechado.",
   "gf.notapply.not_latest": "Existe um plano mais novo: só o plano mais recente pode ser aplicado.",

@@ -56,12 +56,14 @@ const (
 )
 
 // roleGroupSIDs are conductor's admin, helpdesk and auditor role groups:
-// their members are privileged for the plan (P1).
+// their members are privileged for the plan (P1). All of them are sent:
+// conductor-sync refuses a plan request with more than it accepts rather
+// than leaving the members of a dropped group unprotected.
 func (s *Server) roleGroupSIDs() []string {
 	var out []string
 	for _, list := range [][]string{sidStrings(s.roleSIDs.admin), sidStrings(s.roleSIDs.helpdesk), sidStrings(s.roleSIDs.auditor)} {
 		for _, v := range list {
-			if !slices.Contains(out, v) && len(out) < 32 {
+			if !slices.Contains(out, v) {
 				out = append(out, v)
 			}
 		}
@@ -446,6 +448,10 @@ func (s *Server) handleGoogleFirstRunApply(rc *reqCtx) {
 		refuse("gf.plan.err_off")
 		return
 	}
+	if !strings.EqualFold(pl.GoogleDomain, gf.GoogleDomain) {
+		refuse("gf.apply.err_domain")
+		return
+	}
 	if r := s.p3Check(ctx, rc, gf.GoogleDomain); !r.OK() {
 		s.audit(ctx, rc, "g2a.p3_refused", fmt.Sprintf("run %d", id), "apply: "+r.summary(), store.ResultDenied)
 		rc.sess.addFlash("error", s.errMessage(rc.T, p3Error(r)))
@@ -492,12 +498,32 @@ func (s *Server) handleGoogleFirstRunApply(rc *reqCtx) {
 		// browser goes away.
 		ctx, cancel := context.WithTimeout(context.WithoutCancel(ctx), g2aApplyTimeout)
 		defer cancel()
+		// One apply of a run at a time, and only of the latest plan while
+		// it is open: a newer plan, or the same plan applied by another
+		// confirmation meanwhile, wins.
+		if _, busy := s.g2aApplying.LoadOrStore(id, struct{}{}); busy {
+			return &gfError{key: "gf.apply.err_closed"}
+		}
+		defer s.g2aApplying.Delete(id)
+		last, _, err := s.g2aLatest(ctx, rc)
+		if err != nil {
+			return err
+		}
+		switch {
+		case last == nil || last.Run.ID != id:
+			return &gfError{key: "gf.apply.err_not_latest"}
+		case last.Run.Status != syncapi.StatusPlanned:
+			return &gfError{key: "gf.apply.err_closed"}
+		}
 		gf, err := s.googleFirst(ctx, rc, true)
 		if err != nil {
 			return err
 		}
 		if !gf.Enabled {
 			return &gfError{key: "gf.plan.err_off"}
+		}
+		if !strings.EqualFold(pl.GoogleDomain, gf.GoogleDomain) {
+			return &gfError{key: "gf.apply.err_domain"}
 		}
 		if r := s.p3Check(ctx, rc, gf.GoogleDomain); !r.OK() {
 			s.audit(ctx, rc, "g2a.p3_refused", fmt.Sprintf("run %d", id), "apply: "+r.summary(), store.ResultDenied)

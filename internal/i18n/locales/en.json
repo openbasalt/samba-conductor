@@ -2433,6 +2433,7 @@
   "gf.apply.err_changed": "The plan changed in the meantime: review it again.",
   "gf.apply.err_confirm": "The confirmation did not match. Type exactly: {0}",
   "gf.apply.err_not_latest": "Only the latest plan can be applied: request a new plan.",
+  "gf.apply.err_domain": "The Google domain changed since this plan: request a new plan.",
   "gf.apply.err_nothing": "Nothing to apply: no scope of this plan is in apply mode within its limits.",
   "gf.notapply.closed": "This plan is closed.",
   "gf.notapply.not_latest": "A newer plan exists: only the latest plan can be applied.",

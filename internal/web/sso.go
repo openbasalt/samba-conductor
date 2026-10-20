@@ -510,6 +510,13 @@ func (s *Server) handleSSOClientEnabled(rc *reqCtx) {
 		title: rc.T(key+"_title", c.Name), summary: rc.T(key + "_summary"),
 		preview: fmt.Sprintf("conductor-idp client.set_enabled\nclient_id: %s\nenabled: %v", c.ID, enable),
 		run: func(ctx context.Context, rc *reqCtx) error {
+			// P3: a disabled application for Google stays disabled while
+			// the Google-first mode is on.
+			if enable {
+				if err := s.ssoGoogleFirstCheck(ctx, rc, nil, &c.ClientInput, ""); err != nil {
+					return err
+				}
+			}
 			return s.idpCall(ctx, rc, idpapi.OpClientEnable, idpapi.ClientEnableParams{ID: c.ID, Enabled: enable}, &idpapi.Client{})
 		}, back: "/admin/sso/oidc/" + c.ID, done: rc.T("sso.saved")})
 }

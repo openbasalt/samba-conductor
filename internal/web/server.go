@@ -172,6 +172,8 @@ type Server struct {
 	// Google-first settings for the "Managed by Google" checks.
 	g2a     g2aApplier
 	gfCache gfCache
+	// g2aApplying holds the run IDs being applied (one apply per run).
+	g2aApplying sync.Map
 }
 
 // New builds the server.
