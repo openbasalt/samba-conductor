@@ -1,0 +1,6 @@
+{{.OrgName}}
+
+Esta é uma mensagem de teste de {{.OrgName}}, enviada em {{.When}}.
+
+Se você consegue lê-la, as mensagens chegam ao seu servidor de e-mail e ele as entrega neste endereço. Não é preciso fazer mais nada.
+{{template "text-bottom" .}}

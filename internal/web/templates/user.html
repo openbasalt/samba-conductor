@@ -41,6 +41,24 @@
     <form method="post" action="/admin/users/{{$g}}/mfa/link">{{template "csrf" $}}<button class="btn" type="submit" data-e2e="user-btn-enroll-link">{{t "user.enroll_link"}}</button></form>
   </div>
   {{end}}
+  {{with .D.Inv}}
+  <h3>{{t "invite.section"}}</h3>
+  {{if .Missing}}<p class="hint" data-e2e="user-text-invite-off">{{t "invite.off"}}</p>
+  {{else if .Err}}<p class="alert-error" role="alert" data-e2e="user-text-invite-error">{{.Err}}</p>
+  {{else if .Can}}<form method="post" action="/admin/users/{{$g}}/invite">{{template "csrf" $}}<button class="btn" type="submit" data-e2e="user-btn-invite">{{t "invite.button"}}</button></form>
+  <p class="hint" data-e2e="user-text-invite-hint">{{t "invite.hint" .Mail .Hours}}</p>
+  {{else}}<p class="hint" data-e2e="user-text-invite-reason">{{t .Reason}}{{if .Kinds}} ({{join .Kinds ", "}}){{end}}</p>{{end}}
+  {{if .Tokens}}<table class="table" data-e2e="user-table-tokens">
+    <thead><tr><th>{{t "tokens.purpose"}}</th><th>{{t "tokens.issued"}}</th><th>{{t "tokens.expires"}}</th><th>{{t "tokens.state"}}</th><th><span class="sr">{{t "user.actions"}}</span></th></tr></thead>
+    <tbody>{{range .Tokens}}<tr data-e2e="user-row-token-{{.TokenID}}">
+      <td data-label="{{t "tokens.purpose"}}">{{t (print "tokens.purpose." .Purpose)}}</td>
+      <td data-label="{{t "tokens.issued"}}">{{time .IssuedAt}}{{with .IssuedBy}} <span class="muted small">{{.}}</span>{{end}}</td>
+      <td data-label="{{t "tokens.expires"}}">{{time .ExpiresAt}}</td>
+      <td data-label="{{t "tokens.state"}}"><span class="badge" data-e2e="user-badge-token-state">{{t (print "tokens.state." .State)}}</span></td>
+      <td>{{if .Open}}<form method="post" action="/admin/users/{{$g}}/tokens/revoke">{{template "csrf" $}}<input type="hidden" name="purpose" value="{{.Purpose}}"><button class="btn btn-small" type="submit" data-e2e="user-btn-revoke-{{.Purpose}}">{{t "tokens.revoke"}}</button></form>{{end}}</td>
+    </tr>{{end}}</tbody>
+  </table>{{end}}
+  {{end}}
 </section>
 </div>
 <section class="card" aria-labelledby="u-groups">

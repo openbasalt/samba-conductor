@@ -47,6 +47,11 @@
   {{if .D.KeyOptions}}<h3>{{t "keys.register_title"}}</h3>
   {{template "key-register" (dict "P" $ "Action" "/me/2fa/keys/register" "Options" .D.KeyOptions)}}{{end}}
 </section>{{end}}
+{{if .D.Recovery}}<section class="card" aria-labelledby="sec-recovery">
+  <h2 id="sec-recovery">{{t "recaddr.title"}}</h2>
+  <p class="hint">{{t "recaddr.intro"}}</p>
+  <div class="actions"><a class="btn" href="/me/recovery-email" data-e2e="security-link-recovery-email">{{t "recaddr.manage"}}</a></div>
+</section>{{end}}
 <section class="card" aria-labelledby="sec-sessions">
   <h2 id="sec-sessions">{{t "sessions.title"}}</h2>
   <table class="table" data-e2e="security-table-sessions">

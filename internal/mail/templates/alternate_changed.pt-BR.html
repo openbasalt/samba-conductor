@@ -1,0 +1,6 @@
+{{template "mail-top" .}}
+<h1 style="margin:0 0 16px 0;font-size:20px">{{t "mail.subject.alternate_changed" .OrgName}}</h1>
+<p style="margin:0 0 16px 0">O endereço de recuperação da sua conta em {{.OrgName}} foi alterado ou removido em {{.When}}{{if .From}}, a partir de {{.From}}{{end}}. As mensagens de redefinição de senha não vão mais para este endereço.</p>
+<p style="margin:0 0 16px 0">Usuário: <strong>{{.Username}}</strong></p>
+<p style="margin:0 0 16px 0">Se foi você, não é preciso fazer mais nada. Se não foi, procure o suporte imediatamente.</p>
+{{template "mail-bottom" .}}

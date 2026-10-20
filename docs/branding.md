@@ -153,6 +153,9 @@ Rules:
   partial for that response, with a warning in the log.
 - Admin pages always use the built-in partials.
 - The files are read at startup: restart conductor after a change.
+- The `mail/` directory holds overrides of the e-mail messages, with
+  rules of their own ([mail.md](mail.md#overrides)); `conductor templates
+  check` checks it too.
 
 The data a partial sees: `.Lang`, `.User` (`.Name`, `.SAM`, `.Roles`),
 `.Nav`, `.CSRF`, `.Path`, `.Query`, `.Version`, `.D` (the page's own data;

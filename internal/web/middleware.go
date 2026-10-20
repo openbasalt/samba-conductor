@@ -28,6 +28,10 @@ type route struct {
 	script bool
 	// maxBody overrides the request body limit (CSV uploads).
 	maxBody int64
+	// anonymous: a public page that never uses a signed-in session (the
+	// link and reset pages), so it looks and behaves the same for
+	// everyone.
+	anonymous bool
 }
 
 // reqCtx carries one request through a handler.
@@ -45,6 +49,9 @@ type reqCtx struct {
 	actorHint string
 	// nonce of the page's script (script routes only).
 	nonce string
+	// link is the link record of a PermLink page (its transient session
+	// is rc.sess).
+	link *linkRecord
 }
 
 func (rc *reqCtx) ctx() context.Context { return rc.r.Context() }
@@ -132,6 +139,16 @@ func (s *Server) isTrusted(a netip.Addr) bool {
 	return false
 }
 
+// loggedPath is the request path as it may appear in logs and in the audit
+// log: a route that carries a secret in its path (the invitation and reset
+// links) is recorded by its pattern, never with the token itself.
+func loggedPath(rt route, r *http.Request) string {
+	if strings.Contains(rt.pattern, "{token}") {
+		return rt.pattern
+	}
+	return r.URL.Path
+}
+
 // wrap applies the common pipeline and the route's guard.
 func (s *Server) wrap(rt route) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -148,17 +165,32 @@ func (s *Server) wrap(rt route) http.Handler {
 			w.Header().Set("Content-Security-Policy", cspWithScript(rc.nonce))
 		}
 		s.prefs(rc)
-		if c, err := r.Cookie(sessionCookie); err == nil {
-			rc.sess = s.sess.get(r.Context(), c.Value)
+		switch {
+		case rt.perm == PermLink:
+			// The link pages know only their link record; its transient
+			// session carries the CSRF token and the second-factor state.
+			if c, err := r.Cookie(linkCookie); err == nil {
+				if rc.link = s.links.get(c.Value, s.now()); rc.link != nil {
+					rc.sess = rc.link.sess
+				}
+			}
+		case rt.anonymous:
+		default:
+			if c, err := r.Cookie(sessionCookie); err == nil {
+				rc.sess = s.sess.get(r.Context(), c.Value)
+			}
 		}
 		defer func() {
 			if v := recover(); v != nil {
-				s.log.Error("handler panic", "path", r.URL.Path, "panic", v)
+				s.log.Error("handler panic", "path", loggedPath(rt, r), "panic", v)
 				rc.errorPage(http.StatusInternalServerError, "err.internal")
 			}
 		}()
-		if r.Method == http.MethodPost && !s.checkCSRF(rc) {
-			s.audit(r.Context(), rc, "security.csrf_rejected", r.URL.Path, "", "denied")
+		// A link page without its record changes nothing: the guard shows
+		// the neutral page instead of a CSRF error.
+		orphanLink := rt.perm == PermLink && rc.link == nil
+		if r.Method == http.MethodPost && !orphanLink && !s.checkCSRF(rc) {
+			s.audit(r.Context(), rc, "security.csrf_rejected", loggedPath(rt, r), "", "denied")
 			rc.errorPage(http.StatusForbidden, "err.csrf")
 			return
 		}
@@ -243,6 +275,14 @@ func (s *Server) guard(rc *reqCtx) bool {
 	rt := rc.route
 	switch rt.perm {
 	case PermPublic:
+		return true
+	case PermLink:
+		if rc.link == nil {
+			// No record (expired, finished or never started): the same
+			// neutral page as an invalid link.
+			s.linkInvalid(rc)
+			return false
+		}
 		return true
 	case PermPreAuth:
 		if rc.sess == nil || !slices.Contains(rt.stages, rc.sess.snapshotStage()) {

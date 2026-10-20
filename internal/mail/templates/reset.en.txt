@@ -1,0 +1,12 @@
+{{.OrgName}}
+
+A password reset was requested for your account at {{.OrgName}}.
+
+Username: {{.Username}}
+
+To choose a new password, open the address below. The link is valid for {{.ExpiresIn}} (until {{.ExpiresAt}}) and works once.
+
+{{.Link}}
+
+If you did not ask for this, ignore this message: your password does not change.
+{{template "text-bottom" .}}

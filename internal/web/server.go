@@ -27,6 +27,7 @@ import (
 	"github.com/openbasalt/samba-conductor/internal/config"
 	"github.com/openbasalt/samba-conductor/internal/directory"
 	"github.com/openbasalt/samba-conductor/internal/i18n"
+	"github.com/openbasalt/samba-conductor/internal/mail"
 	"github.com/openbasalt/samba-conductor/internal/ratelimit"
 	"github.com/openbasalt/samba-conductor/internal/secret"
 	"github.com/openbasalt/samba-conductor/internal/store"
@@ -61,9 +62,15 @@ type Deps struct {
 	// Files reaches the conductor-files agents (nil when [files] is off).
 	Files FilesClient
 	// IDP is conductor-idp's management API (nil when [idp] is off).
-	IDP     IDPClient
-	Logger  *slog.Logger
-	Version string
+	IDP IDPClient
+	// Mail is the outgoing e-mail queue (nil when [mail] is off); its
+	// worker runs apart (serve starts it).
+	Mail *mail.Queue
+	// Provisioner is conductor-provisioner's API (nil when [provisioner]
+	// is off): invitations and password resets by e-mail.
+	Provisioner ProvisionerClient
+	Logger      *slog.Logger
+	Version     string
 }
 
 // Server serves the web interface.
@@ -91,6 +98,9 @@ type Server struct {
 	identify func(ctx context.Context, c *directory.Credential, sam string) (directory.Identity, []sid.SID, error)
 	// groupsOf recomputes a session's group SIDs (role re-check).
 	groupsOf func(ctx context.Context, s *Session) ([]sid.SID, error)
+	// sidOfUser reads a user's SID by DN (an invited account just
+	// created). Replaced in tests.
+	sidOfUser func(ctx context.Context, rc *reqCtx, dn string) (string, error)
 
 	mux    *http.ServeMux
 	routes []route
@@ -136,6 +146,26 @@ type Server struct {
 	customCSS   []byte
 	customTag   string
 	allowed     []string
+
+	// mailq is the e-mail queue (nil when [mail] is off); mailr renders
+	// the message templates; mailTestLimit bounds the test messages of
+	// each administrator.
+	mailq         *mail.Queue
+	mailr         *mail.Renderer
+	mailTestLimit *ratelimit.Bucket
+
+	// prov is conductor-provisioner's API (nil when [provisioner] is off);
+	// links are the records of the public link pages in progress.
+	prov  ProvisionerClient
+	links linkStore
+	// Limits of the public pages: failed token checks per address, reset
+	// requests per address and per account (hour and day), verification
+	// codes of recovery addresses per user.
+	linkFails         *ratelimit.Failures
+	resetIPLimit      *ratelimit.Bucket
+	resetHourLimit    *ratelimit.Bucket
+	resetDayLimit     *ratelimit.Bucket
+	recoveryCodeLimit *ratelimit.Bucket
 }
 
 // New builds the server.
@@ -151,7 +181,7 @@ func New(d Deps) (*Server, error) {
 		return nil, err
 	}
 	s := &Server{cfg: d.Config, store: d.Store, backend: d.Backend, box: d.MFABox, helper: d.Helper, log: d.Logger,
-		cat: cat, version: d.Version, now: time.Now, sync: d.Sync, files: d.Files, idp: d.IDP}
+		cat: cat, version: d.Version, now: time.Now, sync: d.Sync, files: d.Files, idp: d.IDP, mailq: d.Mail, prov: d.Provisioner}
 	for _, p := range d.Config.Server.TrustedProxies {
 		pre, err := netip.ParsePrefix(p)
 		if err != nil {
@@ -176,6 +206,7 @@ func New(d Deps) (*Server, error) {
 		idle: d.Config.IdleTimeout(), abs: d.Config.AbsoluteTimeout()}
 	s.identify = s.identifyAD
 	s.groupsOf = s.groupsOfAD
+	s.sidOfUser = s.sidOfUserAD
 	if s.wa, err = newWebAuthn(d.Config); err != nil {
 		return nil, fmt.Errorf("web: webauthn: %w", err)
 	}
@@ -202,6 +233,16 @@ func New(d Deps) (*Server, error) {
 			}
 		}
 	}
+	if err := s.loadMailTemplates(); err != nil {
+		return nil, err
+	}
+	s.mailTestLimit = ratelimit.NewBucket(mailTestsPerHour, time.Hour)
+	s.links = linkStore{byHash: map[string]*linkRecord{}}
+	s.linkFails = ratelimit.NewFailures(linkFailuresPerHour, time.Hour)
+	s.resetIPLimit = ratelimit.NewBucket(resetsPerAddress, resetAddressWindow)
+	s.resetHourLimit = ratelimit.NewBucket(resetsPerAccountHour, time.Hour)
+	s.resetDayLimit = ratelimit.NewBucket(resetsPerAccountDay, 24*time.Hour)
+	s.recoveryCodeLimit = ratelimit.NewBucket(recoveryCodesPerHour, time.Hour)
 	lctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	s.loadBranding(lctx)
 	cancel()
@@ -263,6 +304,8 @@ func (s *Server) Start(ctx context.Context) error {
 				return
 			case <-t.C:
 				s.sess.sweep(context.Background())
+				s.links.sweep(s.now())
+				s.sweepInvites(ctx)
 			}
 		}
 	}()

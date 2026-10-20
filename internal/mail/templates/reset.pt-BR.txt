@@ -1,0 +1,12 @@
+{{.OrgName}}
+
+Foi pedida a redefinição da senha da sua conta em {{.OrgName}}.
+
+Usuário: {{.Username}}
+
+Para escolher uma nova senha, abra o endereço abaixo. O link vale por {{.ExpiresIn}} (até {{.ExpiresAt}}) e funciona uma única vez.
+
+{{.Link}}
+
+Se você não fez esse pedido, ignore esta mensagem: sua senha não muda.
+{{template "text-bottom" .}}
