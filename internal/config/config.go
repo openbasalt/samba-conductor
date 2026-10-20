@@ -55,8 +55,8 @@ type Config struct {
 }
 
 // Provisioner connects conductor with conductor-provisioner, the local
-// service that holds the delegated AD account for invitations and
-// password resets by e-mail. Off by default.
+// service that holds the delegated AD account for invitations, password
+// resets by e-mail and the Google-first plans. Off by default.
 type Provisioner struct {
 	Enabled bool   `toml:"enabled"`
 	Socket  string `toml:"socket"`
