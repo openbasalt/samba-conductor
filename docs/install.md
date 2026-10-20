@@ -32,7 +32,7 @@ database); it reaches AD over LDAPS and Kerberos like any client.
 ## 0. Install the package
 
 Install from the OpenBasalt APT repository (Debian 13, Ubuntu 24.04 and
-26.04, amd64). Check that the key's fingerprint is
+26.04, amd64 and arm64). Check that the key's fingerprint is
 `3601 7348 42BD 4E48 2D19  DE4A E4EE D5EC A395 B302` (OpenBasalt release
 key) before installing it; stop if it differs.
 
@@ -49,9 +49,10 @@ sudo apt install conductor
 ```
 
 The same repository carries every Samba Conductor package (`conductor`,
-`conductor-idp`, `conductor-sync`, `conductor-backup`, `conductor-files`).
+`conductor-idp`, `conductor-sync`, `conductor-backup`, `conductor-provisioner`,
+`conductor-files`).
 A release `.deb` can also be installed directly
-(`sudo apt install ./conductor_<version>_amd64.deb`) after checking it against
+(`sudo apt install ./conductor_<version>_<arch>.deb`, `amd64` or `arm64`) after checking it against
 the release's signed `SHA256SUMS`.
 
 The package contains `conductor` and `conductor-helper` (`/usr/bin`), their
