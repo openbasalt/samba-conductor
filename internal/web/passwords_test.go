@@ -1058,3 +1058,59 @@ func TestLinkStoreEvicts(t *testing.T) {
 		t.Fatalf("eviction: %d", len(m.byHash))
 	}
 }
+
+// A link POST that fails the CSRF check is audited by its route pattern:
+// the token, still valid, never reaches the audit log.
+func TestLinkCSRFRejectionKeepsTokenOutOfAudit(t *testing.T) {
+	h := newPWHarness(t)
+	link := h.invite(t)
+	b := h.browser()
+	r := b.do("POST", link+"/start", url.Values{"csrf": {"wrong"}})
+	if r.StatusCode != http.StatusForbidden {
+		t.Fatalf("start with a bad CSRF token: %d", r.StatusCode)
+	}
+	token := strings.TrimPrefix(link, "/link/")
+	evs, _, err := h.st.ListAudit(context.Background(), store.AuditFilter{Action: "security.csrf_rejected"}, 0, 100)
+	if err != nil || len(evs) == 0 {
+		t.Fatalf("CSRF rejection not audited: %v", err)
+	}
+	for _, e := range evs {
+		if strings.Contains(e.Target, token) || strings.Contains(e.Detail, token) {
+			t.Fatalf("token in the audit log: %+v", e)
+		}
+	}
+	// The token was not consumed.
+	if r := b.do("POST", link+"/start", nil); r.StatusCode != http.StatusSeeOther {
+		t.Fatalf("start after the rejection: %d", r.StatusCode)
+	}
+}
+
+// An invitation of an account that has a second factor already asks for it
+// before the password, like a reset.
+func TestInvitationOfAccountWithSecondFactor(t *testing.T) {
+	h := newPWHarness(t)
+	secret := []byte("12345678901234567890")
+	sealed, err := h.s.box.Seal(secret, []byte(inviteeSID))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := h.st.EnrollTOTP(context.Background(), store.TOTPRecord{UserSID: inviteeSID, Username: "new.person", Secret: sealed}, nil); err != nil {
+		t.Fatal(err)
+	}
+	link := h.invite(t)
+	b := h.browser()
+	if r := b.do("POST", link+"/start", nil); r.Header.Get("Location") != "/link/2fa" {
+		t.Fatalf("start: %q", r.Header.Get("Location"))
+	}
+	if r := b.do("POST", "/link/password", url.Values{"new": {"N3w-pass!"}, "confirm": {"N3w-pass!"}}); r.Header.Get("Location") != "/link/2fa" || h.prov.set[inviteeSID] {
+		t.Fatal("password before the second factor")
+	}
+	h.now = h.now.Add(totp.Period)
+	if r := b.do("POST", "/link/2fa", url.Values{"code": {totp.Code(secret, totp.Step(h.now))}}); r.Header.Get("Location") != "/link/password" {
+		t.Fatalf("right code: %d %q", r.StatusCode, r.Header.Get("Location"))
+	}
+	r := b.do("POST", "/link/password", url.Values{"new": {"N3w-pass!"}, "confirm": {"N3w-pass!"}})
+	if r.Header.Get("Location") != "/link/done" || !h.prov.set[inviteeSID] || !h.prov.users[inviteeSID].Enabled {
+		t.Fatalf("password: %d %q", r.StatusCode, r.Header.Get("Location"))
+	}
+}

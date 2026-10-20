@@ -28,6 +28,12 @@ asks for it.
    socket = "/run/conductor-provisioner/api.sock"
    ```
 
+   List the SIDs of conductor's role groups (`[roles]`: administrators,
+   helpdesk, auditors) in conductor-provisioner's `extra_group_sids`.
+   conductor-provisioner treats the built-in administrative groups as
+   privileged on its own, but it knows conductor's role groups only from
+   that list: without it, a member of a custom helpdesk or auditor group
+   could be invited or reset by e-mail.
 3. `server.public_url`: the links in the messages are built from it, never
    from a request's Host header.
 

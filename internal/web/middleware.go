@@ -139,6 +139,16 @@ func (s *Server) isTrusted(a netip.Addr) bool {
 	return false
 }
 
+// loggedPath is the request path as it may appear in logs and in the audit
+// log: a route that carries a secret in its path (the invitation and reset
+// links) is recorded by its pattern, never with the token itself.
+func loggedPath(rt route, r *http.Request) string {
+	if strings.Contains(rt.pattern, "{token}") {
+		return rt.pattern
+	}
+	return r.URL.Path
+}
+
 // wrap applies the common pipeline and the route's guard.
 func (s *Server) wrap(rt route) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -172,7 +182,7 @@ func (s *Server) wrap(rt route) http.Handler {
 		}
 		defer func() {
 			if v := recover(); v != nil {
-				s.log.Error("handler panic", "path", r.URL.Path, "panic", v)
+				s.log.Error("handler panic", "path", loggedPath(rt, r), "panic", v)
 				rc.errorPage(http.StatusInternalServerError, "err.internal")
 			}
 		}()
@@ -180,7 +190,7 @@ func (s *Server) wrap(rt route) http.Handler {
 		// the neutral page instead of a CSRF error.
 		orphanLink := rt.perm == PermLink && rc.link == nil
 		if r.Method == http.MethodPost && !orphanLink && !s.checkCSRF(rc) {
-			s.audit(r.Context(), rc, "security.csrf_rejected", r.URL.Path, "", "denied")
+			s.audit(r.Context(), rc, "security.csrf_rejected", loggedPath(rt, r), "", "denied")
 			rc.errorPage(http.StatusForbidden, "err.csrf")
 			return
 		}

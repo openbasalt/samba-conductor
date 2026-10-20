@@ -234,10 +234,18 @@ func (s *Server) handleConfirm(rc *reqCtx) {
 			return
 		}
 	}
-	// Single use: remove before applying.
+	// Single use: take it out before applying. A concurrent confirmation of
+	// the same operation that got here first wins; this one changes nothing.
 	rc.sess.mu.Lock()
-	delete(rc.sess.pending, p.id)
+	taken := rc.sess.pending[p.id] == p
+	if taken {
+		delete(rc.sess.pending, p.id)
+	}
 	rc.sess.mu.Unlock()
+	if !taken {
+		rc.errorPage(http.StatusNotFound, "confirm.err.gone")
+		return
+	}
 	var err error
 	var perDC []ad.DCResult
 	if p.op != nil && len(p.op.DCs()) > 0 {

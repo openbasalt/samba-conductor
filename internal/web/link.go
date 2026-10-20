@@ -60,7 +60,7 @@ type linkRecord struct {
 	sess *Session
 
 	mu          sync.Mutex
-	needMFA     bool // a reset of a user with a second factor
+	needMFA     bool // the account has a second factor: checked before the password
 	mfaOK       bool
 	mfaFailures int
 	passwordSet bool
@@ -263,6 +263,12 @@ func (s *Server) handleLinkStart(rc *reqCtx) {
 			rec.passwordSet = true
 			next = ""
 		}
+		// An invitation of an account that has a second factor already
+		// (an existing account) asks for it first, as a reset does: the
+		// link alone must not replace the password of a protected account.
+		if rec.needMFA = s.hasSecondFactor(ctx, res.SID); rec.needMFA {
+			next = "/link/2fa"
+		}
 	}
 	s.links.put(rec)
 	setCookie(rc.w, linkCookie, cookie, int(linkTTL/time.Second))
@@ -395,6 +401,11 @@ func (s *Server) linkMFA(rc *reqCtx, verify func(ctx context.Context) (bool, str
 		rec.mfaOK = true
 		rec.mu.Unlock()
 		s.audit(ctx, rc, "reset.mfa", rec.sam, how, store.ResultOK)
+		if rec.passwordSet {
+			// An invitation whose password is set already: what is left.
+			s.linkAfterPassword(ctx, rc)
+			return
+		}
 		rc.redirect("/link/password")
 		return
 	}
@@ -407,7 +418,7 @@ func (s *Server) linkMFA(rc *reqCtx, verify func(ctx context.Context) (bool, str
 	if n >= maxLinkMFAFailures || how == "blocked" {
 		var rr provapi.TokenRevokeResult
 		err := s.provCall(ctx, publicActor(rec.id, rc.ip), provapi.OpTokenRevoke,
-			&provapi.TokenRevokeParams{SID: rec.sid, Purpose: provapi.PurposeReset, Reason: "mfa-failed"}, &rr)
+			&provapi.TokenRevokeParams{SID: rec.sid, Purpose: rec.purpose, Reason: "mfa-failed"}, &rr)
 		result := store.ResultOK
 		if err != nil {
 			result = store.ResultFailed
@@ -512,6 +523,10 @@ func (s *Server) handleLinkPassword(rc *reqCtx) {
 		return
 	}
 	s.audit(ctx, rc, "invite.password_set", rec.sam, "token "+rec.tokenID, store.ResultOK)
+	// An existing account's conductor sessions end with its old password.
+	if n := s.sess.destroyUser(ctx, rec.sid); n > 0 {
+		s.audit(ctx, rc, "signout.everywhere", rec.sam, "after a password set by invitation: "+itoa(n)+" session(s)", store.ResultOK)
+	}
 	s.linkAfterPassword(ctx, rc)
 }
 
