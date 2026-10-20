@@ -215,14 +215,16 @@ is set.
 
 ## `[provisioner]`
 
-conductor-provisioner, the local service behind invitations and password
-resets by e-mail ([passwords.md](passwords.md)). Both features also need
-`[mail]` and `server.public_url`; their settings are edited in Settings >
-Passwords.
+conductor-provisioner, the local service behind invitations, password
+resets by e-mail ([passwords.md](passwords.md)) and the Google-first mode,
+which applies its plans through it ([google-first.md](google-first.md)).
+Invitations and resets also need `[mail]` and `server.public_url`; their
+settings are edited in Settings > Passwords. The Google-first mode also
+needs `[sync]`.
 
 | Key | Default | Meaning |
 |---|---|---|
-| `enabled` | `false` | Use conductor-provisioner: the invitation section of the user pages, the creation of invited accounts, the public reset form and the link pages. |
+| `enabled` | `false` | Use conductor-provisioner: the invitation section of the user pages, the creation of invited accounts, the public reset form and the link pages, and applying Google-first plans. |
 | `socket` | `"/run/conductor-provisioner/api.sock"` | The API socket (owner conductor-provisioner, group conductor, 0660; conductor-provisioner admits only the users it is configured for, SO_PEERCRED). |
 
 ## Files
