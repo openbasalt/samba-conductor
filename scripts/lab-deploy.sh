@@ -38,7 +38,7 @@ version="$1" snap="${2:-}"
 mkdir -p ~/conductor-build
 (cd ~/samba-conductor && planning/scripts/family-gowork.sh -o ~/conductor-build/go.work \
   ad conductor conductor-backup conductor-sync conductor-files conductor-idp conductor-provisioner)
-export GOWORK="$HOME/conductor-build/go.work" GOTOOLCHAIN=go1.27.2 CGO_ENABLED=0
+export GOWORK="$HOME/conductor-build/go.work" GOTOOLCHAIN=go1.27.3 CGO_ENABLED=0
 cd ~/samba-conductor/conductor
 go build -trimpath -ldflags "-s -w -X main.version=$version" -o ~/conductor-build/conductor ./cmd/conductor
 go build -trimpath -ldflags "-s -w -X main.version=$version" -o ~/conductor-build/conductor-helper ./cmd/conductor-helper
