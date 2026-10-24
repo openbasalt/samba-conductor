@@ -8,8 +8,9 @@ repositories: [samba-conductor-docs](https://github.com/openbasalt/samba-conduct
 
 Container images: `docker.io/openbasalt/samba-conductor` and `samba-conductor-dc` (the DC, in preview), tags `0.2.0` and `latest`, also on `ghcr.io/openbasalt` with the same digests, see [containers.md](https://github.com/openbasalt/samba-conductor-docs/blob/main/containers.md).
 
-Status: 0.2.0 released (signed GitHub release `v0.2.0`, packages `0.2.0-1`
-in the APT `stable` suite and in basalt-tools, container images above). 0.2.0
+Status: 0.2.1 released (signed GitHub release `v0.2.1`, packages `0.2.1-1`
+in the APT `stable` suite and in basalt-tools), a security update of 0.2.0
+built with Go 1.27.3; the container images above still carry 0.2.0. 0.2.0
 adds e-mail, invitations and password reset by e-mail through
 [conductor-provisioner](https://github.com/openbasalt/samba-conductor-provisioner),
 and the Google-first mode. Users, groups, OUs, computers,
