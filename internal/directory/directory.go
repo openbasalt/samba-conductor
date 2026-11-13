@@ -201,8 +201,22 @@ type Identity struct {
 	UPN         string
 }
 
-// Whoami reads the signed-in user's own entry.
+// ErrIdentityMismatch: the connection is bound as an account other than the
+// one that signed in.
+var ErrIdentityMismatch = errors.New("directory: the domain controller bound a different account")
+
+// Whoami reads the signed-in user's own entry. conn must be bound with the
+// user's credential: the DC's WhoAmI answer has to name sam, so the
+// identity (and with it roles and the second factor) comes from the account
+// the directory authenticated, never from typed input alone.
 func Whoami(ctx context.Context, conn *ad.Conn, sam string) (Identity, error) {
+	bound, err := conn.BoundAccount(ctx)
+	if err != nil {
+		return Identity{}, err
+	}
+	if !strings.EqualFold(bound, sam) {
+		return Identity{}, fmt.Errorf("%w: signed in as %q, bound as %q", ErrIdentityMismatch, sam, bound)
+	}
 	u, err := conn.FindUser(ctx, sam)
 	if err != nil {
 		return Identity{}, err

@@ -149,7 +149,11 @@ func (s *Server) handleSignin(rc *reqCtx) {
 	if err != nil {
 		cred.Close()
 		s.log.Error("identify after sign-in failed", "user", sam, "err", err)
-		s.audit(ctx, rc, "signin.failure", sam, "directory lookup failed", store.ResultFailed)
+		detail := "directory lookup failed"
+		if errors.Is(err, directory.ErrIdentityMismatch) {
+			detail = "identity mismatch"
+		}
+		s.audit(ctx, rc, "signin.failure", sam, detail, store.ResultFailed)
 		s.signinError(rc, http.StatusBadGateway, "err.directory", typed, enroll)
 		return
 	}
