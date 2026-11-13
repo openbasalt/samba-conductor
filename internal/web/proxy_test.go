@@ -1,12 +1,16 @@
 package web
 
 import (
+	"context"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"strings"
 	"testing"
 
 	"github.com/openbasalt/samba-conductor/internal/config"
+	"github.com/openbasalt/samba-conductor/internal/store"
 )
 
 // behindProxy configures the harness like a loopback listener behind a
@@ -83,6 +87,66 @@ func TestRateLimitPerClientBehindProxy(t *testing.T) {
 	}
 	if from("203.0.113.6") != http.StatusOK {
 		t.Fatal("second client shares the first client's bucket")
+	}
+}
+
+// A proxy that adds its own X-Forwarded-For line (instead of extending the
+// client's) must not let the client's line decide the address.
+func TestClientIPMultipleForwardedLines(t *testing.T) {
+	h := newHarness(t, behindProxy("127.0.0.1/32"))
+	r := httptest.NewRequest("GET", "https://"+testHost+"/signin", nil)
+	r.RemoteAddr = "127.0.0.1:50000"
+	r.Header.Add("X-Forwarded-For", "198.51.100.7")
+	r.Header.Add("X-Forwarded-For", "203.0.113.5")
+	if got := h.s.clientIP(r); got != "203.0.113.5" {
+		t.Fatalf("clientIP = %q, want the proxy's entry", got)
+	}
+	r.Header.Del("X-Forwarded-For")
+	r.Header.Add("X-Forwarded-For", "198.51.100.7, 192.0.2.1")
+	r.Header.Add("X-Forwarded-For", "203.0.113.5, 127.0.0.1")
+	if got := h.s.clientIP(r); got != "203.0.113.5" {
+		t.Fatalf("clientIP over a proxy chain = %q", got)
+	}
+}
+
+// The sign-in limit per address groups an IPv6 client by its /64 (a new
+// address of the same /64 gets no new budget) and keeps IPv4 per address;
+// the audit log records the full address.
+func TestSigninRateLimitIPv6Prefix(t *testing.T) {
+	h := newHarness(t, func(c *config.Config) { c.RateLimit.PerIPPerMinute = 2 })
+	signinFrom := func(remote string) int {
+		from := func(r *http.Request) { r.RemoteAddr = remote }
+		w := h.do("GET", "/signin", "", nil, from)
+		var pre string
+		for _, c := range w.Result().Cookies() {
+			if c.Name == preCookie {
+				pre = c.Value
+			}
+		}
+		form := url.Values{"csrf": {pre}, "username": {"nobody"}, "password": {"wrong"}}
+		return h.do("POST", "/signin", "", form, from, func(r *http.Request) {
+			r.AddCookie(&http.Cookie{Name: preCookie, Value: pre})
+		}).Code
+	}
+	for i := range 2 {
+		if c := signinFrom(fmt.Sprintf("[2001:db8:1:2::%x]:40000", i+1)); c == http.StatusTooManyRequests {
+			t.Fatalf("attempt %d limited too early", i)
+		}
+	}
+	if c := signinFrom("[2001:db8:1:2:ffff::9]:40000"); c != http.StatusTooManyRequests {
+		t.Fatalf("another address of the same /64 got a new budget: %d", c)
+	}
+	if c := signinFrom("[2001:db8:1:3::1]:40000"); c == http.StatusTooManyRequests {
+		t.Fatal("another /64 shares the bucket")
+	}
+	for _, ip := range []string{"192.0.2.21", "192.0.2.22"} {
+		if c := signinFrom(ip + ":40000"); c == http.StatusTooManyRequests {
+			t.Fatalf("IPv4 %s limited by another address", ip)
+		}
+	}
+	evs, _, _ := h.st.ListAudit(context.Background(), store.AuditFilter{Action: "signin.rate_limited"}, 0, 10)
+	if len(evs) == 0 || evs[0].IP != "2001:db8:1:2:ffff::9" {
+		t.Fatalf("rate limit audit does not keep the full address: %+v", evs)
 	}
 }
 

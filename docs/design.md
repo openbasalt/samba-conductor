@@ -31,7 +31,11 @@ and the AD access layer in the
   failures in 15 minutes) apply to sign-in, second factor and password
   forms. The per-account limit sits below the domain lockout threshold,
   so conductor stops before AD locks the account. Both are in memory
-  (one instance per host).
+  (one instance per host). An IPv6 client is limited by its /64 network,
+  an IPv4 client by its address; the audit log keeps the full address.
+  The limiters are bounded in memory and prune idle entries; when a table
+  is full of live entries they never drop one, and keys they cannot track
+  share a single limit until it drains.
 
 ## Second factor
 

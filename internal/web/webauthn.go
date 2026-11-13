@@ -275,7 +275,7 @@ func (s *Server) ensureRecoveryCodes(ctx context.Context, userSID string) ([]str
 func (s *Server) handleMFAKey(rc *reqCtx) {
 	ctx := rc.ctx()
 	sess := rc.sess
-	if !s.ipLimit.Allow("2fa:"+rc.ip) || s.mfaFails.Blocked(sess.sam) {
+	if !s.ipLimit.Allow("2fa:"+rc.limitIP()) || s.mfaFails.Blocked(sess.sam) {
 		rc.render(http.StatusTooManyRequests, "signin_2fa", s.mfaPageData(rc, rc.T("signin.err.rate_ip")))
 		return
 	}
@@ -313,7 +313,7 @@ func (s *Server) handleEnrollKey(rc *reqCtx) {
 		d["Error"] = rc.T(key)
 		rc.render(status, "enroll", d)
 	}
-	if !s.ipLimit.Allow("2fa:" + rc.ip) {
+	if !s.ipLimit.Allow("2fa:" + rc.limitIP()) {
 		fail(http.StatusTooManyRequests, "signin.err.rate_ip")
 		return
 	}
@@ -395,7 +395,7 @@ func (s *Server) handleKeyRegister(rc *reqCtx) {
 		rc.errorPage(http.StatusForbidden, "err.forbidden")
 		return
 	}
-	if !s.ipLimit.Allow("2fa:" + rc.ip) {
+	if !s.ipLimit.Allow("2fa:" + rc.limitIP()) {
 		rc.flashErr("signin.err.rate_ip")
 		rc.redirect("/me/security")
 		return
