@@ -161,7 +161,7 @@ func (s *Server) handleMePassword(rc *reqCtx) {
 	fail := func(status int, key string) {
 		rc.render(status, "me_password", map[string]any{"Error": rc.T(key)})
 	}
-	if !s.ipLimit.Allow("password:"+rc.ip) || s.accountFails.Blocked(sam) {
+	if !s.ipLimit.Allow("password:"+rc.limitIP()) || s.accountFails.Blocked(sam) {
 		fail(http.StatusTooManyRequests, "signin.err.rate_account")
 		return
 	}
@@ -273,7 +273,7 @@ func (s *Server) handleSelfEnroll(rc *reqCtx) {
 		rc.errorPage(http.StatusForbidden, "err.forbidden")
 		return
 	}
-	if !s.ipLimit.Allow("2fa:"+rc.ip) || s.mfaFails.Blocked(rc.sess.sam) {
+	if !s.ipLimit.Allow("2fa:"+rc.limitIP()) || s.mfaFails.Blocked(rc.sess.sam) {
 		d := s.enrollData(rc, "/me/2fa/qr.png", "/me/2fa/enroll")
 		d["Error"] = rc.T("signin.err.rate_account")
 		rc.render(http.StatusTooManyRequests, "enroll", d)

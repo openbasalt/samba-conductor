@@ -54,7 +54,7 @@ func (s *Server) handleReset(rc *reqCtx) {
 	rc.actorHint = provapi.PublicUser
 	typed := rc.form("identifier")
 	hash := identifierHash(typed)
-	if !s.ipLimit.Allow("reset:"+rc.ip) || !s.resetIPLimit.Allow(rc.ip) {
+	if !s.ipLimit.Allow("reset:"+rc.limitIP()) || !s.resetIPLimit.Allow(rc.limitIP()) {
 		// The same page: nothing is queued.
 		s.audit(ctx, rc, "reset.refused", "id:"+hash, "per-address limit", store.ResultDenied)
 	} else {

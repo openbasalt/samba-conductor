@@ -12,7 +12,7 @@ any invalid value, so a typo never silently falls back to a default.
 | `listen` | `":8443"` | Address to listen on (ignored when systemd passes a socket). |
 | `tls_cert`, `tls_key` | none | Built-in TLS (TLS 1.2+). Both or neither. |
 | `behind_proxy` | `false` | Plain HTTP for a TLS reverse proxy on the same host. Only with a loopback `listen` address; never together with `tls_*`. Without TLS and without this, conductor refuses to start. |
-| `trusted_proxies` | `[]` | CIDRs of the reverse proxy, whose `X-Forwarded-For` is believed (rate limits and audit use the client address). Required with `behind_proxy` and refused without it; for a proxy on the same host, `["127.0.0.1/32", "::1/128"]`. Requests from any other address are attributed to their own address, whatever header they carry. |
+| `trusted_proxies` | `[]` | CIDRs of the reverse proxy, whose `X-Forwarded-For` is believed (rate limits and audit use the client address). Every `X-Forwarded-For` line is read, so the proxy may extend the client's header or add its own. Required with `behind_proxy` and refused without it; for a proxy on the same host, `["127.0.0.1/32", "::1/128"]`. Requests from any other address are attributed to their own address, whatever header they carry. |
 | `public_url` | none | The https URL users open (`https://host[:port]`, no path). Enrollment links issued from the web pages are built from it, never from the request's `Host` header. Default: the first WebAuthn origin when `webauthn.rp_id` is set; without either, the web pages issue no enrollment link. `conductor enroll-link` uses it when `--base-url` is not given. |
 
 conductor always sends HSTS and `__Host-` cookies, so the browser must reach
@@ -78,7 +78,7 @@ What each role may do on the P2 pages:
 
 | Key | Default | Meaning |
 |---|---|---|
-| `per_ip_per_minute` | `30` | Attempts per client address and minute on sign-in, 2FA and password forms. |
+| `per_ip_per_minute` | `30` | Attempts per client address and minute on sign-in, 2FA and password forms. An IPv6 client counts by its /64 network. |
 | `account_failures` | `5` | Failed attempts per account within the window before conductor stops trying (keep it below the domain's lockout threshold). |
 | `account_window_minutes` | `15` | Window of the per-account counter. |
 

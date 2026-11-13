@@ -136,7 +136,7 @@ func (s *Server) handleRecoveryEmailSet(rc *reqCtx) {
 		s.recoveryPage(ctx, rc, http.StatusBadRequest, "recaddr.err.address")
 		return
 	}
-	if !s.ipLimit.Allow("password:" + rc.ip) {
+	if !s.ipLimit.Allow("password:" + rc.limitIP()) {
 		s.recoveryPage(ctx, rc, http.StatusTooManyRequests, "signin.err.rate_ip")
 		return
 	}

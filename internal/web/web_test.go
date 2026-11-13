@@ -177,6 +177,20 @@ func (h *harness) csrfOf(tok string) string {
 	return s.csrf
 }
 
+// tamper returns the token with its first character replaced by a
+// different one, so the result never equals the original (a fixed
+// replacement character would match it whenever the token starts with it).
+func tamper(token string) string {
+	if token == "" {
+		return "x"
+	}
+	first := byte('x')
+	if token[0] == first {
+		first = 'y'
+	}
+	return string(first) + token[1:]
+}
+
 type reqOpt func(*http.Request)
 
 func withHeader(k, v string) reqOpt { return func(r *http.Request) { r.Header.Set(k, v) } }
@@ -370,7 +384,7 @@ func TestCSRF(t *testing.T) {
 		opts []reqOpt
 	}{
 		{"no token", url.Values{"csrf": {""}}, nil},
-		{"wrong token", url.Values{"csrf": {"x" + h.csrfOf(tok)[1:]}}, nil},
+		{"wrong token", url.Values{"csrf": {tamper(h.csrfOf(tok))}}, nil},
 		{"cross-site fetch", nil, []reqOpt{withHeader("Sec-Fetch-Site", "cross-site")}},
 		{"foreign origin", nil, []reqOpt{withHeader("Origin", "https://evil.example")}},
 	}
