@@ -19,6 +19,14 @@ and the AD access layer in the
 - The password is used once for a Kerberos AS exchange through `ad`; the
   session keeps only the ticket, in memory. A restart of conductor means
   signing in again. No service account is used for anything a user does.
+- The sign-in completes only after that ticket binds LDAPS (GSSAPI, CA
+  pinned) to a DC, which a forged KDC answer cannot satisfy, and after the
+  DC's WhoAmI answer names the account that signed in. Roles and the second
+  factor are looked up for that confirmed account, never for typed input
+  alone; a mismatch fails the sign-in and is audited as
+  `identity mismatch`. Expired and must-change answers from the KDC are
+  unauthenticated too: they only open the change page, and `ad` confirms a
+  completed change with a verified sign-in before conductor reports it.
 - LDAP simple bind over TLS is an opt-in fallback
   (`simple_bind_fallback`) for when no KDC is reachable; the password is
   then kept sealed in memory under a per-process key for the session.
