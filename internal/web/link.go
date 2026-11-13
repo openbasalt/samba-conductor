@@ -176,7 +176,7 @@ func (s *Server) linkRefused(ctx context.Context, rc *reqCtx, target, detail str
 
 // linkLimited applies the per-address limits of the public link pages.
 func (s *Server) linkLimited(rc *reqCtx) bool {
-	return !s.ipLimit.Allow("link:"+rc.ip) || s.linkFails.Blocked(rc.ip)
+	return !s.ipLimit.Allow("link:"+rc.limitIP()) || s.linkFails.Blocked(rc.limitIP())
 }
 
 func linkTimeout(rc *reqCtx) (context.Context, context.CancelFunc) {
@@ -201,7 +201,7 @@ func (s *Server) handleLinkPage(rc *reqCtx) {
 	token := rc.r.PathValue("token")
 	res, err := s.linkCheck(ctx, publicActor("open-"+newToken()[:12], rc.ip), token)
 	if err != nil {
-		s.linkFails.Fail(rc.ip)
+		s.linkFails.Fail(rc.limitIP())
 		s.linkRefused(ctx, rc, res.SAM, "opened", err)
 		s.linkInvalid(rc)
 		return
@@ -224,7 +224,7 @@ func (s *Server) handleLinkStart(rc *reqCtx) {
 	id := newToken()[:16]
 	res, err := s.linkCheck(ctx, publicActor(id, rc.ip), token)
 	if err != nil {
-		s.linkFails.Fail(rc.ip)
+		s.linkFails.Fail(rc.limitIP())
 		s.linkRefused(ctx, rc, res.SAM, "start", err)
 		s.linkInvalid(rc)
 		return
@@ -387,7 +387,7 @@ func (s *Server) linkMFA(rc *reqCtx, verify func(ctx context.Context) (bool, str
 	ctx, cancel := linkTimeout(rc)
 	defer cancel()
 	rec := rc.link
-	if !s.ipLimit.Allow("2fa:" + rc.ip) {
+	if !s.ipLimit.Allow("2fa:" + rc.limitIP()) {
 		rc.render(http.StatusTooManyRequests, "link_2fa", s.linkMFAData(rc, "signin.err.rate_ip"))
 		return
 	}
@@ -462,7 +462,7 @@ func (s *Server) handleLinkPassword(rc *reqCtx) {
 	fail := func(status int, key string) {
 		rc.render(status, "link_password", map[string]any{"Purpose": rec.purpose, "SAM": rec.sam, "Error": rc.T(key)})
 	}
-	if !s.ipLimit.Allow("password:" + rc.ip) {
+	if !s.ipLimit.Allow("password:" + rc.limitIP()) {
 		fail(http.StatusTooManyRequests, "signin.err.rate_ip")
 		return
 	}
@@ -621,7 +621,7 @@ func (s *Server) handleLinkEnroll(rc *reqCtx) {
 	}
 	ctx, cancel := linkTimeout(rc)
 	defer cancel()
-	if !s.ipLimit.Allow("2fa:"+rc.ip) || s.mfaFails.Blocked(rc.link.sam) {
+	if !s.ipLimit.Allow("2fa:"+rc.limitIP()) || s.mfaFails.Blocked(rc.link.sam) {
 		rc.render(http.StatusTooManyRequests, "enroll", s.linkEnrollData(rc, "signin.err.rate_account"))
 		return
 	}
@@ -639,7 +639,7 @@ func (s *Server) handleLinkEnrollKey(rc *reqCtx) {
 	}
 	ctx, cancel := linkTimeout(rc)
 	defer cancel()
-	if !s.ipLimit.Allow("2fa:" + rc.ip) {
+	if !s.ipLimit.Allow("2fa:" + rc.limitIP()) {
 		rc.render(http.StatusTooManyRequests, "enroll", s.linkEnrollData(rc, "signin.err.rate_ip"))
 		return
 	}

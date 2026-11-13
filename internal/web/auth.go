@@ -124,7 +124,7 @@ func (s *Server) handleSignin(rc *reqCtx) {
 	password := rc.rawForm("password")
 	enroll := cleanLinkToken(rc.form("enroll"))
 	rc.actorHint = clipName(typed)
-	if !s.ipLimit.Allow("signin:" + rc.ip) {
+	if !s.ipLimit.Allow("signin:" + rc.limitIP()) {
 		s.audit(ctx, rc, "signin.rate_limited", rc.ip, "per-address limit", store.ResultDenied)
 		s.signinError(rc, http.StatusTooManyRequests, "signin.err.rate_ip", typed, enroll)
 		return
@@ -285,7 +285,7 @@ func (s *Server) handleExpiredPassword(rc *reqCtx) {
 	fail := func(status int, key string) {
 		rc.render(status, "signin_password", map[string]any{"Username": sam, "Error": rc.T(key)})
 	}
-	if !s.ipLimit.Allow("signin:" + rc.ip) {
+	if !s.ipLimit.Allow("signin:" + rc.limitIP()) {
 		fail(http.StatusTooManyRequests, "signin.err.rate_ip")
 		return
 	}
@@ -429,7 +429,7 @@ func (s *Server) handleMFA(rc *reqCtx) {
 	fail := func(status int, key string) {
 		rc.render(status, "signin_2fa", s.mfaPageData(rc, rc.T(key)))
 	}
-	if !s.ipLimit.Allow("2fa:" + rc.ip) {
+	if !s.ipLimit.Allow("2fa:" + rc.limitIP()) {
 		fail(http.StatusTooManyRequests, "signin.err.rate_ip")
 		return
 	}
@@ -625,7 +625,7 @@ func (s *Server) handleEnroll(rc *reqCtx) {
 		rc.render(http.StatusForbidden, "enroll", d)
 		return
 	}
-	if !s.ipLimit.Allow("2fa:" + rc.ip) {
+	if !s.ipLimit.Allow("2fa:" + rc.limitIP()) {
 		d := s.enrollPageData(rc)
 		d["Error"] = rc.T("signin.err.rate_ip")
 		rc.render(http.StatusTooManyRequests, "enroll", d)
