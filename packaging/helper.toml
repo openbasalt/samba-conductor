@@ -14,3 +14,11 @@ enabled = false
 # state_dir = "/var/lib/conductor-backup"
 # work_dir = "/tmp/conductor-backup"       # the helper's private /tmp (tmpfs)
 # conductor_db = "/var/lib/conductor/conductor.db"
+#
+# The least retention conductor may set from the web interface (defaults:
+# the default policy, 7 daily, 4 weekly, 12 monthly). Lowering it takes an
+# edit here as root.
+# [backup.retention_floor]
+# daily = 7
+# weekly = 4
+# monthly = 12

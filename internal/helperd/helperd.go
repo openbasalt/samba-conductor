@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"log/slog"
 	"net"
+	"net/netip"
 	"os"
 	"path/filepath"
 	"strings"
@@ -29,6 +30,7 @@ import (
 
 	"github.com/openbasalt/samba-conductor-ad/helper"
 	"github.com/openbasalt/samba-conductor-ad/sambatool"
+	"github.com/openbasalt/samba-conductor-ad/sid"
 )
 
 // Config of the helper.
@@ -283,7 +285,9 @@ func (s *Server) handle(ctx context.Context, c *net.UnixConn, expect peer) {
 	_ = c.SetDeadline(time.Now().Add(opTimeout(req.Op) + 30*time.Second))
 	start := time.Now()
 	resp := s.dispatch(ctx, who, req)
-	attrs := []any{"id", req.ID, "op", req.Op, "peer", who.String(), "caller_user", req.Caller.User, "caller_sid", req.Caller.SID,
+	// caller_* are what the peer asserts (see checkCaller); peer and
+	// peer_pid are proven by the socket.
+	attrs := []any{"id", req.ID, "op", req.Op, "peer", who.String(), "caller_asserted", true, "caller_user", req.Caller.User, "caller_sid", req.Caller.SID,
 		"caller_session", req.Caller.SessionID, "caller_ip", req.Caller.SourceIP, "peer_pid", pid,
 		"ok", resp.OK, "duration_ms", time.Since(start).Milliseconds()}
 	if resp.Error != nil {
@@ -305,6 +309,9 @@ func (s *Server) dispatch(ctx context.Context, who peer, req helper.Request) hel
 	}
 	if !enabled[who][req.Op] {
 		return helper.ErrorResponse(req.ID, helper.CodeNotAllowed, fmt.Sprintf("operation %q is not enabled for %s", req.Op, who))
+	}
+	if err := checkCaller(who, req); err != nil {
+		return helper.ErrorResponse(req.ID, helper.CodeBadRequest, err.Error())
 	}
 	select {
 	case s.sem <- struct{}{}:
@@ -370,6 +377,40 @@ func (s *Server) run(ctx context.Context, req helper.Request, params helper.Para
 		return helper.DCListResult{DCs: dns}, nil
 	}
 	return nil, fmt.Errorf("helperd: no handler for %q", req.Op)
+}
+
+// changingOps are the operations of the conductor peer that change state.
+var changingOps = map[helper.OpName]bool{helper.OpBackupTrigger: true, helper.OpBackupPolicySet: true}
+
+// checkCaller validates the caller a request names. The helper cannot
+// verify it (only the peer's UID is proven, by SO_PEERCRED): it is what
+// conductor asserts, logged as such. It must still be well formed (it goes
+// to the journal and to request files), and a change must name a domain
+// account, never a well-known or system identity such as conductor's
+// background poller: those only read.
+func checkCaller(who peer, req helper.Request) error {
+	c := req.Caller
+	bad := func(v string, n int) bool {
+		return len(v) > n || strings.ContainsFunc(v, func(r rune) bool { return r < 0x20 || r == 0x7f })
+	}
+	if bad(c.User, 256) || bad(c.SessionID, 64) || bad(c.SID, 184) || len(c.SourceIP) > 64 {
+		return errors.New("malformed caller")
+	}
+	if c.SourceIP != "" {
+		if _, err := netip.ParseAddr(c.SourceIP); err != nil {
+			return errors.New("malformed caller address")
+		}
+	}
+	if who == peerConductor && changingOps[req.Op] {
+		s, err := sid.Parse(c.SID)
+		if err != nil {
+			return errors.New("caller SID is invalid")
+		}
+		if _, ok := s.Domain(); !ok {
+			return errors.New("a change must name the domain account that asked for it")
+		}
+	}
+	return nil
 }
 
 func safeID(id string) string {
