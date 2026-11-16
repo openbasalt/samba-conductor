@@ -26,14 +26,18 @@ Run the web server (normally started by
 .TP
 .B setup
 First-run configuration, as root: pins the domain CA, resolves the role
-groups to SIDs, generates the TOTP key and writes
+groups to SIDs, generates the TOTP key (and the audit key when it is
+missing) and writes
 .IR /etc/conductor/conductor.toml .
 .TP
 .B enroll-link
-Issue a one-time second-factor enrollment link, as the conductor user.
+Issue a one-time second-factor enrollment link, as root (it reads the
+audit key, then runs as the owner of the database).
 .TP
 .B audit verify
-Check the audit log hash chain, as the conductor user.
+Check the audit log chain (keyed rows, the head anchor, and the plain
+hashes of rows from before the audit key), as root: it reads the audit
+key, then runs as the owner of the database.
 .TP
 .B audit export
 Write the audit log as JSON lines.
@@ -54,6 +58,10 @@ Configuration, written by
 .I /etc/conductor/credentials/totp-key
 Key that seals the TOTP secrets, passed to the service as a systemd
 credential. Keep an offline copy.
+.TP
+.I /etc/conductor/credentials/audit-key
+Key of the audit chain, passed to the service as a systemd credential and
+created by the package. Keep an offline copy.
 .TP
 .I /etc/conductor/tls/
 Web certificate and key.

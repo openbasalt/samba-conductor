@@ -16,6 +16,7 @@ in at least two places:
 | The DC's public signing key (`cbsig1:…`) | proves a manifest (and so the archive's SHA-256) was written by your DC, not by someone with write access to the bucket | `conductor-backup pubkey /etc/conductor-backup/credentials/signing-key` on the DC |
 | Bucket access: endpoint, bucket, prefix, read credentials, the CA of the endpoint | to download | your object storage |
 | conductor's TOTP key (`/etc/conductor/credentials/totp-key`) | 2FA enrollments in a restored conductor database are sealed with it | the conductor install |
+| conductor's audit key (`/etc/conductor/credentials/audit-key`) | the audit chain of a restored conductor database is keyed with it; `conductor audit verify` needs it | the conductor install |
 
 Consequences of losing them:
 
@@ -149,12 +150,13 @@ clean; the audit chain continuous.
    `/etc/conductor/conductor.toml` from
    `/var/lib/samba-restored/files/etc/conductor/conductor.toml` with its
    `[domain] preferred`/`dcs` (and `[webauthn] rp_id` if it named the old
-   DC) changed to the new DC, the TOTP key from where you keep it, then
+   DC) changed to the new DC, the TOTP key and the audit key from where
+   you keep them, then
    `conductor-backup restore … --with-conductor-state` (or copy
    `/var/lib/samba-restored/conductor/conductor.db` to
    `/var/lib/conductor/conductor.db`, owner `conductor`, mode 0600) and
-   start it. `conductor audit verify` must pass: the audit chain continues
-   from the backup.
+   start it. `sudo conductor audit verify` must pass: the audit chain
+   continues from the backup.
 8. Backups again: reinstall conductor-backup (README), with a new
    signing key (the old one was on the lost DC; the backup does not carry
    credentials). Add the new public key to the drill host's

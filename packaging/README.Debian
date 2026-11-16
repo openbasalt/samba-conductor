@@ -16,7 +16,7 @@ On the domain controller:
 managed by the package; /etc/conductor/helper.toml is a conffile.
 
 Upgrades restart the services that are running. "apt purge conductor"
-deletes /etc/conductor (including the TOTP key in credentials/) and
+deletes /etc/conductor (including the TOTP and audit keys in credentials/) and
 /var/lib/conductor (database and audit log): back them up first.
 
 Full guide: https://github.com/openbasalt/samba-conductor/blob/main/docs/install.md

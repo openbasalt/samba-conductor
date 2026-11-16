@@ -88,6 +88,20 @@ What each role may do on the P2 pages:
 |---|---|---|
 | `database` | `"/var/lib/conductor/conductor.db"` | SQLite database (sessions metadata, 2FA secrets and security keys, enrollment links, bulk job reports, audit). Created 0600. |
 
+## `[audit]`
+
+| Key | Default | Meaning |
+|---|---|---|
+| `key_file` | `""` | 32-byte key (raw or 64 hex digits, mode 0600) of the audit chain's HMAC. Empty: `$CREDENTIALS_DIRECTORY/audit-key` from systemd `LoadCredential` for the service, `/etc/conductor/credentials/audit-key` for the command line run as root. Without it conductor does not start. |
+| `journal` | `true` | Also write every audit row (without its detail) to the service log, where journald keeps it outside conductor's reach and can forward it to syslog or a remote collector. |
+
+The package creates the key on install and before an upgrade restarts
+conductor; `conductor setup` creates it if it is missing. Back it up with
+the TOTP key: without it the keyed part of the chain cannot be verified.
+`conductor audit verify` and `conductor enroll-link` read it, so they run
+as root (`sudo conductor audit verify`); they drop to the database owner before
+they open the database.
+
 ## `[helper]`
 
 | Key | Default | Meaning |
@@ -117,6 +131,10 @@ page says so. Set up together with conductor-backup
 | `extra_files` | `[]` | more host files for the archive (absolute, at most 1 MiB each). |
 | `python`, `samba` | `/usr/bin/python3`, `/usr/sbin/samba` | used to count users/groups and read versions. |
 
+| `[backup.retention_floor]` key | Default | Meaning |
+|---|---|---|
+| `daily`, `weekly`, `monthly` | `7`, `4`, `12` | The least retention conductor may set from the Backups page: a policy below it is refused by the helper, so code running as conductor cannot have conductor-backup prune the history. Lowering it takes an edit here as root. |
+
 ## `[ui]`
 
 | Key | Default | Meaning |
@@ -126,7 +144,10 @@ page says so. Set up together with conductor-backup
 ## `[webauthn]`
 
 Security keys and platform authenticators (WebAuthn) as a second factor,
-next to TOTP. Off while `rp_id` is empty.
+next to TOTP. Off while `rp_id` is empty. Keys registered while it was on
+still count as a second factor when it is turned off: their users sign in
+with TOTP or a recovery code until it is on again or an administrator
+resets their 2FA (conductor warns at startup).
 
 | Key | Default | Meaning |
 |---|---|---|
@@ -235,6 +256,7 @@ needs `[sync]`.
 | `/etc/conductor/domain-ca.pem` | root 0644 | pinned domain CA |
 | `/etc/conductor/tls/{cert,key}.pem` | key root:conductor 0640 | web certificate |
 | `/etc/conductor/credentials/totp-key` | root 0600 | TOTP encryption key (systemd credential) |
+| `/etc/conductor/credentials/audit-key` | root 0600 | audit chain key (systemd credential) |
 | `/var/lib/conductor/conductor.db` | conductor 0600 | state |
 | `/run/conductor-helper/helper.sock` | root:conductor 0660 | helper socket |
 | `/etc/conductor/helper.toml` | root:conductor 0640 | helper configuration (backups) |

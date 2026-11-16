@@ -151,12 +151,12 @@ full-forest restore: lab runs in [`docs/usage-p3.md`](docs/usage-p3.md),
   Google owns are read only, and conductor-idp never serves Google while
   it is on ([docs/google-first.md](docs/google-first.md)).
 - Audit log: append-only SQLite table (triggers refuse updates and
-  deletes) with a hash chain; viewer with filters, JSON lines export,
-  `conductor audit verify`. The chain detects accidental or partial edits.
-  It is not keyed or anchored outside the database, so it does not protect
-  against someone with write access to the database file. Protect the
-  database file and ship the exported log off the host if you need tamper
-  evidence.
+  deletes) chained with HMAC-SHA256 under a root-only key, with a keyed
+  head anchor so rows removed from the end are detected too; viewer with
+  filters, JSON lines export, `sudo conductor audit verify`. Every row is
+  also written to the journal, which can forward it off the host. Someone
+  running code as the service can read its key, so ship the journal or the
+  exported log off the host if you need tamper evidence against that.
 - conductor-helper: the only root process, on a Unix socket only the
   `conductor` user may use (SO_PEERCRED): read-only domain information
   (functional levels, FSMO roles, DCs) and, with backups configured
