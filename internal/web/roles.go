@@ -123,15 +123,30 @@ type roleSIDs struct {
 
 // Well-known RIDs and SIDs of groups whose members are domain-privileged.
 // Accounts in them are "protected": helpdesk may not touch them and admin
-// writes to them require re-authentication.
+// writes to them require re-authentication. Membership is checked by SID
+// (direct, nested and primary group), never by name. Besides these, an
+// account is protected when it is in conductor's own role groups, in
+// DnsAdmins (domain-local, its RID differs per domain, resolved by name to
+// its SID) or has adminCount=1 (AdminSDHolder), see accountProtected.
 var (
-	privilegedDomainRIDs = []uint32{512, 516, 518, 519, 520} // Domain Admins, DCs, Schema/Enterprise Admins, GP Creator Owners
-	privilegedBuiltin    = []sid.SID{
+	privilegedDomainRIDs = []uint32{
+		498, // Enterprise Read-only Domain Controllers
+		512, // Domain Admins
+		516, // Domain Controllers
+		518, // Schema Admins
+		519, // Enterprise Admins
+		520, // Group Policy Creator Owners
+		521, // Read-only Domain Controllers
+		526, // Key Admins (may write msDS-KeyCredentialLink: shadow credentials)
+		527, // Enterprise Key Admins
+	}
+	privilegedBuiltin = []sid.SID{
 		sid.MustParse("S-1-5-32-544"), // Administrators
 		sid.MustParse("S-1-5-32-548"), // Account Operators
 		sid.MustParse("S-1-5-32-549"), // Server Operators
 		sid.MustParse("S-1-5-32-550"), // Print Operators
 		sid.MustParse("S-1-5-32-551"), // Backup Operators
+		sid.MustParse("S-1-5-32-552"), // Replicator
 	}
 )
 
@@ -161,9 +176,12 @@ func (rs roleSIDs) resolve(userSID sid.SID, groups []sid.SID) Roles {
 }
 
 // protectedSIDs are the groups that make an account or a group sensitive:
-// the configured admin groups plus the well-known privileged groups.
+// conductor's role groups (administrators, helpdesk, auditors) plus the
+// well-known privileged groups.
 func (rs roleSIDs) protectedSIDs(dom sid.SID) []sid.SID {
 	out := append([]sid.SID(nil), rs.adminSIDs(dom)...)
+	out = append(out, rs.helpdesk...)
+	out = append(out, rs.auditor...)
 	for _, rid := range privilegedDomainRIDs {
 		if s, err := dom.WithRID(rid); err == nil {
 			out = append(out, s)
@@ -176,7 +194,7 @@ func (rs roleSIDs) protectedSIDs(dom sid.SID) []sid.SID {
 func (rs roleSIDs) isProtectedGroup(g sid.SID) bool {
 	dom, ok := g.Domain()
 	if !ok {
-		return sid.Contains(privilegedBuiltin, g)
+		return sid.Contains(privilegedBuiltin, g) || sid.Contains(rs.helpdesk, g) || sid.Contains(rs.auditor, g)
 	}
 	return sid.Contains(rs.protectedSIDs(dom), g)
 }

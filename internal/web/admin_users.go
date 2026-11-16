@@ -349,7 +349,10 @@ func (s *Server) handleUserGroupAdd(rc *reqCtx) {
 		}
 		p := &pendingOp{action: "group.add_member", target: grp.DN, op: op, title: rc.T("group.add.title", u.SAMAccountName, grp.Name),
 			summary: rc.T("confirm.summary.member_add", u.SAMAccountName, grp.Name), done: rc.T("op.done")}
-		if s.roleSIDs.isProtectedGroup(grp.SID) {
+		if protected, perr := s.groupProtected(ctx, conn, grp); protected {
+			if perr != nil {
+				s.log.Warn("protection check", "dn", grp.DN, "err", perr)
+			}
 			p.reauth, p.warning = true, rc.T("confirm.warn.admin_group")
 		}
 		return p, nil
@@ -372,7 +375,10 @@ func (s *Server) handleUserGroupRemove(rc *reqCtx) {
 		}
 		p := &pendingOp{action: "group.remove_member", target: grp.DN, op: op, title: rc.T("group.remove.title", u.SAMAccountName, grp.Name),
 			summary: rc.T("confirm.summary.member_remove", u.SAMAccountName, grp.Name), done: rc.T("op.done")}
-		if s.roleSIDs.isProtectedGroup(grp.SID) {
+		if protected, perr := s.groupProtected(ctx, conn, grp); protected {
+			if perr != nil {
+				s.log.Warn("protection check", "dn", grp.DN, "err", perr)
+			}
 			p.reauth, p.warning = true, rc.T("confirm.warn.admin_group")
 		}
 		return p, nil

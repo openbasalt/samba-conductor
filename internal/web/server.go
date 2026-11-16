@@ -86,8 +86,11 @@ type Server struct {
 	tmpl     map[string]map[string]*template.Template // lang → page → template
 	sess     *sessions
 	roleSIDs roleSIDs
-	trusted  []netip.Prefix
-	now      func() time.Time
+	// protMu guards dnsAdmins, the resolved DnsAdmins SID per domain.
+	protMu    sync.Mutex
+	dnsAdmins map[string]dnsAdminsEntry
+	trusted   []netip.Prefix
+	now       func() time.Time
 	// signinFloor is the shortest time a refused sign-in takes, so that
 	// unknown, disabled, locked and wrong-password answers look alike.
 	signinFloor time.Duration

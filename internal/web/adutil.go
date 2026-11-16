@@ -8,6 +8,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/go-ldap/ldap/v3"
 	ad "github.com/openbasalt/samba-conductor-ad"
@@ -175,14 +176,103 @@ func validParent(dn, base string) bool {
 	return strings.HasSuffix(strings.ToLower(dn), ","+strings.ToLower(base)) || escape.EqualDN(dn, base)
 }
 
-// accountProtected reports whether an account (user or computer) belongs to
-// a privileged group, directly, nested or by primary group.
+// accountProtected reports whether an account (user or computer) is
+// sensitive: a member of a privileged group (directly, nested or by primary
+// group, by SID), of DnsAdmins, or marked adminCount=1. Errors count as
+// protected.
 func (s *Server) accountProtected(ctx context.Context, conn *ad.Conn, dn string, account sid.SID) (bool, error) {
 	groups, err := directory.GroupSIDs(ctx, conn, dn)
 	if err != nil {
 		return true, err
 	}
-	return s.roleSIDs.isProtectedMember(account, groups), nil
+	if s.roleSIDs.isProtectedMember(account, groups) {
+		return true, nil
+	}
+	return s.dynamicProtected(ctx, conn, dn, account, groups)
+}
+
+// groupProtected reports whether a group is sensitive: privileged itself,
+// DnsAdmins, nested into a privileged group, or marked adminCount=1.
+// Errors count as protected.
+func (s *Server) groupProtected(ctx context.Context, conn *ad.Conn, g ad.Group) (bool, error) {
+	if s.roleSIDs.isProtectedGroup(g.SID) {
+		return true, nil
+	}
+	parents, err := directory.GroupSIDs(ctx, conn, g.DN)
+	if err != nil {
+		return true, err
+	}
+	if s.roleSIDs.isProtectedMember(g.SID, parents) {
+		return true, nil
+	}
+	return s.dynamicProtected(ctx, conn, g.DN, g.SID, append(parents, g.SID))
+}
+
+// dynamicProtected covers what the static SID set cannot: DnsAdmins (a
+// domain-local group whose RID differs per domain) and the adminCount flag
+// AD's SDProp sets on members of protected groups.
+func (s *Server) dynamicProtected(ctx context.Context, conn *ad.Conn, dn string, account sid.SID, groups []sid.SID) (bool, error) {
+	dnsAdmins, ok, err := s.dnsAdminsSID(ctx, conn, account)
+	if err != nil {
+		return true, err
+	}
+	if ok && sid.Contains(groups, dnsAdmins) {
+		return true, nil
+	}
+	e, err := conn.Get(ctx, dn, "adminCount")
+	if err != nil {
+		return true, err
+	}
+	return adminCountSet(e.GetAttributeValue("adminCount")), nil
+}
+
+// adminCountSet reads the adminCount attribute (any non-zero value).
+func adminCountSet(v string) bool {
+	v = strings.TrimSpace(v)
+	return v != "" && v != "0"
+}
+
+// dnsAdminsTTL is how long a resolved DnsAdmins SID is reused.
+const dnsAdminsTTL = 10 * time.Minute
+
+type dnsAdminsEntry struct {
+	sid   sid.SID
+	found bool
+	at    time.Time
+}
+
+// dnsAdminsSID resolves the DnsAdmins group of an account's domain by name
+// to its SID (cached per domain for dnsAdminsTTL). ok is false when the
+// domain has no such group.
+func (s *Server) dnsAdminsSID(ctx context.Context, conn *ad.Conn, account sid.SID) (sid.SID, bool, error) {
+	dom, ok := account.Domain()
+	if !ok {
+		return sid.SID{}, false, nil
+	}
+	key := dom.String()
+	s.protMu.Lock()
+	e, cached := s.dnsAdmins[key]
+	s.protMu.Unlock()
+	if cached && s.now().Sub(e.at) < dnsAdminsTTL {
+		return e.sid, e.found, nil
+	}
+	g, err := conn.FindGroup(ctx, "DnsAdmins")
+	switch {
+	case errors.Is(err, ad.ErrNotFound):
+		e = dnsAdminsEntry{at: s.now()}
+	case err != nil:
+		return sid.SID{}, false, err
+	default:
+		gd, _ := g.SID.Domain()
+		e = dnsAdminsEntry{sid: g.SID, found: gd.Equal(dom), at: s.now()}
+	}
+	s.protMu.Lock()
+	if s.dnsAdmins == nil {
+		s.dnsAdmins = map[string]dnsAdminsEntry{}
+	}
+	s.dnsAdmins[key] = e
+	s.protMu.Unlock()
+	return e.sid, e.found, nil
 }
 
 // pageParam reads ?page= (1-based).
