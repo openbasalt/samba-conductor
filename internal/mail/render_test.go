@@ -37,6 +37,7 @@ func TestRenderEveryTemplate(t *testing.T) {
 		TemplatePasswordChanged:  {"ana.souza", "192.0.2.10"},
 		TemplateAlternateVerify:  {"482913"},
 		TemplateAlternateChanged: {"2026"},
+		TemplateFactorAdded:      {"ana.souza", "192.0.2.10"},
 	}
 	for _, name := range Templates {
 		for _, lang := range i18n.Languages {

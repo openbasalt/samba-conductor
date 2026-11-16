@@ -367,6 +367,7 @@ func (s *Server) handleEnrollKey(rc *reqCtx) {
 		detail += " with an enrollment link"
 	}
 	s.audit(ctx, rc, "mfa.enroll", sess.sam, detail, store.ResultOK)
+	s.notifyFactorAdded(ctx, rc)
 	tok, err := s.sess.rotate(ctx, sess, stageFull)
 	if err != nil {
 		rc.errorPage(http.StatusInternalServerError, "err.internal")
@@ -400,6 +401,9 @@ func (s *Server) handleKeyRegister(rc *reqCtx) {
 		rc.redirect("/me/security")
 		return
 	}
+	if !s.requireStepUp(ctx, rc, "mfa.key_register") {
+		return
+	}
 	name, ok := cleanKeyName(rc.form("name"))
 	if !ok {
 		rc.flashErr("keys.err.name")
@@ -425,6 +429,7 @@ func (s *Server) handleKeyRegister(rc *reqCtx) {
 	}
 	rc.sess.mu.Unlock()
 	s.audit(ctx, rc, "mfa.key_register", rc.sess.sam, "security key "+name, store.ResultOK)
+	s.notifyFactorAdded(ctx, rc)
 	if len(codes) > 0 {
 		rc.redirect("/me/recovery-codes")
 		return

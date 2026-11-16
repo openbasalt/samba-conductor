@@ -77,7 +77,10 @@ type Session struct {
 	// an enrollment or a re-authentication): the self-service actions on
 	// connected accounts ask for a new one when it is older than a few
 	// minutes.
-	mfaAt     time.Time
+	mfaAt time.Time
+	// pwAt is when this session last proved the password (the sign-in or
+	// a step-up); for a user with no second factor it is the step-up.
+	pwAt      time.Time
 	roles     Roles
 	rolesAt   time.Time
 	groupSIDs []sid.SID

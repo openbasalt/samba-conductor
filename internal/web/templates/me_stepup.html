@@ -1,0 +1,21 @@
+{{define "title"}}{{t "stepup.title"}}{{end}}
+{{define "content"}}<div class="card narrow">
+  <h1>{{t "stepup.title"}}</h1>
+  {{template "error-alert" .D.Error}}
+  <p>{{if .D.HasFactor}}{{t "stepup.intro"}}{{else}}{{t "stepup.intro_password"}}{{end}}</p>
+  {{if .D.HasFactor}}
+  <form method="post" action="{{.D.Action}}" autocomplete="off">
+    {{template "csrf" .}}
+    {{template "reauth-fields" .}}
+    <button class="btn btn-primary" type="submit" data-e2e="stepup-btn-submit">{{t "stepup.submit"}}</button>
+  </form>
+  {{if .D.KeyOptions}}<h2>{{t "reauth.or_key"}}</h2>{{template "key-assert" (dict "P" $ "Action" .D.Action "Options" .D.KeyOptions "Password" true)}}{{end}}
+  {{else}}
+  <form method="post" action="{{.D.Action}}" autocomplete="off">
+    {{template "csrf" .}}
+    <div class="field"><label for="password">{{t "signin.password"}}</label><input id="password" name="password" type="password" autocomplete="current-password" required data-e2e="stepup-input-password"></div>
+    <button class="btn btn-primary" type="submit" data-e2e="stepup-btn-submit">{{t "stepup.submit"}}</button>
+  </form>
+  {{end}}
+  <div class="actions"><a class="btn" href="/me/security" data-e2e="stepup-link-back">{{t "form.back"}}</a></div>
+</div>{{end}}

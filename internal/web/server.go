@@ -88,6 +88,9 @@ type Server struct {
 	roleSIDs roleSIDs
 	trusted  []netip.Prefix
 	now      func() time.Time
+	// signinFloor is the shortest time a refused sign-in takes, so that
+	// unknown, disabled, locked and wrong-password answers look alike.
+	signinFloor time.Duration
 
 	ipLimit      *ratelimit.Bucket
 	accountFails *ratelimit.Failures
@@ -189,7 +192,7 @@ func New(d Deps) (*Server, error) {
 		return nil, err
 	}
 	s := &Server{cfg: d.Config, store: d.Store, backend: d.Backend, box: d.MFABox, helper: d.Helper, log: d.Logger,
-		cat: cat, version: d.Version, now: time.Now, sync: d.Sync, files: d.Files, idp: d.IDP, mailq: d.Mail, prov: d.Provisioner}
+		cat: cat, version: d.Version, now: time.Now, signinFloor: signinFailureFloor, sync: d.Sync, files: d.Files, idp: d.IDP, mailq: d.Mail, prov: d.Provisioner}
 	for _, p := range d.Config.Server.TrustedProxies {
 		pre, err := netip.ParsePrefix(p)
 		if err != nil {

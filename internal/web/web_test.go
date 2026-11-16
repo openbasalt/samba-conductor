@@ -125,6 +125,9 @@ func newHarness(t *testing.T, mutate ...func(*config.Config)) *harness {
 	}
 	h := &harness{s: s, backend: fb, st: st, now: time.Date(2026, 10, 2, 12, 0, 0, 0, time.UTC), groups: map[string][]sid.SID{}}
 	s.now = func() time.Time { return h.now }
+	// Refused sign-ins answer after a floor (TestSigninSameAnswer); the
+	// other tests do not wait for it.
+	s.signinFloor = 0
 	st.SetClock(func() time.Time { return h.now })
 	s.identify = func(_ context.Context, _ *directory.Credential, sam string) (directory.Identity, []sid.SID, error) {
 		groups, ok := fakeUsers[sam]
@@ -547,12 +550,23 @@ func TestSigninOutcomes(t *testing.T) {
 		t.Fatalf("change: %d %q", w.Code, w.Header().Get("Location"))
 	}
 
-	for user, want := range map[string]string{"locked.user": "locked", "disabled.user": "disabled", "expired.account": "expired",
-		"unverified": "Wrong username or password", "nobody": "Wrong username or password"} {
+	// Account state is never shown before the password is proven: locked,
+	// disabled, expired, unknown and wrong-password answers are the same.
+	for _, user := range []string{"locked.user", "disabled.user", "expired.account", "unverified", "nobody"} {
 		w := h.signin(t, user, "pw", "")
-		if w.Code != http.StatusUnauthorized || !strings.Contains(w.Body.String(), want) {
-			t.Errorf("%s: %d, body lacks %q", user, w.Code, want)
+		if w.Code != http.StatusUnauthorized || !strings.Contains(w.Body.String(), "Wrong username or password") {
+			t.Errorf("%s: %d, not the generic answer", user, w.Code)
 		}
+		for _, leak := range []string{"locked", "disabled", "expired"} {
+			if strings.Contains(strings.ToLower(w.Body.String()), "account is "+leak) || strings.Contains(w.Body.String(), "has "+leak) {
+				t.Errorf("%s: answer reveals %q", user, leak)
+			}
+		}
+	}
+	// The reason stays in the audit log.
+	if evs, _, _ := h.st.ListAudit(context.Background(), store.AuditFilter{Target: "locked.user", Action: "signin.failure"}, 0, 5); len(evs) != 1 ||
+		!strings.Contains(evs[0].Detail, "reason=") {
+		t.Fatalf("locked sign-in not audited with its reason: %+v", evs)
 	}
 
 	// Regular user, optional 2FA policy: straight in.
@@ -574,6 +588,44 @@ func TestSigninOutcomes(t *testing.T) {
 	if len(evs) < 8 {
 		t.Fatalf("sign-ins audited: %d", len(evs))
 	}
+}
+
+// TestSigninSameAnswer: refused sign-ins of an unknown, a locked and an
+// existing account give the same body and status, after the same floor.
+func TestSigninSameAnswer(t *testing.T) {
+	h := newHarness(t)
+	h.s.signinFloor = 60 * time.Millisecond
+	h.backend.results["locked.user"] = &ad.AuthError{Reason: ad.ReasonAccountLocked, Mechanism: "kerberos", Code: "KDC_ERR_CLIENT_REVOKED/0xC0000234"}
+	h.backend.results["normal.user"] = &ad.AuthError{Reason: ad.ReasonInvalidCredentials, Mechanism: "kerberos", Code: "KDC_ERR_PREAUTH_FAILED"}
+	var bodies []string
+	for _, user := range []string{"nobody", "locked.user", "normal.user", "bad user@@"} {
+		start := time.Now()
+		w := h.signin(t, user, "pw", "")
+		if took := time.Since(start); took < h.s.signinFloor {
+			t.Errorf("%s: answered in %v, below the floor", user, took)
+		}
+		if w.Code != http.StatusUnauthorized {
+			t.Errorf("%s: status %d", user, w.Code)
+		}
+		body := w.Body.String()
+		// The form echoes the typed username: compare without it.
+		bodies = append(bodies, strings.ReplaceAll(body, user, "USER"))
+	}
+	for i := 1; i < len(bodies); i++ {
+		if strings.Count(bodies[i], "form-text-error") != 1 || errorText(bodies[i]) != errorText(bodies[0]) {
+			t.Errorf("answer %d differs: %q vs %q", i, errorText(bodies[i]), errorText(bodies[0]))
+		}
+	}
+}
+
+// errorText is the error alert of a page.
+func errorText(body string) string {
+	_, after, ok := strings.Cut(body, `data-e2e="form-text-error">`)
+	if !ok {
+		return ""
+	}
+	text, _, _ := strings.Cut(after, "<")
+	return text
 }
 
 func mustChangeErr() error {

@@ -1,0 +1,10 @@
+{{.OrgName}}
+
+A second factor (an authenticator app or a security key) was added to your account at {{.OrgName}}.
+
+Username: {{.Username}}
+When: {{.When}}
+{{if .From}}From: {{.From}}
+{{end}}
+If you made this change, nothing else needs to be done. If you did not, contact your support right away: whoever added it can use it to sign in as you.
+{{template "text-bottom" .}}
