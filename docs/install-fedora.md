@@ -79,7 +79,7 @@ sudo install -m 0644 cert.pem /etc/conductor/tls/cert.pem
 sudo install -m 0640 -o root -g conductor key.pem /etc/conductor/tls/key.pem
 sudo conductor setup
 sudo systemctl enable --now conductor-helper conductor
-sudo -u conductor conductor enroll-link --user <admin> --base-url https://dc1.example.com:8443
+sudo conductor enroll-link --user <admin> --base-url https://dc1.example.com:8443
 ```
 
 Files created in `/etc/conductor` and `/var/lib/conductor` get their

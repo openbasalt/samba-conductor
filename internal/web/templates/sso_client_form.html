@@ -21,6 +21,7 @@
     </fieldset>
     <div class="check"><input id="c-first" name="first_party" type="checkbox" value="1"{{if $f.FirstParty}} checked{{end}} data-e2e="sso-check-first-party"><label for="c-first">{{t "sso.client.first_party"}} <span class="hint">{{t "sso.client.first_party_hint"}}</span></label></div>
     <div class="check"><input id="c-mfa" name="require_mfa" type="checkbox" value="1"{{if $f.RequireMFA}} checked{{end}} data-e2e="sso-check-require-mfa"><label for="c-mfa">{{t "sso.require_mfa"}} <span class="hint">{{t "sso.require_mfa_hint"}}</span></label></div>
+    <div class="check"><input id="c-emailv" name="email_verified" type="checkbox" value="1"{{if $f.EmailVerified}} checked{{end}} data-e2e="sso-check-email-verified"><label for="c-emailv">{{t "sso.client.email_verified"}} <span class="hint">{{t "sso.client.email_verified_hint"}}</span></label></div>
   </section>
   <section class="card" aria-labelledby="c-access">
     <h2 id="c-access">{{t "sso.access"}}</h2>

@@ -1,0 +1,10 @@
+{{.OrgName}}
+
+Um segundo fator (um aplicativo autenticador ou uma chave de segurança) foi adicionado à sua conta em {{.OrgName}}.
+
+Usuário: {{.Username}}
+Quando: {{.When}}
+{{if .From}}De: {{.From}}
+{{end}}
+Se foi você, não é preciso fazer mais nada. Se não foi, procure o suporte imediatamente: quem o adicionou pode usá-lo para entrar como você.
+{{template "text-bottom" .}}

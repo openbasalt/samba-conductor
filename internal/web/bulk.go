@@ -497,6 +497,14 @@ func (s *Server) runJob(job *bulkJob, cred *directory.Credential, actx *reqCtx) 
 		s.audit(bg, actx, "bulk."+job.Kind, row.Target, detail, result)
 		if status == store.RowOK && row.notify != nil {
 			s.notifyPasswordChanged(bg, *row.notify)
+			if err := s.revokeIdPUser(bg, actx, row.notify.SAM, "password reset by an administrator (bulk job "+job.ID+")"); err != nil {
+				// The reset stands; the row says what is left to do.
+				msg = actx.T("sso.revoke.failed", row.notify.SAM)
+				job.mu.Lock()
+				row.Error = msg
+				job.mu.Unlock()
+				_ = s.store.SetBulkRowResult(bg, job.ID, row.No, status, msg)
+			}
 		}
 	}
 	job.mu.Lock()

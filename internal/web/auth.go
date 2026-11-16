@@ -117,7 +117,28 @@ func (s *Server) signinError(rc *reqCtx, status int, key, username, enroll strin
 	rc.render(status, "signin", map[string]any{"Error": rc.T(key), "Username": username, "Enroll": enroll})
 }
 
+// signinFailureFloor is the shortest time a refused sign-in answers in
+// (Server.signinFloor). It covers the usual differences between the KDC's
+// answers for unknown, disabled, locked and existing accounts.
+const signinFailureFloor = 750 * time.Millisecond
+
+// padSigninFailure waits until at least signinFloor has passed since
+// start (or the request ends).
+func (s *Server) padSigninFailure(ctx context.Context, start time.Time) {
+	d := s.signinFloor - time.Since(start)
+	if d <= 0 {
+		return
+	}
+	t := time.NewTimer(d)
+	defer t.Stop()
+	select {
+	case <-t.C:
+	case <-ctx.Done():
+	}
+}
+
 func (s *Server) handleSignin(rc *reqCtx) {
+	start := time.Now()
 	ctx, cancel := context.WithTimeout(rc.ctx(), requestTimeout)
 	defer cancel()
 	typed := rc.form("username")
@@ -131,6 +152,7 @@ func (s *Server) handleSignin(rc *reqCtx) {
 	}
 	sam, ok := directory.NormalizeUsername(typed, s.backend.Realm())
 	if !ok || password == "" {
+		s.padSigninFailure(ctx, start)
 		s.signinError(rc, http.StatusUnauthorized, "signin.err.invalid", typed, enroll)
 		return
 	}
@@ -142,7 +164,7 @@ func (s *Server) handleSignin(rc *reqCtx) {
 	}
 	cred, err := s.backend.SignIn(ctx, sam, password)
 	if err != nil {
-		s.signinFailed(rc, ctx, sam, typed, enroll, err)
+		s.signinFailed(rc, ctx, start, sam, typed, enroll, err)
 		return
 	}
 	id, groups, err := s.identify(ctx, cred, sam)
@@ -159,17 +181,23 @@ func (s *Server) handleSignin(rc *reqCtx) {
 	}
 	s.accountFails.Reset(sam)
 	roles := s.roleSIDs.resolve(id.SID, groups)
-	enrolled := s.keyCount(ctx, id.SID.String()) > 0
-	if _, err := s.store.GetTOTP(ctx, id.SID.String()); err == nil {
-		enrolled = true
-	} else if !errors.Is(err, store.ErrNotFound) {
+	keys, err := s.storedKeys(ctx, id.SID.String())
+	enrolled := keys > 0
+	if err == nil {
+		if _, err = s.store.GetTOTP(ctx, id.SID.String()); err == nil {
+			enrolled = true
+		} else if errors.Is(err, store.ErrNotFound) {
+			err = nil
+		}
+	}
+	if err != nil {
 		cred.Close()
 		s.log.Error("reading 2FA state", "err", err)
 		s.signinError(rc, http.StatusInternalServerError, "err.internal", typed, enroll)
 		return
 	}
 	sess := &Session{sam: strings.ToLower(id.SAM), dn: id.DN, userSID: id.SID, displayName: id.DisplayName, cred: cred,
-		ip: rc.ip, userAgent: rc.r.UserAgent(), roles: roles, rolesAt: s.now(), groupSIDs: groups}
+		ip: rc.ip, userAgent: rc.r.UserAgent(), roles: roles, rolesAt: s.now(), groupSIDs: groups, pwAt: s.now()}
 	switch {
 	case enrolled:
 		sess.stage = stageMFA
@@ -225,9 +253,14 @@ func clipName(s string) string {
 	}, s)
 }
 
-// signinFailed maps a refused sign-in to a clear message. Only expired /
-// must-change passwords (proven right by AD) lead to the change page.
-func (s *Server) signinFailed(rc *reqCtx, ctx context.Context, sam, typed, enroll string, err error) {
+// signinFailed answers a refused sign-in. Only expired / must-change
+// passwords (proven right by AD) lead to the change page. Every other
+// refusal gets the same answer, after the same minimum time: the KDC
+// reports a locked, disabled, expired or restricted account before it
+// checks the password, so telling them apart would show anyone who types a
+// username whether it exists and in what state. The reason stays in the
+// audit log.
+func (s *Server) signinFailed(rc *reqCtx, ctx context.Context, start time.Time, sam, typed, enroll string, err error) {
 	var ae *ad.AuthError
 	if !errors.As(err, &ae) {
 		s.log.Error("sign-in: directory unavailable", "user", sam, "err", err)
@@ -250,25 +283,14 @@ func (s *Server) signinFailed(rc *reqCtx, ctx context.Context, sam, typed, enrol
 		return
 	}
 	key := "signin.err.invalid"
-	switch ae.Reason {
-	case ad.ReasonAccountLocked:
-		key = "signin.err.locked"
-	case ad.ReasonAccountDisabled:
-		key = "signin.err.disabled"
-	case ad.ReasonAccountExpired:
-		key = "signin.err.account_expired"
-	case ad.ReasonLogonHours, ad.ReasonWorkstationRestricted, ad.ReasonAccountRestricted:
-		key = "signin.err.restricted"
-	case ad.ReasonClockSkew:
+	if ae.Reason == ad.ReasonClockSkew {
+		// The server's clock, not the account: nothing about it leaks.
 		key = "signin.err.clock"
-	case ad.ReasonPasswordExpired, ad.ReasonPasswordMustChange:
-		// Not proven: AD said "expired" without verifying the password.
-		key = "signin.err.invalid"
-	}
-	if key == "signin.err.invalid" {
+	} else {
 		s.accountFails.Fail(sam)
 	}
 	s.audit(ctx, rc, "signin.failure", sam, detail, store.ResultDenied)
+	s.padSigninFailure(ctx, start)
 	s.signinError(rc, http.StatusUnauthorized, key, typed, enroll)
 }
 
@@ -350,6 +372,10 @@ func (s *Server) mfaPageData(rc *reqCtx, errMsg string) map[string]any {
 		if opts, err := s.beginCeremony(rc.ctx(), sess, waSignin); err == nil {
 			d["KeyOptions"] = opts
 		}
+	} else if n, err := s.storedKeys(rc.ctx(), sess.userSID.String()); err == nil && n > 0 {
+		// Enrolled keys cannot be used while WebAuthn is off: say so, and
+		// that a code (or a recovery code) is the way in.
+		d["KeysOff"] = true
 	}
 	return d
 }
@@ -637,6 +663,8 @@ func (s *Server) handleEnroll(rc *reqCtx) {
 		rc.render(http.StatusUnauthorized, "enroll", d)
 		return
 	}
+	s.notifyFactorAdded(ctx, rc)
+	s.revokeIdPAfter(ctx, rc, rc.sess.sam, "second factor added (TOTP)")
 	tok, err := s.sess.rotate(ctx, rc.sess, stageFull)
 	if err != nil {
 		rc.errorPage(http.StatusInternalServerError, "err.internal")

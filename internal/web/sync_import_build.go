@@ -12,6 +12,7 @@ import (
 
 	ad "github.com/openbasalt/samba-conductor-ad"
 	"github.com/openbasalt/samba-conductor-ad/escape"
+	"github.com/openbasalt/samba-conductor-ad/sid"
 )
 
 // Import from Google Workspace: the AD side. conductor-sync reads the
@@ -236,8 +237,12 @@ type adRef struct {
 	DN, SAM string
 	// Several: more than one AD object has the address.
 	Several bool
-	// Protected: a privileged group (never changed by an import).
+	// Protected: a privileged group (never changed by an import), by
+	// Server.groupProtected: the well-known and role groups by SID,
+	// DnsAdmins, nesting into a privileged group, adminCount=1.
 	Protected bool
+	// sid of a group, for the protection check.
+	sid sid.SID
 	// Members of a group (normalized DNs).
 	Members map[string]bool
 }
@@ -663,8 +668,7 @@ func (s *Server) objectsByMail(ctx context.Context, conn *ad.Conn, class escape.
 				}
 				ref := &adRef{DN: e.DN, SAM: e.GetAttributeValue("sAMAccountName")}
 				if group {
-					g := ad.GroupFromEntry(e)
-					ref.Protected = s.roleSIDs.isProtectedGroup(g.SID)
+					ref.sid = ad.GroupFromEntry(e).SID
 				}
 				out[a] = ref
 			}
@@ -675,6 +679,17 @@ func (s *Server) objectsByMail(ctx context.Context, conn *ad.Conn, class escape.
 		return nil, err
 	}
 	if group {
+		// The protection check reads AD, so it runs after the search.
+		for _, ref := range out {
+			if ref.Several {
+				continue
+			}
+			protected, perr := s.groupProtected(ctx, conn, ad.Group{DN: ref.DN, SID: ref.sid})
+			if perr != nil {
+				s.log.Warn("protection check", "dn", ref.DN, "err", perr)
+			}
+			ref.Protected = protected
+		}
 		for _, ref := range out {
 			if ref.Several || ref.Protected {
 				continue

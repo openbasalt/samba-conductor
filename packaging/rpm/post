@@ -6,6 +6,13 @@
 # systemd's own file triggers reload the manager at the end of the
 # transaction.
 UNITS="conductor-helper.service conductor.service conductor-mfa.socket"
+# The audit chain's key (LoadCredential=audit-key in conductor.service),
+# created once, on install or before an upgrade restarts conductor
+# (%postun). "conductor setup" keeps an existing one.
+key=/etc/conductor/credentials/audit-key
+if [ -d /etc/conductor/credentials ] && [ ! -e "$key" ]; then
+	(umask 077 && set -C && { od -An -tx1 -N32 /dev/urandom | tr -d ' \n'; echo; } >"$key") || :
+fi
 if [ "$1" -eq 1 ]; then
 	if [ -x /usr/lib/systemd/systemd-update-helper ]; then
 		/usr/lib/systemd/systemd-update-helper install-system-units $UNITS || :

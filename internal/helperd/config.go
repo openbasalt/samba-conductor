@@ -12,6 +12,7 @@ import (
 	"strings"
 
 	"github.com/BurntSushi/toml"
+	"github.com/openbasalt/samba-conductor-ad/helper"
 )
 
 // DefaultConfigPath is the helper's optional configuration file. Without
@@ -44,6 +45,34 @@ type backupFile struct {
 	ExtraFiles         []string `toml:"extra_files"`
 	Python             string   `toml:"python"`
 	Samba              string   `toml:"samba"`
+	// RetentionFloor is the least retention the helper accepts in a
+	// policy from conductor (default: the default policy's retention).
+	RetentionFloor retentionFloorFile `toml:"retention_floor"`
+}
+
+// retentionFloorFile is [backup.retention_floor]; unset keys take the
+// default policy's values.
+type retentionFloorFile struct {
+	Daily   *int `toml:"daily"`
+	Weekly  *int `toml:"weekly"`
+	Monthly *int `toml:"monthly"`
+}
+
+// resolve fills the defaults and checks the ranges of the protocol.
+func (f retentionFloorFile) resolve() (helper.BackupRetention, error) {
+	r := helper.DefaultBackupPolicy().Retention
+	for _, v := range []struct {
+		dst *int
+		src *int
+	}{{&r.Daily, f.Daily}, {&r.Weekly, f.Weekly}, {&r.Monthly, f.Monthly}} {
+		if v.src != nil {
+			*v.dst = *v.src
+		}
+	}
+	if r.Daily < 1 || r.Daily > 366 || r.Weekly < 0 || r.Weekly > 260 || r.Monthly < 0 || r.Monthly > 120 {
+		return r, errors.New("backup.retention_floor: daily 1-366, weekly 0-260, monthly 0-120")
+	}
+	return r, nil
 }
 
 var (
@@ -137,11 +166,15 @@ func (b backupFile) resolve(credDir string) (*BackupConfig, error) {
 			errs = append(errs, errors.New("backup.peer_user must not be root"))
 		}
 	}
+	floor, err := b.RetentionFloor.resolve()
+	if err != nil {
+		errs = append(errs, err)
+	}
 	if err := errors.Join(errs...); err != nil {
 		return nil, err
 	}
 	files := append(append([]string(nil), DefaultBackupFiles...), b.ExtraFiles...)
 	return &BackupConfig{PeerUID: uid, PeerGID: gid, Account: b.Account, PasswordFile: pwFile, Server: b.Server, DC: b.DC,
 		RecipientsFile: b.RecipientsFile, StateDir: b.StateDir, WorkDir: b.WorkDir, ConductorDB: b.ConductorDB, Files: files,
-		Python: b.Python, Samba: b.Samba}, nil
+		Python: b.Python, Samba: b.Samba, RetentionFloor: floor}, nil
 }

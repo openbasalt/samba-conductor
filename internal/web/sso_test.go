@@ -163,6 +163,9 @@ func (f *fakeIDP) Call(_ context.Context, req idpapi.Request) (idpapi.Response, 
 		out = idpapi.AuditPage{Events: []idpapi.AuditEvent{{ID: 9, Action: "oidc.authorize", Actor: "alice", Target: "cidp_x", Result: "ok"}}}
 	case idpapi.OpAuditVerify:
 		out = idpapi.AuditVerify{Rows: 9}
+	case idpapi.OpUserRevoke:
+		q := p.(*idpapi.UserRevokeParams)
+		out = idpapi.UserRevoked{User: q.User, RefreshTokens: 2, Consents: 1, RevokedAt: time.Now().UTC()}
 	default:
 		return fail(idpapi.CodeBadRequest, "unexpected")
 	}
@@ -289,6 +292,9 @@ func TestSSOClientCreateReviewConfirmSecretOnce(t *testing.T) {
 	_ = json.Unmarshal(fi.last(idpapi.OpClientCreate).Params, &cp2)
 	if cp2.Input.Groups[0] != group || cp2.Input.GroupsClaim != "names" || fi.last(idpapi.OpClientCreate).Actor.User != "lab.admin" {
 		t.Fatalf("create params %+v", cp2)
+	}
+	if cp2.Input.EmailVerified {
+		t.Fatal("email_verified on without the box ticked")
 	}
 	// The secret is shown once.
 	page := h.do("GET", sloc, admin, nil)

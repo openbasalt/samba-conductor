@@ -155,6 +155,26 @@ type groupCache struct {
 	conn  *ad.Conn
 	ctx   context.Context
 	found map[string]*ad.Group
+	// protected caches groupProtected per group DN (lower case).
+	protected map[string]bool
+}
+
+// isProtected reports whether a group is sensitive (Server.groupProtected,
+// once per job; errors count as protected).
+func (g *groupCache) isProtected(s *Server, grp *ad.Group) bool {
+	key := strings.ToLower(grp.DN)
+	if p, ok := g.protected[key]; ok {
+		return p
+	}
+	p, err := s.groupProtected(g.ctx, g.conn, *grp)
+	if err != nil {
+		s.log.Warn("protection check", "dn", grp.DN, "err", err)
+	}
+	if g.protected == nil {
+		g.protected = map[string]bool{}
+	}
+	g.protected[key] = p
+	return p
 }
 
 func (g *groupCache) get(name string) (*ad.Group, bool) {
@@ -312,7 +332,7 @@ func (s *Server) buildImportCreate(ctx context.Context, rc *reqCtx, conn *ad.Con
 				failed = true
 				break
 			}
-			if s.roleSIDs.isProtectedGroup(grp.SID) {
+			if groups.isProtected(s, grp) {
 				reauth = true
 			}
 			gop, err := ad.AddGroupMember(grp.DN, userDN)
@@ -467,7 +487,7 @@ func (s *Server) buildImportUpdate(ctx context.Context, rc *reqCtx, conn *ad.Con
 				if member[strings.ToLower(grp.DN)] == add {
 					continue // already in that state
 				}
-				if s.roleSIDs.isProtectedGroup(grp.SID) {
+				if groups.isProtected(s, grp) {
 					reauth = true
 				}
 				var op *ad.Operation
@@ -614,7 +634,11 @@ func (s *Server) buildSelected(ctx context.Context, rc *reqCtx, conn *ad.Conn, a
 				if err != nil {
 					return nil, []rowError{{Msg: rc.T("user.groups.not_found")}}, false, nil
 				}
-				groupDN, groupProtected = grp.DN, s.roleSIDs.isProtectedGroup(grp.SID)
+				groupDN = grp.DN
+				var perr error
+				if groupProtected, perr = s.groupProtected(ctx, conn, grp); perr != nil {
+					s.log.Warn("protection check", "dn", grp.DN, "err", perr)
+				}
 			}
 			if groupProtected {
 				reauth = true

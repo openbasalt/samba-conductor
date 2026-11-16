@@ -52,6 +52,20 @@ type Config struct {
 	Branding    Branding    `toml:"branding"`
 	Mail        Mail        `toml:"mail"`
 	Provisioner Provisioner `toml:"provisioner"`
+	Audit       Audit       `toml:"audit"`
+}
+
+// Audit configures the keyed audit chain.
+type Audit struct {
+	// KeyFile holds the key (32 bytes: raw or 64 hex digits) of the
+	// audit chain's HMAC. Empty: $CREDENTIALS_DIRECTORY/audit-key (systemd
+	// LoadCredential) for the service, /etc/conductor/credentials/audit-key
+	// for the command line run as root.
+	KeyFile string `toml:"key_file"`
+	// Journal copies every audit row (without its detail) to the service
+	// log, which journald keeps outside conductor's reach and can forward
+	// to syslog or a remote collector (default true).
+	Journal *bool `toml:"journal"`
 }
 
 // Provisioner connects conductor with conductor-provisioner, the local
@@ -427,6 +441,9 @@ func (c *Config) Validate() error {
 	if c.MFA.KeyFile != "" && !filepath.IsAbs(c.MFA.KeyFile) {
 		bad("mfa.key_file must be absolute")
 	}
+	if c.Audit.KeyFile != "" && !filepath.IsAbs(c.Audit.KeyFile) {
+		bad("audit.key_file must be absolute")
+	}
 	if c.MFA.Issuer == "" || len(c.MFA.Issuer) > 64 || strings.ContainsAny(c.MFA.Issuer, ":") {
 		bad("mfa.issuer must be 1-64 characters without ':'")
 	}
@@ -687,4 +704,26 @@ func (c *Config) MFAKeyPath() (string, error) {
 		return "", errors.New("config: no mfa.key_file and no systemd credentials directory (LoadCredential=totp-key:...)")
 	}
 	return filepath.Join(dir, "totp-key"), nil
+}
+
+// DefaultAuditKeyFile is where the audit key lives on a packaged install
+// (root 0600; the service reads its systemd credential copy).
+const DefaultAuditKeyFile = "/etc/conductor/credentials/audit-key"
+
+// AuditKeyPath resolves the audit key file of the service: audit.key_file,
+// else $CREDENTIALS_DIRECTORY/audit-key.
+func (c *Config) AuditKeyPath() (string, error) {
+	if c.Audit.KeyFile != "" {
+		return c.Audit.KeyFile, nil
+	}
+	dir := os.Getenv("CREDENTIALS_DIRECTORY")
+	if dir == "" {
+		return "", errors.New("config: no audit.key_file and no systemd credentials directory (LoadCredential=audit-key:...)")
+	}
+	return filepath.Join(dir, "audit-key"), nil
+}
+
+// AuditJournal reports whether audit rows are copied to the service log.
+func (c *Config) AuditJournal() bool {
+	return c.Audit.Journal == nil || *c.Audit.Journal
 }

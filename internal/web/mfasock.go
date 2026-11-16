@@ -208,8 +208,16 @@ func (s *Server) answerMFA(ctx context.Context, req idpapi.MFARequest) idpapi.MF
 			return a
 		}
 		a.TOTP = err == nil
+		// Keys counts the keys usable now; enrolled keys keep the user
+		// enrolled while WebAuthn is off (a code or a recovery code is
+		// then asked for).
 		a.Keys = s.keyCount(ctx, req.UserSID)
-		a.Enrolled = a.TOTP || a.Keys > 0
+		stored, err := s.storedKeys(ctx, req.UserSID)
+		if err != nil {
+			a.Error = idpapi.MFAErrInternal
+			return a
+		}
+		a.Enrolled = a.TOTP || stored > 0
 		a.Required = s.mfaRequired(roles)
 		a.Policy = s.cfg.MFA.Policy
 		a.KeyRequired = s.keyRequired(roles)

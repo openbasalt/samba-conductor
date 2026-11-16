@@ -40,13 +40,15 @@ test.describe('anonymous visitor and sign-in failures', () => {
     expect(r2.status()).toBe(403);
   });
 
-  test('refused sign-ins get the right message', async ({ page }, info) => {
+  // Account state is never shown before the password is proven: every
+  // refusal gets the same message (the reason is in the audit log).
+  test('refused sign-ins all get the same message', async ({ page }, info) => {
     const cases: [string, string, RegExp][] = [
       ['normal.user', 'definitely-wrong', /Wrong username or password/],
       ['no.such.user', 'whatever', /Wrong username or password/],
-      ['locked.user', env.userPassword, /locked/],
-      ['disabled.user', env.userPassword, /disabled/],
-      ['expired.account', env.userPassword, /expired/],
+      ['locked.user', env.userPassword, /Wrong username or password/],
+      ['disabled.user', env.userPassword, /Wrong username or password/],
+      ['expired.account', env.userPassword, /Wrong username or password/],
     ];
     for (const [user, pw, msg] of cases) {
       await signIn(page, user, pw);

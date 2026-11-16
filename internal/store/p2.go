@@ -27,6 +27,13 @@ func (s *Store) AddWebAuthnCredential(ctx context.Context, c WebAuthnCredential)
 	return err
 }
 
+// CountWebAuthnCredentials counts the stored credentials of every user.
+func (s *Store) CountWebAuthnCredentials(ctx context.Context) (int, error) {
+	var n int
+	err := s.db.QueryRowContext(ctx, `SELECT COUNT(*) FROM webauthn_credentials`).Scan(&n)
+	return n, err
+}
+
 // WebAuthnCredentials lists a user's credentials, oldest first.
 func (s *Store) WebAuthnCredentials(ctx context.Context, userSID string) ([]WebAuthnCredential, error) {
 	rows, err := s.db.QueryContext(ctx, `SELECT cred_id, user_sid, username, name, data, created_at, COALESCE(last_used_at, '')

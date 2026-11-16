@@ -109,6 +109,28 @@ func TestMFAKeyPath(t *testing.T) {
 	}
 }
 
+func TestAuditKeyPathAndJournal(t *testing.T) {
+	c := Default()
+	t.Setenv("CREDENTIALS_DIRECTORY", "/run/credentials/conductor.service")
+	if p, err := c.AuditKeyPath(); err != nil || p != "/run/credentials/conductor.service/audit-key" {
+		t.Fatalf("%q %v", p, err)
+	}
+	t.Setenv("CREDENTIALS_DIRECTORY", "")
+	if _, err := c.AuditKeyPath(); err == nil {
+		t.Fatal("no key source accepted")
+	}
+	c.Audit.KeyFile = "/etc/x/audit-key"
+	if p, err := c.AuditKeyPath(); err != nil || p != "/etc/x/audit-key" {
+		t.Fatalf("%q %v", p, err)
+	}
+	if !c.AuditJournal() {
+		t.Fatal("journal copy off by default")
+	}
+	if _, err := load(t, base+"\n[audit]\nkey_file = \"relative\"\n"); err == nil {
+		t.Fatal("relative audit.key_file accepted")
+	}
+}
+
 func TestWebAuthnAndBulk(t *testing.T) {
 	c, err := load(t, base)
 	if err != nil || c.WebAuthn.Enabled() || c.Bulk.MaxRows != 1000 || c.Tools.SambaTool != "/usr/bin/samba-tool" {

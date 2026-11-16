@@ -86,8 +86,14 @@ type Server struct {
 	tmpl     map[string]map[string]*template.Template // lang → page → template
 	sess     *sessions
 	roleSIDs roleSIDs
-	trusted  []netip.Prefix
-	now      func() time.Time
+	// protMu guards dnsAdmins, the resolved DnsAdmins SID per domain.
+	protMu    sync.Mutex
+	dnsAdmins map[string]dnsAdminsEntry
+	trusted   []netip.Prefix
+	now       func() time.Time
+	// signinFloor is the shortest time a refused sign-in takes, so that
+	// unknown, disabled, locked and wrong-password answers look alike.
+	signinFloor time.Duration
 
 	ipLimit      *ratelimit.Bucket
 	accountFails *ratelimit.Failures
@@ -189,7 +195,7 @@ func New(d Deps) (*Server, error) {
 		return nil, err
 	}
 	s := &Server{cfg: d.Config, store: d.Store, backend: d.Backend, box: d.MFABox, helper: d.Helper, log: d.Logger,
-		cat: cat, version: d.Version, now: time.Now, sync: d.Sync, files: d.Files, idp: d.IDP, mailq: d.Mail, prov: d.Provisioner}
+		cat: cat, version: d.Version, now: time.Now, signinFloor: signinFailureFloor, sync: d.Sync, files: d.Files, idp: d.IDP, mailq: d.Mail, prov: d.Provisioner}
 	for _, p := range d.Config.Server.TrustedProxies {
 		pre, err := netip.ParsePrefix(p)
 		if err != nil {
@@ -305,6 +311,16 @@ func (s *Server) Start(ctx context.Context) error {
 		return err
 	} else if n > 0 {
 		s.log.Warn("bulk jobs interrupted by a restart", "jobs", n)
+	}
+	if s.wa == nil {
+		// Enrolled keys still count as a second factor (storedKeys):
+		// their users must sign in with TOTP or a recovery code.
+		if n, err := s.store.CountWebAuthnCredentials(ctx); err != nil {
+			return err
+		} else if n > 0 {
+			s.log.Warn("WebAuthn is off but security keys are enrolled: their users must sign in with TOTP or a recovery code until [webauthn] is configured again or an administrator resets their 2FA",
+				"keys", n)
+		}
 	}
 	go func() {
 		t := time.NewTicker(time.Minute)

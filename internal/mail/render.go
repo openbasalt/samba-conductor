@@ -28,13 +28,14 @@ const (
 	TemplatePasswordChanged  = "password_changed"
 	TemplateAlternateVerify  = "alternate_verify"
 	TemplateAlternateChanged = "alternate_changed"
+	TemplateFactorAdded      = "second_factor_added"
 )
 
 // Templates lists every template; each exists as <name>.<lang>.txt and
 // <name>.<lang>.html for every language, and its subject is the message
 // mail.subject.<name> of the i18n catalog.
 var Templates = []string{TemplateTest, TemplateInvitation, TemplateReset, TemplatePasswordChanged,
-	TemplateAlternateVerify, TemplateAlternateChanged}
+	TemplateAlternateVerify, TemplateAlternateChanged, TemplateFactorAdded}
 
 // Product look when the branding sets nothing.
 const (

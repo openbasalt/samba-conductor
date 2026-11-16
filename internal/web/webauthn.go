@@ -96,8 +96,8 @@ func (s *Server) waUserBySID(ctx context.Context, userSID, sam, display string) 
 	return u, rows, nil
 }
 
-// keyCount returns how many security keys a user has (0 when WebAuthn is
-// off).
+// keyCount returns how many security keys a user can use now (0 when
+// WebAuthn is off). Whether the user is enrolled is storedKeys' answer.
 func (s *Server) keyCount(ctx context.Context, userSID string) int {
 	if s.wa == nil {
 		return 0
@@ -107,6 +107,16 @@ func (s *Server) keyCount(ctx context.Context, userSID string) int {
 		return 0
 	}
 	return len(rows)
+}
+
+// storedKeys returns how many security keys a user enrolled, whatever the
+// current WebAuthn setting: keys enrolled while WebAuthn was on keep the
+// account enrolled when an operator turns it off, so the sign-in still
+// asks for a second factor (TOTP or a recovery code) instead of skipping
+// it. Only an administrator's reset of the user's 2FA removes them.
+func (s *Server) storedKeys(ctx context.Context, userSID string) (int, error) {
+	rows, err := s.store.WebAuthnCredentials(ctx, userSID)
+	return len(rows), err
 }
 
 func (s *Server) hasKeys(rc *reqCtx) bool {
@@ -367,6 +377,8 @@ func (s *Server) handleEnrollKey(rc *reqCtx) {
 		detail += " with an enrollment link"
 	}
 	s.audit(ctx, rc, "mfa.enroll", sess.sam, detail, store.ResultOK)
+	s.notifyFactorAdded(ctx, rc)
+	s.revokeIdPAfter(ctx, rc, sess.sam, "second factor added (security key)")
 	tok, err := s.sess.rotate(ctx, sess, stageFull)
 	if err != nil {
 		rc.errorPage(http.StatusInternalServerError, "err.internal")
@@ -400,6 +412,9 @@ func (s *Server) handleKeyRegister(rc *reqCtx) {
 		rc.redirect("/me/security")
 		return
 	}
+	if !s.requireStepUp(ctx, rc, "mfa.key_register") {
+		return
+	}
 	name, ok := cleanKeyName(rc.form("name"))
 	if !ok {
 		rc.flashErr("keys.err.name")
@@ -425,6 +440,8 @@ func (s *Server) handleKeyRegister(rc *reqCtx) {
 	}
 	rc.sess.mu.Unlock()
 	s.audit(ctx, rc, "mfa.key_register", rc.sess.sam, "security key "+name, store.ResultOK)
+	s.notifyFactorAdded(ctx, rc)
+	s.revokeIdPAfter(ctx, rc, rc.sess.sam, "second factor added (security key)")
 	if len(codes) > 0 {
 		rc.redirect("/me/recovery-codes")
 		return
@@ -508,6 +525,7 @@ func (s *Server) handleKeyRemove(rc *reqCtx) {
 	}
 	s.audit(ctx, rc, "mfa.key_remove", rc.sess.sam, "security key "+name, store.ResultOK)
 	rc.flashOK("keys.removed", name)
+	s.revokeIdPAfter(ctx, rc, rc.sess.sam, "second factor removed (security key)")
 	rc.redirect("/me/security")
 }
 

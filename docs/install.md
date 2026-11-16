@@ -102,7 +102,10 @@ never by editing the packaged files.
 `ProtectSystem=strict`, a private `/tmp`, `MemoryDenyWriteExecute` and a
 `@system-service` syscall filter; its state is `/var/lib/conductor`
 (`StateDirectory`). The TOTP encryption key reaches it through
-`LoadCredential=totp-key:/etc/conductor/credentials/totp-key`.
+`LoadCredential=totp-key:/etc/conductor/credentials/totp-key`, and the
+audit chain's key through
+`LoadCredential=audit-key:/etc/conductor/credentials/audit-key` (the
+package creates it; without the package, `conductor setup` does).
 
 `conductor-helper.service` runs as root with `CapabilityBoundingSet` limited
 to file access, write access only to Samba's state directories,
@@ -133,7 +136,10 @@ Interactive; flags exist for every question (`conductor setup -h`). It:
    default to Domain Admins (RID 512), plus optional helpdesk and auditor
    groups;
 4. generates the TOTP key `/etc/conductor/credentials/totp-key` (0600,
-   root). Back it up: without it every 2FA enrollment is lost;
+   root) and, if it is missing, the audit key
+   `/etc/conductor/credentials/audit-key`. Back both up: without the first
+   every 2FA enrollment is lost, without the second the audit chain cannot
+   be verified;
 5. writes `/etc/conductor/conductor.toml` (root:conductor 0640) after
    validating it; security keys (WebAuthn) are enabled for the host name of
    `--public-url` (or `--webauthn-rp-id NAME`), off without either;
@@ -170,7 +176,7 @@ Administrators must enroll 2FA before they reach any admin page, and only
 through a one-time link (24 hours). If setup did not issue one:
 
 ```sh
-sudo -u conductor conductor enroll-link --user lab.admin --base-url https://dc1.example.com:8443
+sudo conductor enroll-link --user lab.admin --base-url https://dc1.example.com:8443
 ```
 
 Give the link to the administrator over a trusted channel. They open it,
@@ -183,9 +189,14 @@ Helpdesk and auditor accounts enroll on their first sign-in
 
 ## Operating
 
-- Audit chain: `sudo -u conductor conductor audit verify` (run it as the
-  database owner; root would leave root-owned WAL files). Export:
-  `sudo -u conductor conductor audit export > audit.jsonl`.
+- Audit chain: `sudo conductor audit verify`. It reads the root-only audit
+  key, then drops to the database owner before it opens the database (so
+  no root-owned WAL file is left), checks every row and the head anchor,
+  and says from which row the chain is keyed (rows from before the audit
+  key keep their plain SHA-256 hash). Export: `sudo conductor audit export
+  > audit.jsonl`. With `[audit] journal` on, every row's id, action and
+  hash are also in the journal (`journalctl -u conductor`), which can be
+  forwarded to a remote syslog.
 - Restart = everyone signs in again (Kerberos tickets live only in memory).
 - Upgrade: with the package, `apt upgrade` (the running services are
   restarted; `conductor.toml`, credentials and the database are kept; an
@@ -199,7 +210,8 @@ Helpdesk and auditor accounts enroll on their first sign-in
   audit log): back them up first. The `conductor` user is kept.
 - Backups: install conductor-backup (<https://github.com/openbasalt/samba-conductor-backup/blob/main/README.md>):
   encrypted domain backups that include conductor's database; keep
-  `/etc/conductor/credentials/totp-key` offline with the operator's age key
+  `/etc/conductor/credentials/totp-key` and `audit-key` offline with the
+  operator's age key
   (`restore.md`, section 0).
 - Google Workspace sync (optional): install conductor-sync
   (<https://github.com/openbasalt/samba-conductor-sync/blob/main/docs/usage-p5.md>) with its API socket

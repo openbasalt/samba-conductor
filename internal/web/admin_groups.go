@@ -77,9 +77,13 @@ func (s *Server) handleGroup(rc *reqCtx) {
 			}
 			nested = append(nested, memberRef{DN: child.DN, Name: child.Name, Kind: "group", GUID: child.GUID.String()})
 		}
+		protected, perr := s.groupProtected(ctx, conn, grp)
+		if perr != nil {
+			s.log.Warn("protection check", "dn", grp.DN, "err", perr)
+		}
 		rc.render(http.StatusOK, "group", map[string]any{"G": grp, "Members": refs, "Total": total, "Page": page,
 			"More": end < total, "From": start + 1, "Parents": parents, "Nested": nested, "Effective": effective,
-			"Protected": s.roleSIDs.isProtectedGroup(grp.SID)})
+			"Protected": protected})
 		return nil
 	})
 }
@@ -111,7 +115,10 @@ func (s *Server) groupAction(rc *reqCtx, build func(ctx context.Context, conn *a
 		if p.back == "" {
 			p.back = "/admin/groups/" + grp.GUID.String()
 		}
-		if s.roleSIDs.isProtectedGroup(grp.SID) {
+		if protected, perr := s.groupProtected(ctx, conn, grp); protected {
+			if perr != nil {
+				s.log.Warn("protection check", "dn", grp.DN, "err", perr)
+			}
 			p.reauth, p.warning = true, rc.T("confirm.warn.admin_group")
 		}
 		rc.propose(p)

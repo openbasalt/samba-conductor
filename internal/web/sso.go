@@ -259,8 +259,11 @@ type clientForm struct {
 	Name, Kind, Redirects, PostLogout, Claim string
 	Scopes                                   []string
 	AllowAll, FirstParty, RequireMFA         bool
-	PreviewUser                              string
-	Preset                                   string
+	// EmailVerified asserts email_verified=true (off by default: only for
+	// a client that may trust the directory's mail).
+	EmailVerified bool
+	PreviewUser   string
+	Preset        string
 	groupPick
 }
 
@@ -279,19 +282,19 @@ func (rc *reqCtx) clientForm() clientForm {
 	return clientForm{ID: rc.form("id"), Name: rc.form("name"), Kind: rc.form("kind"), Redirects: rc.form("redirect_uris"),
 		PostLogout: rc.form("post_logout_uris"), Claim: rc.form("groups_claim"), Scopes: rc.r.PostForm["scopes"],
 		AllowAll: rc.form("allow_all") == "1", FirstParty: rc.form("first_party") == "1", RequireMFA: rc.form("require_mfa") == "1",
-		PreviewUser: rc.form("preview_user"), Preset: rc.form("preset"), groupPick: rc.groupPick()}
+		EmailVerified: rc.form("email_verified") == "1", PreviewUser: rc.form("preview_user"), Preset: rc.form("preset"), groupPick: rc.groupPick()}
 }
 
 func (f clientForm) input() idpapi.ClientInput {
 	return idpapi.ClientInput{Name: f.Name, Kind: f.Kind, RedirectURIs: formLines(f.Redirects), PostLogoutURIs: formLines(f.PostLogout),
 		Scopes: f.Scopes, Groups: f.Groups, AllowAllUsers: f.AllowAll, FirstParty: f.FirstParty, GroupsClaim: f.Claim,
-		GroupsFilter: f.Filter, RequireMFA: f.RequireMFA}
+		GroupsFilter: f.Filter, RequireMFA: f.RequireMFA, EmailVerified: f.EmailVerified}
 }
 
 func clientFormFrom(c idpapi.ClientInput) clientForm {
 	return clientForm{Name: c.Name, Kind: c.Kind, Redirects: strings.Join(c.RedirectURIs, "\n"), PostLogout: strings.Join(c.PostLogoutURIs, "\n"),
 		Claim: c.GroupsClaim, Scopes: c.Scopes, AllowAll: c.AllowAllUsers, FirstParty: c.FirstParty, RequireMFA: c.RequireMFA,
-		groupPick: groupPick{Groups: slices.Clone(c.Groups), Filter: slices.Clone(c.GroupsFilter)}}
+		EmailVerified: c.EmailVerified, groupPick: groupPick{Groups: slices.Clone(c.Groups), Filter: slices.Clone(c.GroupsFilter)}}
 }
 
 // renderClientForm shows the form (new or edit) with the group names, the
@@ -385,7 +388,8 @@ func (s *Server) proposeClient(ctx context.Context, rc *reqCtx, f clientForm, in
 		"post_logout_uris: "+strings.Join(in.PostLogoutURIs, " "), "scopes: "+strings.Join(in.Scopes, " "),
 		"allowed_groups: "+labels(in.Groups), fmt.Sprintf("allow_all_users: %v", in.AllowAllUsers),
 		"groups_claim: "+in.GroupsClaim, "groups_filter: "+labels(in.GroupsFilter),
-		fmt.Sprintf("first_party: %v", in.FirstParty), fmt.Sprintf("require_mfa: %v", in.RequireMFA))
+		fmt.Sprintf("first_party: %v", in.FirstParty), fmt.Sprintf("require_mfa: %v", in.RequireMFA),
+		fmt.Sprintf("email_verified: %v", in.EmailVerified))
 	warning := ""
 	if in.AllowAllUsers {
 		warning = rc.T("sso.warn.all_users")

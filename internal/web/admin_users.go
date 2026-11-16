@@ -77,7 +77,7 @@ func (s *Server) handleUser(rc *reqCtx) {
 			s.log.Warn("protection check", "dn", u.DN, "err", perr)
 		}
 		_, mfaErr := s.store.GetTOTP(ctx, u.SID.String())
-		if mfaErr != nil && s.keyCount(ctx, u.SID.String()) > 0 {
+		if n, kerr := s.storedKeys(ctx, u.SID.String()); mfaErr != nil && (kerr != nil || n > 0) {
 			mfaErr = nil
 		}
 		rc.sess.mu.Lock()
@@ -228,9 +228,9 @@ func (s *Server) handleUserReset(rc *reqCtx) {
 		}
 		change := pwChange{SID: u.SID.String(), SAM: u.SAMAccountName, Mail: u.Mail, ByAdmin: true}
 		return &pendingOp{action: "user.reset_password", op: op, title: rc.T("user.reset.title", u.SAMAccountName),
-			summary: summary, done: rc.T("user.reset.done"), after: func(ctx context.Context, _ *reqCtx) error {
+			summary: summary, done: rc.T("user.reset.done"), after: func(ctx context.Context, rc *reqCtx) error {
 				s.notifyPasswordChanged(ctx, change)
-				return nil
+				return s.revokeIdPUser(ctx, rc, change.SAM, "password reset by an administrator")
 			}}, nil
 	})
 }
@@ -349,7 +349,10 @@ func (s *Server) handleUserGroupAdd(rc *reqCtx) {
 		}
 		p := &pendingOp{action: "group.add_member", target: grp.DN, op: op, title: rc.T("group.add.title", u.SAMAccountName, grp.Name),
 			summary: rc.T("confirm.summary.member_add", u.SAMAccountName, grp.Name), done: rc.T("op.done")}
-		if s.roleSIDs.isProtectedGroup(grp.SID) {
+		if protected, perr := s.groupProtected(ctx, conn, grp); protected {
+			if perr != nil {
+				s.log.Warn("protection check", "dn", grp.DN, "err", perr)
+			}
 			p.reauth, p.warning = true, rc.T("confirm.warn.admin_group")
 		}
 		return p, nil
@@ -372,7 +375,10 @@ func (s *Server) handleUserGroupRemove(rc *reqCtx) {
 		}
 		p := &pendingOp{action: "group.remove_member", target: grp.DN, op: op, title: rc.T("group.remove.title", u.SAMAccountName, grp.Name),
 			summary: rc.T("confirm.summary.member_remove", u.SAMAccountName, grp.Name), done: rc.T("op.done")}
-		if s.roleSIDs.isProtectedGroup(grp.SID) {
+		if protected, perr := s.groupProtected(ctx, conn, grp); protected {
+			if perr != nil {
+				s.log.Warn("protection check", "dn", grp.DN, "err", perr)
+			}
 			p.reauth, p.warning = true, rc.T("confirm.warn.admin_group")
 		}
 		return p, nil
@@ -491,7 +497,7 @@ func (s *Server) inviteNewCheck(ctx context.Context, rc *reqCtx, f map[string]st
 
 func (s *Server) handleUserMFAReset(rc *reqCtx) {
 	s.userAction(rc, PermMFAManage, func(ctx context.Context, conn *ad.Conn, u ad.User) (*pendingOp, error) {
-		target := u.SID.String()
+		target, sam := u.SID.String(), u.SAMAccountName
 		return &pendingOp{action: "mfa.reset", title: rc.T("user.mfa_reset.title", u.SAMAccountName),
 			summary: rc.T("user.mfa_reset.summary"), preview: "remove the TOTP enrollment, security keys and recovery codes of " + u.SAMAccountName +
 				" (" + target + ")\nend every conductor session of that user",
@@ -504,6 +510,8 @@ func (s *Server) handleUserMFAReset(rc *reqCtx) {
 				}
 				s.sess.destroyUser(ctx, target)
 				return nil
+			}, after: func(ctx context.Context, rc *reqCtx) error {
+				return s.revokeIdPUser(ctx, rc, sam, "2FA reset by an administrator")
 			}, done: rc.T("user.mfa_reset.done")}, nil
 	})
 }

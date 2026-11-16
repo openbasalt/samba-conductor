@@ -52,6 +52,8 @@ func (s *Server) routeTable() []route {
 		{method: "POST", pattern: "/me/password", perm: PermSelf, h: s.handleMePassword},
 		{method: "GET", pattern: "/me/security", perm: PermSelf, h: s.handleSecurity, script: true},
 		{method: "GET", pattern: "/me/recovery-codes", perm: PermSelf, h: s.handleRecoveryCodes},
+		{method: "GET", pattern: "/me/security/verify", perm: PermSelf, h: s.handleStepUpPage, script: true},
+		{method: "POST", pattern: "/me/security/verify", perm: PermSelf, h: s.handleStepUp},
 		{method: "GET", pattern: "/me/2fa/enroll", perm: PermSelf, h: s.handleSelfEnrollStart},
 		{method: "POST", pattern: "/me/2fa/enroll", perm: PermSelf, h: s.handleSelfEnroll},
 		{method: "GET", pattern: "/me/2fa/qr.png", perm: PermSelf, h: s.handleSelfQR},

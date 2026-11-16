@@ -45,7 +45,10 @@
     </tr>{{end}}</tbody>
   </table>{{else}}<p class="muted" data-e2e="security-text-no-keys">{{t "keys.none"}}</p>{{end}}
   {{if .D.KeyOptions}}<h3>{{t "keys.register_title"}}</h3>
-  {{template "key-register" (dict "P" $ "Action" "/me/2fa/keys/register" "Options" .D.KeyOptions)}}{{end}}
+  {{template "key-register" (dict "P" $ "Action" "/me/2fa/keys/register" "Options" .D.KeyOptions)}}
+  {{else if .D.KeyStepUp}}<h3>{{t "keys.register_title"}}</h3>
+  <p class="hint" data-e2e="security-text-key-stepup">{{t "stepup.key_hint"}}</p>
+  <div class="actions"><a class="btn" href="/me/security/verify" data-e2e="security-link-stepup">{{t "stepup.title"}}</a></div>{{end}}
 </section>{{end}}
 {{if .D.Recovery}}<section class="card" aria-labelledby="sec-recovery">
   <h2 id="sec-recovery">{{t "recaddr.title"}}</h2>

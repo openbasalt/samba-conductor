@@ -144,6 +144,7 @@ elsewhere and every style is inline.
 | `password_changed` | the logon name, the time, and the client address or "an administrator" |
 | `alternate_verify` | a verification code and how long it is valid |
 | `alternate_changed` | the logon name, the time and the client address |
+| `second_factor_added` | the logon name, the time and the client address |
 
 Messages never carry a password or the state of an account. Invitations,
 reset links, the notices after a password change and the recovery address

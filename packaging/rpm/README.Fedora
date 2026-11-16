@@ -27,8 +27,8 @@ Another listen port than 8443 needs its SELinux port type:
 
 Upgrades restart the services that are running. "dnf remove conductor"
 stops and disables the units and removes the packaged files; it keeps what
-was created after installation: conductor.toml, the TOTP key in
-credentials/, the TLS files, /var/lib/conductor (database and audit log)
+was created after installation: conductor.toml, the TOTP and audit keys
+in credentials/, the TLS files, /var/lib/conductor (database and audit log)
 and the system user. Delete them by hand when the data is no longer needed
 (back up the TOTP key and the database first, see docs/restore.md).
 

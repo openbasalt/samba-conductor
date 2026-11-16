@@ -65,6 +65,20 @@ type BackupConfig struct {
 	// Python and Samba binaries (facts, version).
 	Python string
 	Samba  string
+	// RetentionFloor is the least retention a policy from conductor may
+	// set ([backup.retention_floor] in helper.toml; zero: the default
+	// policy's retention). Going below it takes root, in helper.toml, so a
+	// compromised web process cannot have conductor-backup prune the
+	// history.
+	RetentionFloor helper.BackupRetention
+}
+
+// floor is the retention floor in force.
+func (b *BackupConfig) floor() helper.BackupRetention {
+	if b.RetentionFloor == (helper.BackupRetention{}) {
+		return helper.DefaultBackupPolicy().Retention
+	}
+	return b.RetentionFloor
 }
 
 // DefaultBackupFiles are the host files a full recovery needs.
@@ -728,10 +742,17 @@ func (s *Server) backupTrigger(_ context.Context, req helper.Request, p *helper.
 	return helper.BackupTriggerResult{RequestID: id}, nil
 }
 
-// backupPolicySet replaces the policy (already validated by the protocol).
+// backupPolicySet replaces the policy (already validated by the protocol),
+// refusing a retention below the floor of helper.toml.
 func (s *Server) backupPolicySet(req helper.Request, p *helper.BackupPolicy) error {
 	if s.cfg.Backup == nil {
 		return errNotConfigured()
+	}
+	if f, r := s.cfg.Backup.floor(), p.Retention; r.Daily < f.Daily || r.Weekly < f.Weekly || r.Monthly < f.Monthly {
+		s.log.Warn("backup policy below the retention floor refused", "caller_user", req.Caller.User, "caller_sid", req.Caller.SID,
+			"daily", r.Daily, "weekly", r.Weekly, "monthly", r.Monthly)
+		return &helper.Error{Code: helper.CodeBadRequest, Message: fmt.Sprintf(
+			"retention below the floor set in helper.toml (at least %d daily, %d weekly, %d monthly)", f.Daily, f.Weekly, f.Monthly)}
 	}
 	dir, err := s.openStateDir()
 	if err != nil {

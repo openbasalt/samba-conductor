@@ -12,7 +12,6 @@ import (
 	"github.com/openbasalt/samba-conductor/internal/config"
 	"github.com/openbasalt/samba-conductor/internal/i18n"
 	"github.com/openbasalt/samba-conductor/internal/mail"
-	"github.com/openbasalt/samba-conductor/internal/store"
 	"github.com/openbasalt/samba-conductor/internal/web"
 )
 
@@ -139,11 +138,8 @@ func cmdMailStatus(args []string) error {
 		fmt.Println("queue: no database yet (conductor creates it when it starts)")
 		return nil
 	}
-	if err := checkDBOwner(cfg.State.Database); err != nil {
-		return err
-	}
 	ctx := context.Background()
-	st, err := store.Open(ctx, cfg.State.Database)
+	st, err := openStoreCLI(ctx, cfg, cfg.State.Database, false)
 	if err != nil {
 		return err
 	}

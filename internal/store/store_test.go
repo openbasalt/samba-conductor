@@ -20,8 +20,13 @@ func openTest(t *testing.T) *Store {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { _ = s.Close() })
+	if err := s.SetAuditKey(testAuditKey); err != nil {
+		t.Fatal(err)
+	}
 	return s
 }
+
+var testAuditKey = bytes.Repeat([]byte{0x42}, 32)
 
 func TestOpenIsPrivateAndIdempotent(t *testing.T) {
 	dir := t.TempDir()
@@ -189,7 +194,7 @@ func TestAuditChain(t *testing.T) {
 	rows.Next()
 	e3, _ = scanAudit(rows)
 	_ = rows.Close()
-	if _, err := s.db.ExecContext(ctx, `UPDATE audit SET hash = ? WHERE id = 3`, chainHash(e3)); err != nil {
+	if _, err := s.db.ExecContext(ctx, `UPDATE audit SET hash = ? WHERE id = 3`, keyedHash(testAuditKey, e3)); err != nil {
 		t.Fatal(err)
 	}
 	res, _ = s.VerifyAudit(ctx)
@@ -204,6 +209,9 @@ func TestWebAuthnCredentials(t *testing.T) {
 	c := WebAuthnCredential{ID: "abc", UserSID: "S-1-5-21-1-2-3-1001", Username: "jdoe", Name: "Key 1", Data: []byte(`{"x":1}`)}
 	if err := st.AddWebAuthnCredential(ctx, c); err != nil {
 		t.Fatal(err)
+	}
+	if n, err := st.CountWebAuthnCredentials(ctx); err != nil || n != 1 {
+		t.Fatalf("count %d %v", n, err)
 	}
 	if err := st.AddWebAuthnCredential(ctx, c); err == nil {
 		t.Fatal("duplicate credential ID accepted")

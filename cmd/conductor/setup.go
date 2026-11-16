@@ -20,7 +20,6 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
-	"syscall"
 	"text/template"
 	"time"
 
@@ -109,7 +108,6 @@ func cmdSetup(args []string) error {
 		return fmt.Errorf("service user %q: %w (create it first, see docs/install.md)", o.serviceUser, err)
 	}
 	gid, _ := strconv.Atoi(svc.Gid)
-	uid, _ := strconv.Atoi(svc.Uid)
 
 	// 1. Domain.
 	if o.realm == "" {
@@ -209,6 +207,18 @@ func cmdSetup(args []string) error {
 		}
 		fmt.Println("generated the 2FA secret key", keyPath, "(back it up: without it every enrollment is lost)")
 	}
+	// The audit chain's key (systemd credential, root only).
+	auditKeyPath := filepath.Join(etc, "credentials", "audit-key")
+	if _, err := os.Stat(auditKeyPath); errors.Is(err, os.ErrNotExist) {
+		k, err := secret.GenerateKeyHex()
+		if err != nil {
+			return err
+		}
+		if err := os.WriteFile(auditKeyPath, []byte(k+"\n"), 0o600); err != nil {
+			return err
+		}
+		fmt.Println("generated the audit key", auditKeyPath, "(back it up: without it the audit chain cannot be verified)")
+	}
 
 	// 5. Configuration file.
 	o.mfaPolicy = ask("2FA for regular users (off/optional/required)", o.mfaPolicy)
@@ -244,11 +254,12 @@ func cmdSetup(args []string) error {
 		if err != nil {
 			return err
 		}
+		// It starts as root to read the audit key, then drops to the
+		// owner of the database directory (the service user).
 		cmd := exec.Command(self, "enroll-link", "--config", o.configPath, "--user", o.firstAdmin, "--base-url", o.publicURL)
-		cmd.SysProcAttr = &syscall.SysProcAttr{Credential: &syscall.Credential{Uid: uint32(uid), Gid: uint32(gid)}}
 		cmd.Stdout, cmd.Stderr = os.Stdout, os.Stderr
 		cmd.Dir = "/"
-		cmd.Env = []string{"PATH=/usr/sbin:/usr/bin:/sbin:/bin"}
+		cmd.Env = []string{"PATH=/usr/sbin:/usr/bin:/sbin:/bin", "CREDENTIALS_DIRECTORY=" + filepath.Join(etc, "credentials")}
 		if err := cmd.Run(); err != nil {
 			return fmt.Errorf("creating the enrollment link: %w", err)
 		}
@@ -472,11 +483,11 @@ func cmdEnrollLink(args []string) error {
 	if err != nil {
 		return err
 	}
-	if err := checkDBOwner(filepath.Dir(cfg.State.Database)); err != nil {
-		return err
-	}
 	ctx := context.Background()
-	st, err := store.Open(ctx, cfg.State.Database)
+	// The audit row needs the root-only audit key: run as root, the
+	// command reads it and then drops to the owner of the database
+	// directory.
+	st, err := openStoreCLI(ctx, cfg, filepath.Dir(cfg.State.Database), true)
 	if err != nil {
 		return err
 	}

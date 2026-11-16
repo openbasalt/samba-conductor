@@ -55,6 +55,13 @@ issuer = "Samba Conductor"
 # (systemd LoadCredential, as in the shipped unit).
 key_file = ""
 
+[audit]
+# Key of the audit chain's HMAC. Empty: $CREDENTIALS_DIRECTORY/audit-key
+# (systemd LoadCredential, as in the shipped unit).
+key_file = ""
+# Copy every audit row (without its detail) to the service log (journald).
+journal = true
+
 [session]
 idle_minutes = 15
 absolute_hours = 8

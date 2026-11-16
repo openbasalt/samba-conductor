@@ -32,9 +32,15 @@ and the AD access layer in the
   then kept sealed in memory under a per-process key for the session.
 - Every AD bind sub-code is handled. An expired or must-change password,
   which AD proves right, leads to a change page that asks for the old
-  password again (never an administrator reset). Locked, disabled and
-  expired accounts get a clear message; everything else is "wrong
-  username or password".
+  password again (never an administrator reset). Every other refusal
+  (unknown user, wrong password, locked, disabled, expired or restricted
+  account) gets the same message and counts against the per-account
+  limit, and none answers sooner than 750 ms after the request: the KDC
+  reports an account's state before it checks the password, so telling
+  them apart would show anyone whether a username exists and in what
+  state. The reason is kept in the audit log. A clock skew between the
+  server and the DC has its own message (it says nothing about the
+  account).
 - Rate limits per client address (30 per minute) and per account (5
   failures in 15 minutes) apply to sign-in, second factor and password
   forms. The per-account limit sits below the domain lockout threshold,
@@ -58,6 +64,27 @@ and the AD access layer in the
   administrator. With plain first-sign-in enrollment a stolen
   administrator password would be enough to register the thief's
   authenticator.
+- Adding a second factor from self-service (TOTP or a security key) needs
+  a step-up from the last 10 minutes: the password and a current second
+  factor (at sign-in or on the step-up page), or the password alone for a
+  user with none yet. Removing one asks for the password and a factor on
+  its own page. New recovery codes need a current code, under the same
+  limits as the sign-in (per address, per account, and the session ends
+  after five wrong codes). Every added factor is announced by e-mail to the
+  account's address and the recovery address.
+- Enrolled security keys keep a user enrolled when WebAuthn is turned off
+  in the configuration: the sign-in, the reset and invitation links and
+  conductor-idp then ask for TOTP or a recovery code instead of letting
+  the password alone through, and conductor warns at startup. Only an
+  administrator's reset of the user's 2FA removes the keys.
+- With the single sign-on section configured (`[idp]`), every change of
+  an account's second factors made in conductor (a factor added or
+  removed, an administrator's 2FA reset, new recovery codes) and every
+  password reset by an administrator (also in bulk jobs) asks
+  conductor-idp to end the account's sessions, tokens and consents
+  (`user.revoke`). The call is audited (`sso.user_revoke`); a failure does
+  not undo the change but is shown to whoever made it (or written in the
+  bulk row) with how to end the sessions by hand.
 - `webauthn.admin_required` makes keys mandatory for administrators: TOTP
   is then refused for them and recovery codes remain the emergency path.
   Removing the last second factor of a user who must have one is refused.
@@ -89,12 +116,19 @@ and the AD access layer in the
   ticket (fallback: an in-chain membership search plus the primary group)
   and re-checked on every privileged request, cached at most 60 s. A
   failed re-check ends the session instead of using stale roles.
-- Protected accounts and groups: the configured administrator groups plus
-  the well-known privileged groups (Domain, Enterprise and Schema Admins,
-  Domain Controllers, GP Creator Owners, Administrators, Account, Server,
-  Print and Backup Operators). Helpdesk is refused on them; administrators
-  re-authenticate for any write to a protected account or to the
-  membership of a protected group.
+- Protected accounts and groups: conductor's role groups (administrators,
+  helpdesk and auditors) plus the well-known privileged groups, matched by
+  SID (Domain, Enterprise and Schema Admins, Domain Controllers, read-only
+  and enterprise read-only DCs, GP Creator Owners, Key Admins and
+  Enterprise Key Admins, Administrators, Account, Server, Print and Backup
+  Operators, Replicator), DnsAdmins (domain-local with a RID that differs
+  per domain, so it is resolved by name to its SID and then matched by
+  membership), and any account or group with `adminCount=1`. Membership
+  counts directly, nested or by primary group; a group nested into a
+  protected group is protected too, and a failed lookup counts as
+  protected. Helpdesk is refused on them; administrators re-authenticate
+  for any write to a protected account or to the membership of a
+  protected group.
 - Each route declares its permission; a table-driven test enumerates
   every route and role.
 
@@ -151,14 +185,30 @@ and the AD access layer in the
 
 ## Audit log
 
-- An append-only SQLite table. Triggers refuse UPDATE and DELETE; each row
-  stores the SHA-256 of the previous row's hash and its own canonical
-  content. `conductor audit verify` checks the chain; the viewer filters
-  and exports JSON lines.
+- An append-only SQLite table. Triggers refuse UPDATE and DELETE. Each row
+  stores an HMAC-SHA256, under the audit key, of the previous row's hash
+  and its own canonical content. The key is a root-only file
+  (`/etc/conductor/credentials/audit-key`) that the service gets as a
+  systemd credential; conductor does not start without it. A head anchor
+  next to the table keeps the newest row's id and hash under the same key,
+  so rows removed from the end are detected as well as edited ones.
+- Rows written before the key existed (releases up to 0.2.x) keep their
+  plain SHA-256 hash. The first keyed row after them is an
+  `audit.key_start` marker, and no unkeyed row may follow a keyed one.
+- `conductor audit verify` (as root: it reads the key, then drops to the
+  database owner) checks the whole chain, the keyed part and the head
+  anchor, and says where keying starts; the viewer filters and exports
+  JSON lines, in batches that never hold the database while the client
+  reads.
 - Each entry records the actor (SID and name), action, target, the
   preview or helper request, result, source address, user agent and time.
-- The log is local; forwarding to syslog or object storage is not
-  implemented.
+- Every row, without its detail, is also written to the service log
+  (`[audit] journal`, on by default), so journald keeps the chain's hashes
+  where conductor cannot rewrite them and can forward them to syslog or a
+  remote collector. The key protects against whoever can change the
+  database but cannot read the key; someone running code as the service
+  can read its credential, and the journal copy is what still shows what
+  was written before.
 
 ## State and credentials
 
@@ -167,7 +217,8 @@ and the AD access layer in the
   session metadata, second-factor secrets and keys, enrollment links,
   bulk job reports, backup results, audit log. AD stays the source of
   truth; no copy of the directory is kept.
-- The TOTP key comes from systemd `LoadCredential` (or a 0600 key file).
+- The TOTP key and the audit key come from systemd `LoadCredential` (or
+  0600 key files).
 - Configuration in `/etc/conductor/conductor.toml`; unknown keys and
   invalid values stop the start, so a typo never falls back to a default.
 - conductor listens on 8443 by default so its unit keeps an empty
@@ -189,6 +240,15 @@ and the AD access layer in the
 - samba-tool runs with typed operations, no secrets in argv; its output
   stays in the helper's journal. Every call is logged by the helper and
   audited by conductor with the caller.
+- The helper can prove only the peer's UID. The caller a request names is
+  what conductor asserts: the helper checks that it is well formed, logs
+  it as asserted next to the proven peer, and refuses a change (back up
+  now, run a drill, policy) that does not name a domain account.
+- A backup policy below the retention floor of `helper.toml`
+  (`[backup.retention_floor]`, by default the default policy: 7 daily,
+  4 weekly, 12 monthly) is refused, so code running as conductor cannot
+  have conductor-backup prune the history; lowering the floor takes
+  root.
 - The helper unit keeps only the file capabilities it needs and may reach
   localhost only.
 
@@ -345,7 +405,11 @@ privilege, the account's marker, the values the plan saw) before writing.
   Grafana, Nextcloud, GitLab, generic) or SAML metadata (URL, file or
   text); allowed groups are picked from the directory by SID; a preview
   shows the claims or the assertion a real user would get, which also
-  validates the draft. Every change is previewed and confirmed with a
+  validates the draft. An OpenID Connect client asserts `email_verified`
+  only when its form says so (off by default: only for an application
+  that may trust the directory's mail). This needs conductor-idp's
+  management protocol version 2; the protocol has no version negotiation,
+  so conductor and conductor-idp are upgraded together. Every change is previewed and confirmed with a
   fresh second factor; a client secret is shown once and kept nowhere.
 - Branding (administrators only, Settings > Branding): the organization's
   name, logos, favicon, colors, texts per language, support contact and

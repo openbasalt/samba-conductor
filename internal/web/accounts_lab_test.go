@@ -147,6 +147,9 @@ func TestLabConnectedAccounts(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer func() { _ = st.Close() }()
+	if err := st.SetAuditKey(make([]byte, store.MinAuditKeyLen)); err != nil {
+		t.Fatal(err)
+	}
 	box, _ := secret.NewRandom()
 	s, err := New(Deps{Config: cfg, Store: st, Backend: dir, MFABox: box, Sync: socketSync{sock},
 		Logger: slog.New(slog.NewTextHandler(io.Discard, nil)), Version: "lab"})

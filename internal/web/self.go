@@ -236,7 +236,11 @@ func (s *Server) handleSecurity(rc *reqCtx) {
 	// The recovery address needs e-mail (its verification code).
 	d["Recovery"] = s.mailq != nil
 	if s.wa != nil && allowed && (enrolled || len(keys) > 0 || !(rc.roles.Admin && s.cfg.AdminEnrollmentLinkRequired())) {
-		if opts, err := s.beginCeremony(ctx, rc.sess, waRegister); err == nil {
+		// Adding a key needs a recent step-up; until then the page offers
+		// the step-up instead of the registration.
+		if !s.stepUpFresh(rc, enrolled || len(keys) > 0) {
+			d["KeyStepUp"] = true
+		} else if opts, err := s.beginCeremony(ctx, rc.sess, waRegister); err == nil {
 			d["KeyOptions"] = opts
 		}
 	}
@@ -261,6 +265,9 @@ func (s *Server) handleSelfEnrollStart(rc *reqCtx) {
 		rc.errorPage(http.StatusForbidden, "mfa.err.key_required")
 		return
 	}
+	if !s.requireStepUp(rc.ctx(), rc, "mfa.enroll") {
+		return
+	}
 	rc.render(http.StatusOK, "enroll", s.enrollData(rc, "/me/2fa/qr.png", "/me/2fa/enroll"))
 }
 
@@ -279,12 +286,17 @@ func (s *Server) handleSelfEnroll(rc *reqCtx) {
 		rc.render(http.StatusTooManyRequests, "enroll", d)
 		return
 	}
+	if !s.requireStepUp(rc.ctx(), rc, "mfa.enroll") {
+		return
+	}
 	if _, key := s.completeEnrollment(rc.ctx(), rc); key != "" {
 		d := s.enrollData(rc, "/me/2fa/qr.png", "/me/2fa/enroll")
 		d["Error"] = rc.T(key)
 		rc.render(http.StatusUnauthorized, "enroll", d)
 		return
 	}
+	s.notifyFactorAdded(rc.ctx(), rc)
+	s.revokeIdPAfter(rc.ctx(), rc, rc.sess.sam, "second factor added (TOTP)")
 	rc.redirect("/me/recovery-codes")
 }
 
@@ -309,25 +321,50 @@ func (s *Server) handleSelfDisable(rc *reqCtx) {
 	}
 	s.audit(ctx, rc, "mfa.disable", rc.sess.sam, "", store.ResultOK)
 	rc.flashOK("mfa.disabled")
+	s.revokeIdPAfter(ctx, rc, rc.sess.sam, "second factor removed (TOTP)")
 	rc.redirect("/me/security")
 }
 
 // handleNewRecoveryCodes replaces the recovery codes (a current code is
-// required).
+// required). The code check is limited like the sign-in's: per address,
+// per account, and the session ends after maxMFAFailures wrong codes.
 func (s *Server) handleNewRecoveryCodes(rc *reqCtx) {
 	ctx := rc.ctx()
-	ok, _, err := s.verifySecondFactor(ctx, rc.sess, rc.form("code"))
+	sess := rc.sess
+	if !s.ipLimit.Allow("2fa:" + rc.limitIP()) {
+		rc.flashErr("signin.err.rate_ip")
+		rc.redirect("/me/security")
+		return
+	}
+	if s.mfaFails.Blocked(sess.sam) {
+		s.audit(ctx, rc, "mfa.recovery_codes", sess.sam, "rate limited", store.ResultDenied)
+		s.endSessionAfterMFAFailures(rc)
+		return
+	}
+	ok, _, err := s.verifySecondFactor(ctx, sess, rc.form("code"))
 	if err != nil && !errors.Is(err, store.ErrNotFound) {
 		rc.errorPage(http.StatusInternalServerError, "err.internal")
 		return
 	}
 	if !ok {
-		s.mfaFails.Fail(rc.sess.sam)
-		s.audit(ctx, rc, "mfa.recovery_codes", rc.sess.sam, "wrong code", store.ResultDenied)
+		s.mfaFails.Fail(sess.sam)
+		sess.mu.Lock()
+		sess.mfaFailures++
+		n := sess.mfaFailures
+		sess.mu.Unlock()
+		s.audit(ctx, rc, "mfa.recovery_codes", sess.sam, "wrong code", store.ResultDenied)
+		if n >= maxMFAFailures {
+			s.endSessionAfterMFAFailures(rc)
+			return
+		}
 		rc.flashErr("mfa.err.code")
 		rc.redirect("/me/security")
 		return
 	}
+	s.mfaFails.Reset(sess.sam)
+	sess.mu.Lock()
+	sess.mfaFailures = 0
+	sess.mu.Unlock()
 	userSID := rc.sess.userSID.String()
 	codes, err := totp.NewRecoveryCodes()
 	if err != nil {
@@ -346,6 +383,7 @@ func (s *Server) handleNewRecoveryCodes(rc *reqCtx) {
 	rc.sess.newRecoveryCodes = codes
 	rc.sess.mu.Unlock()
 	s.audit(ctx, rc, "mfa.recovery_codes", rc.sess.sam, "regenerated", store.ResultOK)
+	s.revokeIdPAfter(ctx, rc, rc.sess.sam, "recovery codes regenerated")
 	rc.redirect("/me/recovery-codes")
 }
 
