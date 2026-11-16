@@ -82,7 +82,7 @@ $SSH 'for i in $(seq 90); do ss -ltn | grep -q ":8443 " && exit 0; sleep 1; done
 # busy lab host the first sign-ins then fail with "no KDC reachable"):
 # wait for a Kerberos-authenticated read.
 $SSH 'for i in $(seq 90); do sudo samba-tool user show lab.admin -H ldap://localhost -P >/dev/null 2>&1 && exit 0; sleep 2; done; exit 1'
-link="$($SSH 'sudo -u conductor conductor enroll-link --user lab.admin --base-url https://dc1.lab.conductor.test:8443' | tail -n 1)"
+link="$($SSH 'sudo conductor enroll-link --user lab.admin --base-url https://dc1.lab.conductor.test:8443' | tail -n 1)"
 spki="$(openssl x509 -in "$LAB_HOME/tls/conductor-dc1.pem" -pubkey -noout | openssl pkey -pubin -outform der | openssl dgst -sha256 -binary | base64)"
 rm -rf "$E2E/.auth" "$E2E/screenshots/$project" "$E2E/test-results"
 install -d -m 0700 "$E2E/.auth"
@@ -143,7 +143,7 @@ docker run --rm --network host --add-host dc1.lab.conductor.test:10.93.0.10 --se
   -e E2E_GREP="$grep" -v "$E2E:/work" -w /work mcr.microsoft.com/playwright:v1.64.0-noble </dev/null \
   sh -c 'npm ci --no-audit --no-fund --loglevel=error >/dev/null && npx playwright test --project='"$project"' ${E2E_GREP:+--grep "$E2E_GREP"}' || test_rc=$?
 echo "=== audit chains on dc1 and fs1 after the $project run"
-$SSH 'sudo -u conductor conductor audit verify'
+$SSH 'sudo conductor audit verify'
 $SSH 'sudo -u conductor-idp conductor-idp -config /etc/conductor-idp/idp.toml audit verify'
 $SSH_FS 'sudo conductor-files audit verify'
 exit "${test_rc:-0}"

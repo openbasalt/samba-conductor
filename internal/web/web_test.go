@@ -111,6 +111,9 @@ func newHarness(t *testing.T, mutate ...func(*config.Config)) *harness {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { _ = st.Close() })
+	if err := st.SetAuditKey(make([]byte, store.MinAuditKeyLen)); err != nil {
+		t.Fatal(err)
+	}
 	box, _ := secret.NewRandom()
 	fb := &fakeBackend{results: map[string]error{}}
 	for u := range fakeUsers {

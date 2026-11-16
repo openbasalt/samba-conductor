@@ -133,6 +133,23 @@ func cmdServe(args []string) error {
 		return err
 	}
 	defer func() { _ = st.Close() }()
+	// The audit chain is keyed: without its key conductor does not start.
+	auditKeyPath, err := cfg.AuditKeyPath()
+	if err != nil {
+		return err
+	}
+	auditKey, err := loadAuditKey(auditKeyPath)
+	if err != nil {
+		return err
+	}
+	err = st.SetAuditKey(auditKey)
+	clear(auditKey)
+	if err != nil {
+		return err
+	}
+	if cfg.AuditJournal() {
+		st.SetAuditSink(auditJournal(log))
+	}
 	keyPath, err := cfg.MFAKeyPath()
 	if err != nil {
 		return err
@@ -434,11 +451,9 @@ func cmdAudit(args []string) error {
 	if err != nil {
 		return err
 	}
-	if err := checkDBOwner(cfg.State.Database); err != nil {
-		return err
-	}
 	ctx := context.Background()
-	st, err := store.Open(ctx, cfg.State.Database)
+	// verify needs the audit key (root-only); export does not.
+	st, err := openStoreCLI(ctx, cfg, cfg.State.Database, args[0] == "verify")
 	if err != nil {
 		return err
 	}
@@ -454,20 +469,15 @@ func cmdAudit(args []string) error {
 	if res.BrokenAt != 0 {
 		return fmt.Errorf("audit chain BROKEN at row %d: %s (%d rows verified before it)", res.BrokenAt, res.Reason, res.Rows)
 	}
-	fmt.Printf("audit chain OK: %d rows, head %s\n", res.Rows, res.LastHash)
-	return nil
-}
-
-// checkDBOwner refuses to open the database as another user than its
-// owner: root would leave root-owned WAL files the service cannot open.
-func checkDBOwner(path string) error {
-	st, err := os.Stat(path)
-	if err != nil {
-		return fmt.Errorf("database: %w", err)
+	if res.Rows > 0 && res.KeyedFrom == 0 {
+		return fmt.Errorf("audit chain not keyed yet: %d rows, all plain SHA-256; start conductor once with the audit key, then verify again", res.Rows)
 	}
-	sys, ok := st.Sys().(*syscall.Stat_t)
-	if ok && int(sys.Uid) != os.Geteuid() {
-		return fmt.Errorf("run this as the database owner (uid %d), e.g. sudo -u conductor conductor …", sys.Uid)
+	switch {
+	case res.KeyedFrom > 1:
+		fmt.Printf("audit chain OK: %d rows (1-%d plain SHA-256 from before the audit key, keyed from row %d), head row %d %s\n",
+			res.Rows, res.KeyedFrom-1, res.KeyedFrom, res.LastID, res.LastHash)
+	default:
+		fmt.Printf("audit chain OK: %d rows, keyed, head row %d %s\n", res.Rows, res.LastID, res.LastHash)
 	}
 	return nil
 }

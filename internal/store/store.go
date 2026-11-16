@@ -29,9 +29,14 @@ var migrations embed.FS
 // Store wraps the database.
 type Store struct {
 	db *sql.DB
-	// auditMu serializes appends so the chain has no forks.
+	// auditMu serializes appends so the chain has no forks; it also guards
+	// auditKey and auditSink.
 	auditMu sync.Mutex
-	now     func() time.Time
+	// auditKey keys the audit chain (SetAuditKey); appends need it.
+	auditKey []byte
+	// auditSink receives every appended row after its commit (optional).
+	auditSink func(AuditEvent)
+	now       func() time.Time
 }
 
 // Open opens (creating if needed) the database at path and applies the

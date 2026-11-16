@@ -20,8 +20,13 @@ func openTest(t *testing.T) *Store {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { _ = s.Close() })
+	if err := s.SetAuditKey(testAuditKey); err != nil {
+		t.Fatal(err)
+	}
 	return s
 }
+
+var testAuditKey = bytes.Repeat([]byte{0x42}, 32)
 
 func TestOpenIsPrivateAndIdempotent(t *testing.T) {
 	dir := t.TempDir()
@@ -189,7 +194,7 @@ func TestAuditChain(t *testing.T) {
 	rows.Next()
 	e3, _ = scanAudit(rows)
 	_ = rows.Close()
-	if _, err := s.db.ExecContext(ctx, `UPDATE audit SET hash = ? WHERE id = 3`, chainHash(e3)); err != nil {
+	if _, err := s.db.ExecContext(ctx, `UPDATE audit SET hash = ? WHERE id = 3`, keyedHash(testAuditKey, e3)); err != nil {
 		t.Fatal(err)
 	}
 	res, _ = s.VerifyAudit(ctx)

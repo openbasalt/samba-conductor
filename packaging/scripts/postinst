@@ -33,6 +33,14 @@ configure | abort-upgrade | abort-deconfigure | abort-remove)
 	newdir root root 0700 /etc/conductor/credentials
 	newdir conductor conductor 0700 /var/lib/conductor
 
+	# The audit chain's key (LoadCredential=audit-key in conductor.service),
+	# created once, before an upgrade restarts conductor. "conductor setup"
+	# keeps an existing one.
+	key="${DPKG_ROOT:-}/etc/conductor/credentials/audit-key"
+	if [ ! -e "$key" ]; then
+		(umask 077 && { od -An -tx1 -N32 /dev/urandom | tr -d ' \n'; echo; } >"$key.new" && mv "$key.new" "$key")
+	fi
+
 	if command -v deb-systemd-helper >/dev/null 2>&1; then
 		for unit in $ENABLE; do
 			if deb-systemd-helper debian-installed "$unit"; then
