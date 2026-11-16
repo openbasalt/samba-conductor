@@ -675,6 +675,7 @@ func (s *Server) linkEnrolled(ctx context.Context, rc *reqCtx, codes []string, h
 	rc.sess.newRecoveryCodes = nil
 	rc.sess.mu.Unlock()
 	s.audit(ctx, rc, "invite.enrolled", rec.sam, how, store.ResultOK)
+	s.notifyFactorAddedTo(ctx, rec.sid, rec.sam, rec.addr, rc.lang, rc.ip)
 	s.linkComplete(ctx, rc, "second factor "+how)
 }
 

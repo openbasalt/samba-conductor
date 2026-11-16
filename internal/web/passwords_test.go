@@ -194,6 +194,9 @@ func TestInvitationEnrollmentRequired(t *testing.T) {
 	if !hasAction(h.auditActions(t), "invite.enrolled:ok") {
 		t.Fatal("enrollment not audited")
 	}
+	if n := h.mailsOf(t, mail.TemplateFactorAdded); len(n) != 1 {
+		t.Fatalf("second factor notice after a link enrollment: %d", len(n))
+	}
 }
 
 // TestInvitationResumesAfterPassword: an invitation whose password is set

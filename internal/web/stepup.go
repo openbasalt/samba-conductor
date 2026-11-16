@@ -149,16 +149,24 @@ func (s *Server) notifyFactorAdded(ctx context.Context, rc *reqCtx) {
 		addr = u.Mail
 		return err
 	})
+	s.notifyFactorAddedTo(ctx, userSID, sam, addr, rc.lang, rc.ip)
+}
+
+// notifyFactorAddedTo sends the notice of an added second factor to an
+// account's mail and its recovery address.
+func (s *Server) notifyFactorAddedTo(ctx context.Context, userSID, sam, addr, lang, from string) {
+	if s.mailq == nil {
+		return
+	}
 	extra := ""
 	if r, err := s.store.GetRecoveryEmail(ctx, userSID); err == nil {
 		extra = r.Address
 	}
-	lang := rc.lang
 	if lang == "" {
 		lang = s.cfg.UI.DefaultLanguage
 	}
 	for _, to := range recipients(addr, extra) {
-		if _, err := s.queueMail(ctx, mail.TemplateFactorAdded, lang, to, mail.Data{Username: sam, When: s.now(), From: rc.ip},
+		if _, err := s.queueMail(ctx, mail.TemplateFactorAdded, lang, to, mail.Data{Username: sam, When: s.now(), From: from},
 			s.now().Add(mail.NotificationLifetime), "notify"); err != nil {
 			s.log.Error("queueing a second factor notice", "user", sam, "err", err)
 		}
