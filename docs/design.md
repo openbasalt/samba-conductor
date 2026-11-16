@@ -77,6 +77,14 @@ and the AD access layer in the
   conductor-idp then ask for TOTP or a recovery code instead of letting
   the password alone through, and conductor warns at startup. Only an
   administrator's reset of the user's 2FA removes the keys.
+- With the single sign-on section configured (`[idp]`), every change of
+  an account's second factors made in conductor (a factor added or
+  removed, an administrator's 2FA reset, new recovery codes) and every
+  password reset by an administrator (also in bulk jobs) asks
+  conductor-idp to end the account's sessions, tokens and consents
+  (`user.revoke`). The call is audited (`sso.user_revoke`); a failure does
+  not undo the change but is shown to whoever made it (or written in the
+  bulk row) with how to end the sessions by hand.
 - `webauthn.admin_required` makes keys mandatory for administrators: TOTP
   is then refused for them and recovery codes remain the emergency path.
   Removing the last second factor of a user who must have one is refused.
@@ -397,7 +405,11 @@ privilege, the account's marker, the values the plan saw) before writing.
   Grafana, Nextcloud, GitLab, generic) or SAML metadata (URL, file or
   text); allowed groups are picked from the directory by SID; a preview
   shows the claims or the assertion a real user would get, which also
-  validates the draft. Every change is previewed and confirmed with a
+  validates the draft. An OpenID Connect client asserts `email_verified`
+  only when its form says so (off by default: only for an application
+  that may trust the directory's mail). This needs conductor-idp's
+  management protocol version 2; the protocol has no version negotiation,
+  so conductor and conductor-idp are upgraded together. Every change is previewed and confirmed with a
   fresh second factor; a client secret is shown once and kept nowhere.
 - Branding (administrators only, Settings > Branding): the organization's
   name, logos, favicon, colors, texts per language, support contact and

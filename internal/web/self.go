@@ -296,6 +296,7 @@ func (s *Server) handleSelfEnroll(rc *reqCtx) {
 		return
 	}
 	s.notifyFactorAdded(rc.ctx(), rc)
+	s.revokeIdPAfter(rc.ctx(), rc, rc.sess.sam, "second factor added (TOTP)")
 	rc.redirect("/me/recovery-codes")
 }
 
@@ -320,6 +321,7 @@ func (s *Server) handleSelfDisable(rc *reqCtx) {
 	}
 	s.audit(ctx, rc, "mfa.disable", rc.sess.sam, "", store.ResultOK)
 	rc.flashOK("mfa.disabled")
+	s.revokeIdPAfter(ctx, rc, rc.sess.sam, "second factor removed (TOTP)")
 	rc.redirect("/me/security")
 }
 
@@ -381,6 +383,7 @@ func (s *Server) handleNewRecoveryCodes(rc *reqCtx) {
 	rc.sess.newRecoveryCodes = codes
 	rc.sess.mu.Unlock()
 	s.audit(ctx, rc, "mfa.recovery_codes", rc.sess.sam, "regenerated", store.ResultOK)
+	s.revokeIdPAfter(ctx, rc, rc.sess.sam, "recovery codes regenerated")
 	rc.redirect("/me/recovery-codes")
 }
 

@@ -378,6 +378,7 @@ func (s *Server) handleEnrollKey(rc *reqCtx) {
 	}
 	s.audit(ctx, rc, "mfa.enroll", sess.sam, detail, store.ResultOK)
 	s.notifyFactorAdded(ctx, rc)
+	s.revokeIdPAfter(ctx, rc, sess.sam, "second factor added (security key)")
 	tok, err := s.sess.rotate(ctx, sess, stageFull)
 	if err != nil {
 		rc.errorPage(http.StatusInternalServerError, "err.internal")
@@ -440,6 +441,7 @@ func (s *Server) handleKeyRegister(rc *reqCtx) {
 	rc.sess.mu.Unlock()
 	s.audit(ctx, rc, "mfa.key_register", rc.sess.sam, "security key "+name, store.ResultOK)
 	s.notifyFactorAdded(ctx, rc)
+	s.revokeIdPAfter(ctx, rc, rc.sess.sam, "second factor added (security key)")
 	if len(codes) > 0 {
 		rc.redirect("/me/recovery-codes")
 		return
@@ -523,6 +525,7 @@ func (s *Server) handleKeyRemove(rc *reqCtx) {
 	}
 	s.audit(ctx, rc, "mfa.key_remove", rc.sess.sam, "security key "+name, store.ResultOK)
 	rc.flashOK("keys.removed", name)
+	s.revokeIdPAfter(ctx, rc, rc.sess.sam, "second factor removed (security key)")
 	rc.redirect("/me/security")
 }
 

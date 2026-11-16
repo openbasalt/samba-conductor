@@ -474,6 +474,10 @@ func dcReport(t func(string, ...any) string, results []ad.DCResult) string {
 // errMessage is the translated message of an operation error: the generic
 // one by kind, or, for a per-DC failure, which DCs were and were not written.
 func (s *Server) errMessage(t func(string, ...any) string, err error) string {
+	var re *errIDPRevoke
+	if errors.As(err, &re) {
+		return t("sso.revoke.failed", re.user)
+	}
 	var be *brandingError
 	if errors.As(err, &be) {
 		return t(be.key)

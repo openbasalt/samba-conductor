@@ -664,6 +664,7 @@ func (s *Server) handleEnroll(rc *reqCtx) {
 		return
 	}
 	s.notifyFactorAdded(ctx, rc)
+	s.revokeIdPAfter(ctx, rc, rc.sess.sam, "second factor added (TOTP)")
 	tok, err := s.sess.rotate(ctx, rc.sess, stageFull)
 	if err != nil {
 		rc.errorPage(http.StatusInternalServerError, "err.internal")
