@@ -77,7 +77,7 @@ func (s *Server) handleUser(rc *reqCtx) {
 			s.log.Warn("protection check", "dn", u.DN, "err", perr)
 		}
 		_, mfaErr := s.store.GetTOTP(ctx, u.SID.String())
-		if mfaErr != nil && s.keyCount(ctx, u.SID.String()) > 0 {
+		if n, kerr := s.storedKeys(ctx, u.SID.String()); mfaErr != nil && (kerr != nil || n > 0) {
 			mfaErr = nil
 		}
 		rc.sess.mu.Lock()

@@ -96,8 +96,8 @@ func (s *Server) waUserBySID(ctx context.Context, userSID, sam, display string) 
 	return u, rows, nil
 }
 
-// keyCount returns how many security keys a user has (0 when WebAuthn is
-// off).
+// keyCount returns how many security keys a user can use now (0 when
+// WebAuthn is off). Whether the user is enrolled is storedKeys' answer.
 func (s *Server) keyCount(ctx context.Context, userSID string) int {
 	if s.wa == nil {
 		return 0
@@ -107,6 +107,16 @@ func (s *Server) keyCount(ctx context.Context, userSID string) int {
 		return 0
 	}
 	return len(rows)
+}
+
+// storedKeys returns how many security keys a user enrolled, whatever the
+// current WebAuthn setting: keys enrolled while WebAuthn was on keep the
+// account enrolled when an operator turns it off, so the sign-in still
+// asks for a second factor (TOTP or a recovery code) instead of skipping
+// it. Only an administrator's reset of the user's 2FA removes them.
+func (s *Server) storedKeys(ctx context.Context, userSID string) (int, error) {
+	rows, err := s.store.WebAuthnCredentials(ctx, userSID)
+	return len(rows), err
 }
 
 func (s *Server) hasKeys(rc *reqCtx) bool {

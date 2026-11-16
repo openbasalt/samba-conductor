@@ -309,6 +309,16 @@ func (s *Server) Start(ctx context.Context) error {
 	} else if n > 0 {
 		s.log.Warn("bulk jobs interrupted by a restart", "jobs", n)
 	}
+	if s.wa == nil {
+		// Enrolled keys still count as a second factor (storedKeys):
+		// their users must sign in with TOTP or a recovery code.
+		if n, err := s.store.CountWebAuthnCredentials(ctx); err != nil {
+			return err
+		} else if n > 0 {
+			s.log.Warn("WebAuthn is off but security keys are enrolled: their users must sign in with TOTP or a recovery code until [webauthn] is configured again or an administrator resets their 2FA",
+				"keys", n)
+		}
+	}
 	go func() {
 		t := time.NewTicker(time.Minute)
 		defer t.Stop()

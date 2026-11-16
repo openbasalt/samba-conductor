@@ -6,6 +6,7 @@
   {{template "key-assert" (dict "P" $ "Action" "/signin/2fa/key" "Options" .D.KeyOptions "Password" false)}}
   <h2>{{if .D.KeyRequired}}{{t "mfa.or_recovery"}}{{else}}{{t "mfa.or_code"}}{{end}}</h2>
   {{else}}<p>{{if .D.KeyRequired}}{{t "mfa.key_required_intro"}}{{else}}{{t "mfa.intro"}}{{end}}</p>{{end}}
+  {{if .D.KeysOff}}<div class="alert-info" data-e2e="mfa-text-keys-off">{{t "mfa.keys_off"}}</div>{{end}}
   <form method="post" action="/signin/2fa" autocomplete="off">
     {{template "csrf" .}}
     <div class="field">

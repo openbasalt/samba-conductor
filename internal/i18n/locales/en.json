@@ -419,6 +419,7 @@
   "mfa.intro": "Enter the code from your authenticator app to finish signing in.",
   "mfa.intro_key": "Use one of your security keys.",
   "mfa.key_required_intro": "A security key is required, but none is registered for you: enter a recovery code, then register a key.",
+  "mfa.keys_off": "Security keys are turned off on this server. Use your authenticator app or one of your recovery codes.",
   "mfa.new_codes": "New recovery codes",
   "mfa.off": "Off",
   "mfa.on": "2FA on",

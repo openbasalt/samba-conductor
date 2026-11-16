@@ -419,6 +419,7 @@
   "mfa.intro": "Digite o código do aplicativo autenticador para concluir o acesso.",
   "mfa.intro_key": "Use uma de suas chaves de segurança.",
   "mfa.key_required_intro": "É exigida uma chave de segurança, mas você não tem nenhuma registrada: informe um código de recuperação e registre uma chave.",
+  "mfa.keys_off": "As chaves de segurança estão desativadas neste servidor. Use seu aplicativo autenticador ou um dos seus códigos de recuperação.",
   "mfa.new_codes": "Novos códigos de recuperação",
   "mfa.off": "Desativada",
   "mfa.on": "2FA ativa",

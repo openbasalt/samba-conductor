@@ -181,10 +181,16 @@ func (s *Server) handleSignin(rc *reqCtx) {
 	}
 	s.accountFails.Reset(sam)
 	roles := s.roleSIDs.resolve(id.SID, groups)
-	enrolled := s.keyCount(ctx, id.SID.String()) > 0
-	if _, err := s.store.GetTOTP(ctx, id.SID.String()); err == nil {
-		enrolled = true
-	} else if !errors.Is(err, store.ErrNotFound) {
+	keys, err := s.storedKeys(ctx, id.SID.String())
+	enrolled := keys > 0
+	if err == nil {
+		if _, err = s.store.GetTOTP(ctx, id.SID.String()); err == nil {
+			enrolled = true
+		} else if errors.Is(err, store.ErrNotFound) {
+			err = nil
+		}
+	}
+	if err != nil {
 		cred.Close()
 		s.log.Error("reading 2FA state", "err", err)
 		s.signinError(rc, http.StatusInternalServerError, "err.internal", typed, enroll)
@@ -366,6 +372,10 @@ func (s *Server) mfaPageData(rc *reqCtx, errMsg string) map[string]any {
 		if opts, err := s.beginCeremony(rc.ctx(), sess, waSignin); err == nil {
 			d["KeyOptions"] = opts
 		}
+	} else if n, err := s.storedKeys(rc.ctx(), sess.userSID.String()); err == nil && n > 0 {
+		// Enrolled keys cannot be used while WebAuthn is off: say so, and
+		// that a code (or a recovery code) is the way in.
+		d["KeysOff"] = true
 	}
 	return d
 }

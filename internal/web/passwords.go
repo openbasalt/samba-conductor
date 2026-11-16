@@ -131,12 +131,15 @@ func recipients(addrs ...string) []string {
 	return out
 }
 
-// hasSecondFactor reports whether a user enrolled TOTP or a security key.
+// hasSecondFactor reports whether a user enrolled TOTP or a security key
+// (enrolled keys count even while WebAuthn is off). A storage error counts
+// as enrolled, so a factor is never skipped because it could not be read.
 func (s *Server) hasSecondFactor(ctx context.Context, userSID string) bool {
-	if _, err := s.store.GetTOTP(ctx, userSID); err == nil {
+	if _, err := s.store.GetTOTP(ctx, userSID); !errors.Is(err, store.ErrNotFound) {
 		return true
 	}
-	return s.keyCount(ctx, userSID) > 0
+	n, err := s.storedKeys(ctx, userSID)
+	return err != nil || n > 0
 }
 
 // resetRecoveryAddress is the recovery address a reset may go to: verified

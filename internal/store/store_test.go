@@ -210,6 +210,9 @@ func TestWebAuthnCredentials(t *testing.T) {
 	if err := st.AddWebAuthnCredential(ctx, c); err != nil {
 		t.Fatal(err)
 	}
+	if n, err := st.CountWebAuthnCredentials(ctx); err != nil || n != 1 {
+		t.Fatalf("count %d %v", n, err)
+	}
 	if err := st.AddWebAuthnCredential(ctx, c); err == nil {
 		t.Fatal("duplicate credential ID accepted")
 	}
