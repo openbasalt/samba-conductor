@@ -221,3 +221,11 @@
   </select>{{end}}
 
 {{define "ou-scope-notice"}}{{if .S.Rejected}}<p class="muted" role="status" data-e2e="{{.E}}-text-ou-unavailable">{{t "list.ou.unavailable"}}</p>{{end}}{{end}}
+
+{{/* Tabs of a user's page (separate routes, no script). G: the user's
+     GUID, Tab: "overview" or "attributes". Shown only to roles that may
+     open the Attributes tab. */}}
+{{define "user-tabs"}}<nav class="tabs" aria-label="{{t "user.tabs"}}" data-e2e="user-tabs">
+  <a href="/admin/users/{{.G}}" data-e2e="user-tab-overview"{{if eq .Tab "overview"}} aria-current="page"{{end}}>{{t "user.tab.overview"}}</a>
+  <a href="/admin/users/{{.G}}/attributes" data-e2e="user-tab-attributes"{{if eq .Tab "attributes"}} aria-current="page"{{end}}>{{t "user.tab.attributes"}}</a>
+</nav>{{end}}

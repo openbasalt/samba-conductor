@@ -37,6 +37,22 @@ func TestLoadDefaults(t *testing.T) {
 		!c.DelegatedMFARequired() || !c.AdminEnrollmentLinkRequired() || c.RoleCacheTTL().Seconds() != 60 || !c.TLS() {
 		t.Fatalf("defaults %+v", c)
 	}
+	if c.UI.AdvancedAttributeEdit {
+		t.Fatal("the attribute editor must be off by default")
+	}
+}
+
+func TestAdvancedAttributeEdit(t *testing.T) {
+	c, err := load(t, base+"[ui]\nadvanced_attribute_edit = true\n")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !c.UI.AdvancedAttributeEdit {
+		t.Fatal("advanced_attribute_edit = true not read")
+	}
+	if _, err := load(t, base+"[ui]\nadvanced_attribute_edit = \"yes\"\n"); err == nil {
+		t.Fatal("a non-boolean value accepted")
+	}
 }
 
 func TestValidation(t *testing.T) {

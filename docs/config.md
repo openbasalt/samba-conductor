@@ -56,6 +56,8 @@ What each role may do on the P2 pages:
 | Lockouts (all DCs), account health, CSV export | read | read | read |
 | Actions on selected accounts | all | unlock, enable/disable, reset password | none |
 | Bulk CSV import | yes | none | none |
+| User Attributes tab (every readable attribute, secrets hidden) | read | none | read |
+| Attribute editor (`[ui] advanced_attribute_edit`) | write | none | none |
 
 ## `[mfa]`
 
@@ -140,6 +142,7 @@ page says so. Set up together with conductor-backup
 | Key | Default | Meaning |
 |---|---|---|
 | `default_language` | `"en"` | `en` or `pt-BR`; users switch in the footer, and `Accept-Language` is honoured. |
+| `advanced_attribute_edit` | `false` | Offer administrators the restricted attribute editor on a user's Attributes tab: `loginShell`, `unixHomeDirectory`, `uidNumber`, `gidNumber`, `gecos` and `otherMailbox` only, each value validated, a duplicate `uidNumber` refused, previewed and audited like any change. Off: the editor's pages answer 404 and the read-only Attributes tab stays. |
 
 ## `[webauthn]`
 

@@ -24,9 +24,10 @@ const (
 
 	PermDashboard     Perm = "dashboard"
 	PermUsersRead     Perm = "users.read"
-	PermUsersHelpdesk Perm = "users.helpdesk" // reset password, unlock, enable/disable
-	PermUsersWrite    Perm = "users.write"    // create, edit, move, delete, membership
-	PermDirRead       Perm = "dir.read"       // groups, OUs, computers
+	PermUsersHelpdesk Perm = "users.helpdesk"   // reset password, unlock, enable/disable
+	PermUsersWrite    Perm = "users.write"      // create, edit, move, delete, membership
+	PermUsersAttrs    Perm = "users.attributes" // every readable attribute of a user (advanced view)
+	PermDirRead       Perm = "dir.read"         // groups, OUs, computers
 	PermDirWrite      Perm = "dir.write"
 	PermAuditRead     Perm = "audit.read"
 	PermDomainRead    Perm = "domain.read" // helper: functional levels, FSMO, DCs
@@ -59,7 +60,7 @@ const (
 )
 
 // allPerms lists every privileged permission (navigation, tests).
-var allPerms = []Perm{PermDashboard, PermUsersRead, PermUsersHelpdesk, PermUsersWrite, PermDirRead, PermDirWrite,
+var allPerms = []Perm{PermDashboard, PermUsersRead, PermUsersHelpdesk, PermUsersWrite, PermUsersAttrs, PermDirRead, PermDirWrite,
 	PermAuditRead, PermDomainRead, PermMFAManage, PermDNSRead, PermDNSWrite, PermGPORead, PermGPOWrite,
 	PermPolicyRead, PermPolicyWrite, PermHealthRead, PermBulk, PermBackupRead, PermBackupWrite, PermSyncRead, PermSyncWrite, PermFilesRead, PermFilesWrite, PermSSORead, PermSSOWrite, PermBranding, PermSettings}
 
@@ -78,7 +79,7 @@ type Roles struct {
 var rolePerms = map[string][]Perm{
 	"admin":    allPerms,
 	"helpdesk": {PermUsersRead, PermUsersHelpdesk, PermHealthRead},
-	"auditor": {PermDashboard, PermUsersRead, PermDirRead, PermAuditRead, PermDomainRead, PermDNSRead, PermGPORead,
+	"auditor": {PermDashboard, PermUsersRead, PermUsersAttrs, PermDirRead, PermAuditRead, PermDomainRead, PermDNSRead, PermGPORead,
 		PermPolicyRead, PermHealthRead, PermBackupRead, PermFilesRead},
 }
 

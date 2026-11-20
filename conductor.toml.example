@@ -80,6 +80,11 @@ socket = "/run/conductor-helper/helper.sock"
 
 [ui]
 default_language = "en"   # or "pt-BR"
+# The restricted editor of Unix and mail attributes (loginShell,
+# unixHomeDirectory, uidNumber, gidNumber, gecos, otherMailbox) on a user's
+# Attributes tab, for administrators. Leave off unless you manage Unix
+# attributes here.
+advanced_attribute_edit = false
 
 [webauthn]
 # Security keys and platform authenticators as a second factor. rp_id is

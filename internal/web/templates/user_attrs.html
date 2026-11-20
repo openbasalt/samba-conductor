@@ -1,0 +1,17 @@
+{{define "title"}}{{t "attrs.title" .D.U.SAMAccountName}}{{end}}
+{{define "content"}}{{$u := .D.U}}{{$g := print .D.U.GUID}}
+<div class="row"><h1 class="grow" data-e2e="attrs-text-name">{{with $u.DisplayName}}{{.}}{{else}}{{rdn $u.DN}}{{end}} <span class="muted">({{$u.SAMAccountName}})</span></h1></div>
+{{template "user-tabs" (dict "G" $g "Tab" "attributes")}}
+<section class="card" aria-labelledby="a-all">
+  <div class="row"><h2 id="a-all" class="grow">{{t "attrs.all"}}</h2>{{if .D.Edit}}<a class="btn" href="/admin/users/{{$g}}/attributes/edit" data-e2e="attrs-link-edit">{{t "attrs.edit"}}</a>{{end}}</div>
+  <p class="hint" data-e2e="attrs-text-hint">{{t "attrs.hint"}}</p>
+  <table class="table attrs" data-e2e="attrs-table">
+    <thead><tr><th scope="col">{{t "attrs.name"}}</th><th scope="col">{{t "attrs.values"}}</th></tr></thead>
+    <tbody>{{range .D.Raw.Attributes}}<tr data-e2e="attrs-row-{{e2e .Name}}">
+      <td class="mono small">{{.Name}}</td>
+      <td data-label="{{t "attrs.values"}}">{{if .Hidden}}<span class="badge badge-warn" data-e2e="attrs-hidden-{{e2e .Name}}">{{t "attrs.hidden"}}</span>
+      {{else}}{{range .Values}}<div class="attr-value">{{if .Binary}}<span class="muted small" data-e2e="attrs-binary">{{t "attrs.binary" .Len}}</span>{{else}}<span class="mono small">{{.Text}}</span>{{if .Truncated}} <span class="muted small" data-e2e="attrs-truncated">{{t "attrs.truncated" .Len}}</span>{{end}}{{end}}</div>{{end}}
+      {{if .More}}<div class="muted small" data-e2e="attrs-more">{{t "attrs.more" .More}}</div>{{end}}{{end}}</td>
+    </tr>{{end}}</tbody>
+  </table>
+</section>{{end}}
