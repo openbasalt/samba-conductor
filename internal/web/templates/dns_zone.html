@@ -32,6 +32,7 @@
       <div class="field"><label for="r-data">{{t "dns.data"}}</label><input id="r-data" name="data" type="text" required data-e2e="dns-input-data"><span class="hint">{{t "dns.data_hint"}}</span></div>
       <div class="field"><label for="r-ttl">{{t "dns.ttl"}}</label><input id="r-ttl" name="ttl" type="text" inputmode="numeric" placeholder="3600" data-e2e="dns-input-ttl"></div>
     </div>
+    {{if .D.ReverseZones}}<div class="check"><input id="r-ptr" name="ptr" type="checkbox" value="1" data-e2e="dns-check-ptr"><label for="r-ptr">{{t "dns.ptr.offer"}} <span class="hint">{{t "dns.ptr.offer_hint" .D.ReverseZones}}</span></label></div>{{end}}
     <button class="btn btn-primary" type="submit" data-e2e="dns-btn-add">{{t "form.preview"}}</button>
   </form>
 </section>
