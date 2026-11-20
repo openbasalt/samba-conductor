@@ -110,6 +110,97 @@ test.describe.serial('DNS', () => {
     await expect(page.getByTestId(`dns-row-${zone.replace(/[^a-z0-9]+/g, '-')}`)).toHaveCount(0);
   });
 
+  test('names with a leading underscore in the AD zone are the administrator\'s', async ({ page }, info) => {
+    test.setTimeout(240_000);
+    await signInMFA(page, info, 'lab.admin', env.adminPassword);
+    const zone = 'lab.conductor.test';
+    const sel = `s${rand()}`;
+    await page.goto(`/admin/dns/zones/${zone}`);
+    // DKIM, DMARC and an application SRV record can be added next to the
+    // AD locators, which stay read-only.
+    for (const [name, type, data] of [[`${sel}._domainkey`, 'TXT', 'v=DKIM1; k=rsa; p=MIIBIjAN'], [`_dmarc.${sel}`, 'TXT', 'v=DMARC1; p=none'],
+      [`_sip._tcp.${sel}`, 'SRV', `0 5 5060 intranet.${zone}`]]) {
+      await page.getByTestId('dns-input-name').fill(name);
+      await page.getByTestId('dns-select-type').selectOption(type);
+      await page.getByTestId('dns-input-data').fill(data);
+      await page.getByTestId('dns-btn-add').click();
+      await apply(page);
+      await expect(page.getByTestId('flash-ok')).toBeVisible();
+    }
+    await page.goto(`/admin/dns/zones/${zone}?q=${sel}._domainkey`);
+    await expect(page.getByTestId(`dns-badge-protected-${sel}-domainkey-txt`)).toHaveCount(0);
+    await page.getByTestId(`dns-link-edit-${sel}-domainkey-txt`).click();
+    await page.getByTestId('dnsrec-input-data').fill('v=DKIM1; k=rsa; p=MIIBCgKC');
+    await page.getByTestId('dnsrec-btn-preview').click();
+    await apply(page);
+    await expect(page.getByTestId(`dns-text-data-${sel}-domainkey-txt`)).toContainText('p=MIIBCgKC');
+    await shot(page, info, '08-dns-dkim');
+    await page.getByTestId(`dns-btn-delete-${sel}-domainkey-txt`).click();
+    await apply(page);
+    await expect(page.getByTestId(`dns-text-data-${sel}-domainkey-txt`)).toHaveCount(0);
+    for (const [q, row] of [[`_dmarc.${sel}`, `dmarc-${sel}-txt`], [`_sip._tcp.${sel}`, `sip-tcp-${sel}-srv`]]) {
+      await page.goto(`/admin/dns/zones/${zone}?q=${q}`);
+      await page.getByTestId(`dns-btn-delete-${row}`).click();
+      await apply(page);
+      await expect(page.getByTestId(`dns-text-data-${row}`)).toHaveCount(0);
+    }
+    // The locators are still AD-managed.
+    await page.goto(`/admin/dns/zones/${zone}?q=_kerberos._udp`);
+    await expect(page.getByTestId('dns-badge-protected-kerberos-udp-srv').first()).toBeVisible();
+  });
+
+  test('an A record with its PTR record', async ({ page }, info) => {
+    test.setTimeout(240_000);
+    await signInMFA(page, info, 'lab.admin', env.adminPassword);
+    const zone = 'apps.conductor.test';
+    const rev = '0.93.10.in-addr.arpa';
+    const host = `ptr-${rand()}`;
+    const other = `ptr-${rand()}`;
+    const preview = page.getByTestId('confirm-text-preview');
+    await page.goto(`/admin/dns/zones/${zone}`);
+    // Unchecked by default; the PTR record goes to the most specific
+    // reverse zone and points to the new name.
+    await expect(page.getByTestId('dns-check-ptr')).not.toBeChecked();
+    await page.getByTestId('dns-input-name').fill(host);
+    await page.getByTestId('dns-select-type').selectOption('A');
+    await page.getByTestId('dns-input-data').fill('10.93.0.251');
+    await page.getByTestId('dns-check-ptr').check();
+    await page.getByTestId('dns-btn-add').click();
+    await expect(preview).toContainText(`# then: add PTR 251.${rev} -> ${host}.${zone}`);
+    await apply(page, { screenshot: [info, '08-dns-ptr-preview'] });
+    await expect(page.getByTestId('flash-ok').filter({ hasText: `251.${rev}` })).toBeVisible();
+    await expect(page.getByTestId(`dns-text-data-${host}-a`)).toHaveText('10.93.0.251');
+    await page.goto(`/admin/dns/zones/${rev}?q=251`);
+    await expect(page.getByTestId('dns-text-data-251-ptr')).toHaveText(`${host}.${zone}`);
+    // No PTR option in a reverse zone.
+    await expect(page.getByTestId('dns-check-ptr')).toHaveCount(0);
+
+    // Another name on the same address: the existing PTR record is not
+    // changed, the A record is added and the user is told.
+    await page.goto(`/admin/dns/zones/${zone}`);
+    await page.getByTestId('dns-input-name').fill(other);
+    await page.getByTestId('dns-select-type').selectOption('A');
+    await page.getByTestId('dns-input-data').fill('10.93.0.251');
+    await page.getByTestId('dns-check-ptr').check();
+    await page.getByTestId('dns-btn-add').click();
+    await expect(page.getByTestId('confirm-text-warning')).toContainText(`${host}.${zone}`);
+    await apply(page);
+    await expect(page.getByTestId('flash-error')).toContainText(`251.${rev}`);
+    await expect(page.getByTestId(`dns-text-data-${other}-a`)).toHaveText('10.93.0.251');
+    await page.goto(`/admin/dns/zones/${rev}?q=251`);
+    await expect(page.getByTestId('dns-text-data-251-ptr')).toHaveText(`${host}.${zone}`);
+
+    // Clean up.
+    await page.getByTestId('dns-btn-delete-251-ptr').click();
+    await apply(page);
+    for (const name of [host, other]) {
+      await page.goto(`/admin/dns/zones/${zone}?q=${name}`);
+      await page.getByTestId(`dns-btn-delete-${name}-a`).click();
+      await apply(page);
+      await expect(page.getByTestId(`dns-text-data-${name}-a`)).toHaveCount(0);
+    }
+  });
+
   test('a reverse zone from a network, with a PTR record', async ({ page }, info) => {
     await signInMFA(page, info, 'lab.admin', env.adminPassword);
     await page.goto('/admin/dns/new');

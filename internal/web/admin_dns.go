@@ -92,8 +92,19 @@ func (s *Server) handleDNSZone(rc *reqCtx) {
 					Protected: pol.ProtectedRecord(z.Name, n.Name, r.Type), First: i == 0})
 			}
 		}
+		// The PTR option of the record form: only in a forward zone, and
+		// only when the directory has a reverse zone it could apply to.
+		var reverse []string
+		if !z.Reverse() {
+			zones, err := conn.DNSZones(ctx)
+			if err != nil {
+				return err
+			}
+			reverse = reverseZoneNames(zones)
+		}
 		rc.render(http.StatusOK, "dns_zone", map[string]any{"Z": z, "AD": pol.ADZone(z.Name), "Rows": rows, "Q": q,
-			"Page": page, "More": more, "Types": ad.WritableDNSTypes, "Link": zoneLink(z.Name), "F": map[string]string{"type": "A"}})
+			"Page": page, "More": more, "Types": ad.WritableDNSTypes, "Link": zoneLink(z.Name), "F": map[string]string{"type": "A"},
+			"ReverseZones": strings.Join(reverse, ", ")})
 		return nil
 	})
 }
@@ -261,9 +272,17 @@ func (s *Server) handleDNSRecordNew(rc *reqCtx) {
 			rc.redirect(back)
 			return nil
 		}
-		rc.propose(&pendingOp{perm: PermDNSWrite, action: "dns.record_add", target: node.DN, op: op,
+		p := &pendingOp{perm: PermDNSWrite, action: "dns.record_add", target: node.DN, op: op,
 			title: rc.T("dns.record_new.title", z.Name), summary: rc.T("dns.summary.record_add", rec.Type.String(), node.FQDN(z.Name), rec.Data),
-			back: back + "?q=" + url.QueryEscape(strings.TrimPrefix(node.Name, "@")), done: rc.T("op.done")})
+			back: back + "?q=" + url.QueryEscape(strings.TrimPrefix(node.Name, "@")), done: rc.T("op.done")}
+		// The matching PTR record, when asked for (A and AAAA records of a
+		// forward zone).
+		if rc.form("ptr") == "1" && !z.Reverse() && (rec.Type == ad.DNSTypeA || rec.Type == ad.DNSTypeAAAA) {
+			if err := s.planPTR(ctx, rc, conn, p, rec, node.FQDN(z.Name)); err != nil {
+				return err
+			}
+		}
+		rc.propose(p)
 		return nil
 	})
 }
