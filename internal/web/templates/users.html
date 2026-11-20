@@ -10,8 +10,10 @@
     <option value="disabled"{{if eq .D.Status "disabled"}} selected{{end}}>{{t "status.disabled"}}</option>
     <option value="locked"{{if eq .D.Status "locked"}} selected{{end}}>{{t "status.locked"}}</option>
   </select>
+  {{template "ou-scope" (dict "S" .D.Scope "E" "users")}}
   <button class="btn" type="submit" data-e2e="users-btn-search">{{t "form.search"}}</button>
 </form>
+{{template "ou-scope-notice" (dict "S" .D.Scope "E" "users")}}
 {{if .D.Users}}{{$act := has .Nav "users.helpdesk"}}{{if $act}}{{template "select-actions" (dict "P" $ "Back" "/admin/users")}}{{end}}
 <table class="table" data-e2e="users-table">
   <thead><tr>{{if $act}}<th><span class="sr">{{t "sel.action"}}</span></th>{{end}}<th>{{t "attr.sAMAccountName"}}</th><th>{{t "attr.displayName"}}</th><th>{{t "attr.mail"}}</th><th>{{t "users.status"}}</th></tr></thead>

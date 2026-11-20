@@ -107,6 +107,9 @@ type Server struct {
 	// sidOfUser reads a user's SID by DN (an invited account just
 	// created). Replaced in tests.
 	sidOfUser func(ctx context.Context, rc *reqCtx, dn string) (string, error)
+	// listDir, when set (tests only), serves the Users, Groups and
+	// Computers lists instead of a connection to a DC (see viewDir).
+	listDir dirReader
 
 	mux    *http.ServeMux
 	routes []route

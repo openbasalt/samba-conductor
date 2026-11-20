@@ -198,9 +198,13 @@ func (s *Server) handleOUNew(rc *reqCtx) {
 func (s *Server) handleComputers(rc *reqCtx) {
 	q := strings.TrimSpace(rc.r.URL.Query().Get("q"))
 	page := rc.pageParam()
-	rc.view(func(ctx context.Context, conn *ad.Conn) error {
+	rc.viewDir(func(ctx context.Context, conn dirReader) error {
+		scope, err := loadOUScope(ctx, conn, rc.r.URL.Query().Get("ou"), "Computers")
+		if err != nil {
+			return err
+		}
 		f := andFilters(computerFilter, searchFilter(q, "sAMAccountName", "cn", "dNSHostName"))
-		entries, more, err := conn.SearchWindow(ctx, ad.SearchRequest{Filter: f, Attributes: ad.ComputerAttributes, SortBy: "cn"},
+		entries, more, err := conn.SearchWindow(ctx, ad.SearchRequest{BaseDN: scope.Selected, Filter: f, Attributes: ad.ComputerAttributes, SortBy: "cn"},
 			(page-1)*pageSize, pageSize)
 		if err != nil {
 			return err
@@ -209,7 +213,7 @@ func (s *Server) handleComputers(rc *reqCtx) {
 		for i, e := range entries {
 			list[i] = ad.ComputerFromEntry(e)
 		}
-		rc.render(http.StatusOK, "computers", map[string]any{"Computers": list, "Q": q, "Page": page, "More": more})
+		rc.render(http.StatusOK, "computers", map[string]any{"Computers": list, "Q": q, "Scope": scope, "Page": page, "More": more})
 		return nil
 	})
 }
