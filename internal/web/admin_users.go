@@ -32,9 +32,13 @@ func (s *Server) handleUsers(rc *reqCtx) {
 	q := strings.TrimSpace(rc.r.URL.Query().Get("q"))
 	status := rc.r.URL.Query().Get("status")
 	page := rc.pageParam()
-	rc.view(func(ctx context.Context, conn *ad.Conn) error {
+	rc.viewDir(func(ctx context.Context, conn dirReader) error {
+		scope, err := loadOUScope(ctx, conn, rc.r.URL.Query().Get("ou"), "Users")
+		if err != nil {
+			return err
+		}
 		f := andFilters(userFilter, searchFilter(q, "sAMAccountName", "cn", "displayName", "mail", "givenName", "sn"), userStatusFilter(status))
-		entries, more, err := conn.SearchWindow(ctx, ad.SearchRequest{Filter: f, Attributes: userListAttrs, SortBy: "sAMAccountName"},
+		entries, more, err := conn.SearchWindow(ctx, ad.SearchRequest{BaseDN: scope.Selected, Filter: f, Attributes: userListAttrs, SortBy: "sAMAccountName"},
 			(page-1)*pageSize, pageSize)
 		if err != nil {
 			return err
@@ -47,7 +51,7 @@ func (s *Server) handleUsers(rc *reqCtx) {
 			}
 			users = append(users, u)
 		}
-		rc.render(http.StatusOK, "users", map[string]any{"Users": users, "Q": q, "Status": status, "Page": page, "More": more,
+		rc.render(http.StatusOK, "users", map[string]any{"Users": users, "Q": q, "Status": status, "Scope": scope, "Page": page, "More": more,
 			"From": (page-1)*pageSize + 1})
 		return nil
 	})
