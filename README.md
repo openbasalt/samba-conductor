@@ -63,18 +63,29 @@ full-forest restore: lab runs in [`docs/usage-p3.md`](docs/usage-p3.md),
 
 - Administration: dashboard; users (server-side sorted search and
   pagination, create, edit, enable/disable, unlock, reset password, move,
-  delete, group membership, 2FA reset and enrollment links); groups
+  delete, group membership, 2FA reset and enrollment links, an Attributes
+  tab with every readable attribute, secrets never shown); groups
   (members with paging, nesting, create, delete, add/remove members); OUs
   (tree, create, rename, move, delete when empty); computers (enable/
-  disable, move, delete; domain controllers protected).
+  disable, move, delete; domain controllers protected). The Users, Groups
+  and Computers lists can be limited to one OU or container, kept in the
+  address (`?ou=`).
+- Attribute editor (`[ui] advanced_attribute_edit`, off by default):
+  administrators change `loginShell`, `unixHomeDirectory`, `uidNumber`,
+  `gidNumber`, `gecos` and `otherMailbox` only, each value validated on
+  the server, a duplicate `uidNumber` refused, previewed and audited with
+  old and new values.
 - Preview before every write: the exact LDAP changes (passwords
   redacted) are shown and applied only after confirmation; changes to
   administrator accounts and privileged groups need password + TOTP again.
 - DNS: AD-integrated zones and records (A, AAAA, CNAME, MX, TXT,
   SRV, PTR, NS) over LDAP with the user's own credentials, paging and
-  search, zone create/delete (forward and reverse); the AD zones and the
-  records AD manages (locators, DC records, apex SOA/NS) are read-only, with
-  DCs discovered from the directory, never configured by name.
+  search, zone create/delete (forward and reverse); only the records AD
+  manages (locators, DC records, apex SOA/NS) are read-only, so DKIM, DMARC
+  or ACME records can live in the domain zone, with DCs discovered from the
+  directory, never configured by name. A new A or AAAA record can bring
+  its PTR record in the most specific reverse zone (an existing PTR record
+  is never changed).
 - Group Policy: GPOs and where they are linked; link, unlink,
   enable/disable, enforce, link order, block inheritance; GPO create/delete
   through samba-tool with the user's Kerberos ticket. Settings inside a GPO
@@ -197,7 +208,7 @@ full-forest restore: lab runs in [`docs/usage-p3.md`](docs/usage-p3.md),
 - [Google-first mode](docs/google-first.md)
 - [Restore runbook](docs/restore.md)
 - [Design](docs/design.md)
-- Lab runs: [Single sign-on section](docs/usage-p4b.md), [Google Workspace sync section](docs/usage-p5b.md), [backups, drills, restore exercise](docs/usage-p3.md), [DNS, Group Policy, policies, bulk](docs/usage-p2.md), [core administration and self-service](docs/usage-p1.md) and [screenshots](docs/screenshots/)
+- Lab runs: [container filter, reverse DNS, Attributes tab](docs/usage-directory-2026-11.md), [Single sign-on section](docs/usage-p4b.md), [Google Workspace sync section](docs/usage-p5b.md), [backups, drills, restore exercise](docs/usage-p3.md), [DNS, Group Policy, policies, bulk](docs/usage-p2.md), [core administration and self-service](docs/usage-p1.md) and [screenshots](docs/screenshots/)
 
 ## Development
 

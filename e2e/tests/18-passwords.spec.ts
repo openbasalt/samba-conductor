@@ -178,9 +178,11 @@ test.describe.serial('invitations and password reset by e-mail', () => {
 
   test('revoked and unknown links show the same neutral page', async ({ page }, info) => {
     test.setTimeout(240_000);
+    // Count before asking: the reset is mailed in the background, so the
+    // new message may arrive only after the answer page.
+    const before = (await mailsTo(page, mail)).filter((m) => /reset your password/i.test(m.Subject)).length;
     await requestReset(page, sam);
-    const before = (await mailsTo(page, mail)).filter((m) => /reset/i.test(m.Subject)).length;
-    const link = linkIn(await waitMail(page, mail, /reset your password/i, before));
+    const link = linkIn(await waitMail(page, mail, /reset your password/i, before + 1));
     await signInMFA(page, info, 'lab.admin', env.adminPassword);
     await page.goto('/admin/users?q=' + sam);
     await page.getByTestId('users-link-' + sam).click();
