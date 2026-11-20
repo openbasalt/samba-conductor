@@ -1,0 +1,22 @@
+{{define "title"}}{{t "attrs.edit.title" .D.U.SAMAccountName}}{{end}}
+{{define "content"}}{{$g := print .D.U.GUID}}
+<h1 data-e2e="attrs-edit-text-title">{{t "attrs.edit.title" .D.U.SAMAccountName}}</h1>
+{{template "user-tabs" (dict "G" $g "Tab" "attributes")}}
+<div class="card narrow">
+  <p class="alert-info" data-e2e="attrs-edit-text-warning">{{t "attrs.edit.warning"}}</p>
+  {{template "error-alert" .D.Error}}
+  <form method="post" action="/admin/users/{{$g}}/attributes/edit">
+    {{template "csrf" .}}
+    {{range .D.Fields}}<div class="field">
+      <label for="a-{{.Name}}">{{t (print "attr." .Name)}} <span class="mono small muted">{{.Name}}</span>{{if .Managed}} <span class="badge" data-e2e="attrs-managed-{{e2e .Name}}">{{t "gf.managed.label"}}</span>{{end}}</label>
+      {{if .Multi}}<textarea id="a-{{.Name}}" name="{{.Name}}" rows="4" maxlength="4096" aria-describedby="h-{{.Name}}"{{if .Error}} aria-invalid="true"{{end}}{{if .Managed}} readonly aria-readonly="true"{{end}} data-e2e="attrs-input-{{e2e .Name}}">{{.Value}}</textarea>
+      {{else}}<input id="a-{{.Name}}" name="{{.Name}}" type="text" maxlength="255" value="{{.Value}}" autocomplete="off" spellcheck="false"{{if .Numeric}} inputmode="numeric"{{end}} aria-describedby="h-{{.Name}}"{{if .Error}} aria-invalid="true"{{end}}{{if .Managed}} readonly aria-readonly="true"{{end}} data-e2e="attrs-input-{{e2e .Name}}">{{end}}
+      <p class="hint" id="h-{{.Name}}">{{t (print "attrs.hint." .Name)}}</p>
+      {{if .Error}}<p class="alert-error" role="alert" data-e2e="attrs-error-{{e2e .Name}}">{{.Error}}</p>{{end}}
+    </div>{{end}}
+    <div class="actions">
+      <button class="btn btn-primary" type="submit" data-e2e="attrs-btn-preview">{{t "form.preview"}}</button>
+      <a class="btn" href="/admin/users/{{$g}}/attributes" data-e2e="attrs-link-cancel">{{t "form.cancel"}}</a>
+    </div>
+  </form>
+</div>{{end}}

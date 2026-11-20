@@ -326,6 +326,11 @@ type Helper struct {
 type UI struct {
 	// DefaultLanguage: "en" or "pt-BR".
 	DefaultLanguage string `toml:"default_language"`
+	// AdvancedAttributeEdit offers the restricted attribute editor on a
+	// user's Attributes tab (loginShell, unixHomeDirectory, uidNumber,
+	// gidNumber, gecos, otherMailbox) to administrators. Off by default:
+	// these attributes drive what Unix hosts do with the account.
+	AdvancedAttributeEdit bool `toml:"advanced_attribute_edit"`
 }
 
 // Load reads and validates a configuration file.

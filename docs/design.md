@@ -108,9 +108,26 @@ and the AD access layer in the
 |---|---|---|
 | admin | Domain Admins (RID 512) | everything |
 | helpdesk | configured | view users, reset passwords, unlock, enable and disable, where AD delegates it |
-| auditor | configured | read-only administration views, audit log |
+| auditor | configured | read-only administration views (including a user's Attributes tab), audit log |
 | everyone | | self-service |
 
+- A user's Attributes tab (`users.attributes`: administrators and
+  auditors) lists every attribute the signed-in user may read on the
+  account, read with that user's own ticket. Secret attributes (password
+  hashes and histories, `supplementalCredentials`, gMSA, LAPS, BitLocker
+  and TPM data, key credentials, `nTSecurityDescriptor`, trust secrets) are
+  never shown even if the DC returns them; values that are not valid UTF-8
+  or hold control or format characters show only their size; at most 50
+  values per attribute and 1024 bytes per value are shown. With
+  `[ui] advanced_attribute_edit = true` administrators also get a
+  restricted editor: only `loginShell`, `unixHomeDirectory`, `uidNumber`,
+  `gidNumber`, `gecos` and `otherMailbox`, each value validated on the
+  server (absolute paths of a safe character set, IDs from 1000, no
+  duplicate `uidNumber`, plain addresses), refused when Google-first owns
+  the attribute, conditional on the values read, previewed and audited
+  with old and new values (`user.attributes_update`). Protected accounts
+  always ask for re-authentication; other accounts when the second factor
+  is more than five minutes old.
 - Roles are configured as group SIDs and matched by SID, never by name or
   DN. They are read from the user's `tokenGroups` with the user's own
   ticket (fallback: an in-chain membership search plus the primary group)

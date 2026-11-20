@@ -93,6 +93,12 @@ func (s *Server) routeTable() []route {
 		{method: "GET", pattern: "/admin/users/{guid}", perm: PermUsersRead, h: s.handleUser},
 		{method: "GET", pattern: "/admin/users/{guid}/edit", perm: PermUsersWrite, h: s.handleUserEditPage},
 		{method: "POST", pattern: "/admin/users/{guid}/edit", perm: PermUsersWrite, h: s.handleUserEdit},
+		// Advanced attributes: every readable attribute (read only), and the
+		// restricted editor when [ui] advanced_attribute_edit is on (404
+		// otherwise).
+		{method: "GET", pattern: "/admin/users/{guid}/attributes", perm: PermUsersAttrs, h: s.handleUserAttrs},
+		{method: "GET", pattern: "/admin/users/{guid}/attributes/edit", perm: PermUsersWrite, h: s.handleUserAttrsEditPage},
+		{method: "POST", pattern: "/admin/users/{guid}/attributes/edit", perm: PermUsersWrite, h: s.handleUserAttrsEdit},
 		{method: "POST", pattern: "/admin/users/{guid}/enable", perm: PermUsersHelpdesk, h: s.handleUserEnable},
 		{method: "POST", pattern: "/admin/users/{guid}/disable", perm: PermUsersHelpdesk, h: s.handleUserDisable},
 		{method: "POST", pattern: "/admin/users/{guid}/unlock", perm: PermUsersHelpdesk, h: s.handleUserUnlock},
