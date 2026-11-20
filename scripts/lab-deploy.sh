@@ -58,7 +58,8 @@ go build -trimpath -ldflags "-s -w -X main.version=$version" -o ~/conductor-buil
 cp deploy/systemd/conductor-files.service ~/conductor-build/
 cd ~/samba-conductor/conductor-idp
 go build -trimpath -ldflags "-s -w -X main.version=$version" -o ~/conductor-build/conductor-idp ./cmd/conductor-idp
-go build -trimpath -o ~/conductor-build/example-sp ./cmd/example-sp
+# cmd/example-sp is a module of its own (not in the family go.work).
+(cd cmd/example-sp && GOWORK=off go build -trimpath -o ~/conductor-build/example-sp .)
 cp deploy/systemd/conductor-idp.service deploy/systemd/conductor-idp-api.socket ~/conductor-build/
 cd ~/samba-conductor/conductor-provisioner
 go build -trimpath -ldflags "-s -w -X main.version=$version" -o ~/conductor-build/conductor-provisioner ./cmd/conductor-provisioner
