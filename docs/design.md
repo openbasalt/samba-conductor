@@ -350,7 +350,16 @@ privilege, the account's marker, the values the plan saw) before writing.
   ([self-service.md](https://github.com/openbasalt/samba-conductor-sync/blob/main/docs/self-service.md)).
 - DNS: AD-integrated zones and records over LDAP with the user's
   credentials, paging and search, zone create and delete. The AD zones and
-  the records AD manages are read-only; DCs are discovered, never named.
+  the records AD manages are read-only: the names a DC registers (the
+  `_ldap`, `_kerberos`, `_kpasswd` and `_gc` locators under `_tcp`/`_udp`,
+  everything under `_msdcs`, `_sites`, `DomainDnsZones` and
+  `ForestDnsZones`), the domain apex addresses and the DC host records.
+  Other names with a leading underscore (`_dmarc`, `sel._domainkey`,
+  `_acme-challenge`, `_sip._tcp`) are the administrator's. DCs are
+  discovered, never named. A new A or AAAA record can bring its PTR record
+  when a reverse zone covers the address (the most specific one): it is
+  added after the address record as a change of its own, audited
+  separately, and an existing PTR record is never changed.
 - Group Policy: GPOs and their links; link, unlink, enable, enforce, link
   order (GPMC semantics), block inheritance as LDAP writes. GPO create and
   delete also write SYSVOL, so conductor runs `samba-tool gpo` itself with
