@@ -3,8 +3,10 @@
 <form method="get" action="/admin/computers" class="card row" role="search">
   <label class="sr" for="q">{{t "form.search"}}</label>
   <input class="grow" id="q" name="q" type="search" value="{{.D.Q}}" placeholder="{{t "computers.search_hint"}}" data-e2e="computers-input-search">
+  {{template "ou-scope" (dict "S" .D.Scope "E" "computers")}}
   <button class="btn" type="submit" data-e2e="computers-btn-search">{{t "form.search"}}</button>
 </form>
+{{template "ou-scope-notice" (dict "S" .D.Scope "E" "computers")}}
 {{if .D.Computers}}<table class="table" data-e2e="computers-table">
   <thead><tr><th>{{t "groups.name"}}</th><th>{{t "computers.dns"}}</th><th>{{t "computers.os"}}</th><th>{{t "users.status"}}</th></tr></thead>
   <tbody>{{range .D.Computers}}<tr data-e2e="computers-row-{{e2e .SAMAccountName}}">

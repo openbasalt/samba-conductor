@@ -22,9 +22,13 @@ func sidGUID(s string) (sid.GUID, error) {
 func (s *Server) handleGroups(rc *reqCtx) {
 	q := strings.TrimSpace(rc.r.URL.Query().Get("q"))
 	page := rc.pageParam()
-	rc.view(func(ctx context.Context, conn *ad.Conn) error {
+	rc.viewDir(func(ctx context.Context, conn dirReader) error {
+		scope, err := loadOUScope(ctx, conn, rc.r.URL.Query().Get("ou"), "Users")
+		if err != nil {
+			return err
+		}
 		f := andFilters(groupFilter, searchFilter(q, "sAMAccountName", "cn", "description"))
-		entries, more, err := conn.SearchWindow(ctx, ad.SearchRequest{Filter: f, Attributes: ad.GroupAttributes, SortBy: "cn"},
+		entries, more, err := conn.SearchWindow(ctx, ad.SearchRequest{BaseDN: scope.Selected, Filter: f, Attributes: ad.GroupAttributes, SortBy: "cn"},
 			(page-1)*pageSize, pageSize)
 		if err != nil {
 			return err
@@ -33,7 +37,7 @@ func (s *Server) handleGroups(rc *reqCtx) {
 		for i, e := range entries {
 			groups[i] = ad.GroupFromEntry(e)
 		}
-		rc.render(http.StatusOK, "groups", map[string]any{"Groups": groups, "Q": q, "Page": page, "More": more})
+		rc.render(http.StatusOK, "groups", map[string]any{"Groups": groups, "Q": q, "Scope": scope, "Page": page, "More": more})
 		return nil
 	})
 }
