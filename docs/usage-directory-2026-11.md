@@ -270,3 +270,30 @@ Results, default configuration (77 tests per project):
 
 Screenshots: `docs/screenshots/desktop/{08-dns-dkim,08-dns-ptr-preview,21-attributes*,22-ou-users}.png`
 and `docs/screenshots/mobile/{21-attributes-preview,22-ou-users}.png`.
+
+### Lab run of the TXT field
+
+Run on 2026-11-24 with conductor `v0.2.1-24-g7adc3b5` (the ad library at
+the commit go.mod pins), the conductor-p4b snapshot rebuilt with this
+build, and the suite in `mcr.microsoft.com/playwright:v1.65.1-noble`.
+
+| Spec | Covers |
+|---|---|
+| `23-dns-txt` | the TXT field replaces the one-line field only while TXT is selected; six lines (one of 300 bytes, one with quotes and a backslash) and trailing blank lines become six strings, the long line split at 255, shown quoted in the summary and the exact changes; the page does not scroll sideways; the edit page shows the strings one per line; saving unchanged says nothing would change; a changed line shows old and new; the DNS service of dc1 and of dc2 (after replication) answers the same strings |
+| `08-dns` | unchanged checks, with TXT data typed in the new field |
+
+Results (78 tests per project):
+
+| Project | Passed | Failed | Skipped |
+|---|---|---|---|
+| desktop | 67 | 0 | 11 |
+| mobile | 67 | 0 | 11 |
+
+The skipped tests need the conductor-gfa snapshot (the e-mail specs), a
+lab prepared an hour earlier (the missed-schedule check) or a real
+Google Workspace domain. The audit chains verified after both runs.
+`samba-tool dns query` on dc1 and dc2 lists the record with the same six
+strings, and a record of 4000 bytes (15 strings of 255 bytes and one of
+159) is stored by Samba, replicated and answered by both DCs.
+
+Screenshot: `docs/screenshots/desktop/23-dns-txt-preview.png`.
