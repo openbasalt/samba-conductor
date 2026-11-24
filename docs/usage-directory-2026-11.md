@@ -4,8 +4,9 @@ Three additions to the administration pages:
 
 - the Users, Groups and Computers lists can be limited to one container
   (an OU or a built-in container such as `CN=Users`);
-- the DNS pages leave the names AD does not own to the administrator, and
-  a new A or AAAA record can bring its PTR record;
+- the DNS pages leave the names AD does not own to the administrator, a
+  new A or AAAA record can bring its PTR record, and TXT records are typed
+  one string per line;
 - a user's Attributes tab shows every attribute the signed-in user may
   read on the account, and an opt-in editor changes a short list of Unix
   and mail attributes.
@@ -90,6 +91,45 @@ records. It is unchecked by default. When checked:
 Who can use it: administrators (the DNS pages are read-only for auditors
 and not shown to helpdesk). Nothing needs to be enabled; the option shows
 when a reverse zone covers the address.
+
+### TXT records, one string per line
+
+A TXT record holds one or more character-strings of at most 255 bytes
+each; a DKIM key is usually split over several. When TXT is selected in
+the "Add record" form, the one-line Data field is replaced by a
+multi-line "TXT data" field (the stylesheet swaps them, no script runs),
+and the edit page of a TXT record shows the same kind of field. The text
+is read as follows:
+
+- each non-empty line becomes one string; blank lines and the spaces at
+  the start and end of a line are ignored;
+- a line longer than 255 bytes is split into strings of 255 bytes,
+  never inside a UTF-8 character;
+- a line that starts with a double quote is read as one or more quoted
+  strings (`"a" "b"`, with `\"` and `\\` escapes), each of which must fit
+  in 255 bytes; any other line is taken literally, quotes and
+  backslashes included;
+- the record holds at most 4000 bytes in all, counting one length byte
+  per string.
+
+For example, the three lines
+
+```
+v=DKIM1; h=sha256; k=rsa;
+p=abcdef
+ghijklmnop
+```
+
+are stored as `"v=DKIM1; h=sha256; k=rsa;" "p=abcdef" "ghijklmnop"`. The
+preview shows the record in this quoted form, exactly as it will be
+stored, so the split of a long line can be checked before it is applied.
+The edit page shows the strings one per line again (quoted only when a
+string would not read back the same way, for example one that starts
+with a double quote or has spaces at its ends), and saving it unchanged
+changes nothing. One-line input keeps working as before: quoted strings
+on one line, or one value split every 255 bytes.
+
+![The preview of a multi-line DKIM record](screenshots/desktop/23-dns-txt-preview.png)
 
 ## The Attributes tab and the attribute editor
 

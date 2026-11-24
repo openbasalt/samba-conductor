@@ -29,8 +29,9 @@
     <div class="grid grid-2">
       <div class="field"><label for="r-name">{{t "dns.name"}}</label><input id="r-name" name="name" type="text" placeholder="@" data-e2e="dns-input-name"><span class="hint">{{t "dns.name_hint" .D.Z.Name}}</span></div>
       <div class="field"><label for="r-type">{{t "dns.type"}}</label><select id="r-type" name="type" data-e2e="dns-select-type">{{range .D.Types}}<option value="{{.}}"{{if eq (print .) (index $.D.F "type")}} selected{{end}}>{{.}}</option>{{end}}</select></div>
-      <div class="field"><label for="r-data">{{t "dns.data"}}</label><input id="r-data" name="data" type="text" required data-e2e="dns-input-data"><span class="hint">{{t "dns.data_hint"}}</span></div>
+      <div class="field dns-data-line"><label for="r-data">{{t "dns.data"}}</label><input id="r-data" name="data" type="text" data-e2e="dns-input-data"><span class="hint">{{t "dns.data_hint"}}</span></div>
       <div class="field"><label for="r-ttl">{{t "dns.ttl"}}</label><input id="r-ttl" name="ttl" type="text" inputmode="numeric" placeholder="3600" data-e2e="dns-input-ttl"></div>
+      <div class="field dns-data-txt"><label for="r-txt">{{t "dns.txt_data"}}</label><textarea id="r-txt" name="txt" rows="6" spellcheck="false" autocapitalize="off" autocomplete="off" class="mono" data-e2e="dns-input-txt"></textarea><span class="hint">{{t "dns.txt_hint"}}</span></div>
     </div>
     {{if .D.ReverseZones}}<div class="check"><input id="r-ptr" name="ptr" type="checkbox" value="1" data-e2e="dns-check-ptr"><label for="r-ptr">{{t "dns.ptr.offer"}} <span class="hint">{{t "dns.ptr.offer_hint" .D.ReverseZones}}</span></label></div>{{end}}
     <button class="btn btn-primary" type="submit" data-e2e="dns-btn-add">{{t "form.preview"}}</button>

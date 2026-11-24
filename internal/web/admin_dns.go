@@ -216,6 +216,28 @@ func (s *Server) handleDNSZoneDelete(rc *reqCtx) {
 	})
 }
 
+// recordData is the data a record form sent. The add form has a one-line
+// field for every type and a multi-line one for TXT ("txt", shown by the
+// stylesheet when TXT is selected); a TXT record takes the multi-line text
+// when there is one. ad reads multi-line TXT data as one string per line.
+func recordData(rc *reqCtx, t ad.DNSType) string {
+	if t == ad.DNSTypeTXT {
+		if v := rc.form("txt"); v != "" {
+			return v
+		}
+	}
+	return rc.form("data")
+}
+
+// recordFieldValue is the initial value of the data field of the edit
+// form: a TXT record one string per line.
+func recordFieldValue(r ad.DNSRecord) string {
+	if r.Type == ad.DNSTypeTXT {
+		return ad.TXTLines(r.Data)
+	}
+	return r.Data
+}
+
 // recordForm reads type, data and TTL of the record forms.
 func recordForm(rc *reqCtx, t ad.DNSType) (ad.DNSRecord, error) {
 	ttl := uint64(0)
@@ -226,7 +248,7 @@ func recordForm(rc *reqCtx, t ad.DNSType) (ad.DNSRecord, error) {
 		}
 		ttl = n
 	}
-	return ad.NewDNSRecord(t, rc.form("data"), uint32(ttl))
+	return ad.NewDNSRecord(t, recordData(rc, t), uint32(ttl))
 }
 
 func (s *Server) handleDNSRecordNew(rc *reqCtx) {
@@ -321,7 +343,7 @@ func (s *Server) handleDNSRecordEditPage(rc *reqCtx) {
 			return nil
 		}
 		rc.render(http.StatusOK, "dns_record", map[string]any{"Z": z, "Node": node, "R": rec, "ID": recordID(rec),
-			"FQDN": node.FQDN(z.Name), "Link": zoneLink(z.Name)})
+			"FQDN": node.FQDN(z.Name), "Link": zoneLink(z.Name), "Value": recordFieldValue(rec), "TTL": rec.TTL})
 		return nil
 	})
 }
@@ -339,8 +361,10 @@ func (s *Server) handleDNSRecordEdit(rc *reqCtx) {
 		}
 		rec, err := recordForm(rc, old.Type)
 		if err != nil {
+			// Keep what was typed, so a long TXT value is fixed, not retyped.
 			rc.render(http.StatusBadRequest, "dns_record", map[string]any{"Z": z, "Node": node, "R": old, "ID": recordID(old),
-				"FQDN": node.FQDN(z.Name), "Link": back, "Error": rc.T("dns.err.record_data", old.Type.String())})
+				"FQDN": node.FQDN(z.Name), "Link": back, "Error": rc.T("dns.err.record_data", old.Type.String()),
+				"Value": rc.form("data"), "TTL": rc.form("ttl")})
 			return nil
 		}
 		pol, err := conn.DNSPolicy(ctx)

@@ -1,7 +1,7 @@
 {{define "title"}}{{.D.Title}}{{end}}
 {{define "content"}}<div class="card" data-e2e="confirm-card">
   <h1 data-e2e="confirm-text-title">{{.D.Title}}</h1>
-  <p data-e2e="confirm-text-summary">{{.D.Summary}}</p>
+  <p class="wrap" data-e2e="confirm-text-summary">{{.D.Summary}}</p>
   {{if .D.Warning}}<div class="alert-warn" role="alert" data-e2e="confirm-text-warning">{{.D.Warning}}</div>{{end}}
   {{template "error-alert" .D.Error}}
   {{with .D.Files}}{{template "files-plan" .}}{{end}}

@@ -85,7 +85,8 @@ full-forest restore: lab runs in [`docs/usage-p3.md`](docs/usage-p3.md),
   or ACME records can live in the domain zone, with DCs discovered from the
   directory, never configured by name. A new A or AAAA record can bring
   its PTR record in the most specific reverse zone (an existing PTR record
-  is never changed).
+  is never changed). TXT records are typed one string per line, long
+  lines split at 255 bytes.
 - Group Policy: GPOs and where they are linked; link, unlink,
   enable/disable, enforce, link order, block inheritance; GPO create/delete
   through samba-tool with the user's Kerberos ticket. Settings inside a GPO

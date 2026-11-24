@@ -118,6 +118,16 @@ input[type=text], input[type=password], input[type=search], input[type=email], i
   padding: .6rem .7rem; width: 100%; min-height: 44px;
 }
 input:focus, select:focus { border-color: var(--accent); }
+/* DNS record form: the multi-line TXT field replaces the one-line data
+   field while TXT is selected, with no script (strict CSP). Browsers
+   without :has() keep the one-line field, which still takes TXT data. */
+.dns-data-txt { display: none; grid-column: 1 / -1; }
+form:has(#r-type option[value="TXT"]:checked) .dns-data-txt { display: flex; }
+form:has(#r-type option[value="TXT"]:checked) .dns-data-line { display: none; }
+textarea.mono { font-size: .875rem; }
+/* Long values without spaces (a 255-byte TXT string) break instead of
+   widening the page. */
+.wrap { overflow-wrap: anywhere; }
 .check { display: flex; gap: .5rem; align-items: flex-start; margin-bottom: .9rem; }
 .check input { width: 1.15rem; height: 1.15rem; margin-top: .2rem; accent-color: var(--accent); }
 .row { display: flex; flex-wrap: wrap; gap: .5rem; align-items: center; }
