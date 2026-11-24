@@ -4,8 +4,9 @@ Three additions to the administration pages:
 
 - the Users, Groups and Computers lists can be limited to one container
   (an OU or a built-in container such as `CN=Users`);
-- the DNS pages leave the names AD does not own to the administrator, and
-  a new A or AAAA record can bring its PTR record;
+- the DNS pages leave the names AD does not own to the administrator, a
+  new A or AAAA record can bring its PTR record, and TXT records are typed
+  one string per line;
 - a user's Attributes tab shows every attribute the signed-in user may
   read on the account, and an opt-in editor changes a short list of Unix
   and mail attributes.
@@ -90,6 +91,45 @@ records. It is unchecked by default. When checked:
 Who can use it: administrators (the DNS pages are read-only for auditors
 and not shown to helpdesk). Nothing needs to be enabled; the option shows
 when a reverse zone covers the address.
+
+### TXT records, one string per line
+
+A TXT record holds one or more character-strings of at most 255 bytes
+each; a DKIM key is usually split over several. When TXT is selected in
+the "Add record" form, the one-line Data field is replaced by a
+multi-line "TXT data" field (the stylesheet swaps them, no script runs),
+and the edit page of a TXT record shows the same kind of field. The text
+is read as follows:
+
+- each non-empty line becomes one string; blank lines and the spaces at
+  the start and end of a line are ignored;
+- a line longer than 255 bytes is split into strings of 255 bytes,
+  never inside a UTF-8 character;
+- a line that starts with a double quote is read as one or more quoted
+  strings (`"a" "b"`, with `\"` and `\\` escapes), each of which must fit
+  in 255 bytes; any other line is taken literally, quotes and
+  backslashes included;
+- the record holds at most 4000 bytes in all, counting one length byte
+  per string.
+
+For example, the three lines
+
+```
+v=DKIM1; h=sha256; k=rsa;
+p=abcdef
+ghijklmnop
+```
+
+are stored as `"v=DKIM1; h=sha256; k=rsa;" "p=abcdef" "ghijklmnop"`. The
+preview shows the record in this quoted form, exactly as it will be
+stored, so the split of a long line can be checked before it is applied.
+The edit page shows the strings one per line again (quoted only when a
+string would not read back the same way, for example one that starts
+with a double quote or has spaces at its ends), and saving it unchanged
+changes nothing. One-line input keeps working as before: quoted strings
+on one line, or one value split every 255 bytes.
+
+![The preview of a multi-line DKIM record](screenshots/desktop/23-dns-txt-preview.png)
 
 ## The Attributes tab and the attribute editor
 
@@ -230,3 +270,30 @@ Results, default configuration (77 tests per project):
 
 Screenshots: `docs/screenshots/desktop/{08-dns-dkim,08-dns-ptr-preview,21-attributes*,22-ou-users}.png`
 and `docs/screenshots/mobile/{21-attributes-preview,22-ou-users}.png`.
+
+### Lab run of the TXT field
+
+Run on 2026-11-24 with conductor `v0.2.1-24-g7adc3b5` (the ad library at
+the commit go.mod pins), the conductor-p4b snapshot rebuilt with this
+build, and the suite in `mcr.microsoft.com/playwright:v1.65.1-noble`.
+
+| Spec | Covers |
+|---|---|
+| `23-dns-txt` | the TXT field replaces the one-line field only while TXT is selected; six lines (one of 300 bytes, one with quotes and a backslash) and trailing blank lines become six strings, the long line split at 255, shown quoted in the summary and the exact changes; the page does not scroll sideways; the edit page shows the strings one per line; saving unchanged says nothing would change; a changed line shows old and new; the DNS service of dc1 and of dc2 (after replication) answers the same strings |
+| `08-dns` | unchanged checks, with TXT data typed in the new field |
+
+Results (78 tests per project):
+
+| Project | Passed | Failed | Skipped |
+|---|---|---|---|
+| desktop | 67 | 0 | 11 |
+| mobile | 67 | 0 | 11 |
+
+The skipped tests need the conductor-gfa snapshot (the e-mail specs), a
+lab prepared an hour earlier (the missed-schedule check) or a real
+Google Workspace domain. The audit chains verified after both runs.
+`samba-tool dns query` on dc1 and dc2 lists the record with the same six
+strings, and a record of 4000 bytes (15 strings of 255 bytes and one of
+159) is stored by Samba, replicated and answered by both DCs.
+
+Screenshot: `docs/screenshots/desktop/23-dns-txt-preview.png`.

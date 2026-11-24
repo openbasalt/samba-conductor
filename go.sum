@@ -64,8 +64,8 @@ github.com/mattn/go-isatty v0.0.24 h1:tGZZoVgT/KiqK1c8ocVLeDS8BSWMRd47J3Lbz7vsRe
 github.com/mattn/go-isatty v0.0.24/go.mod h1:nMCL3Zebbrt45jsMDgnfIwz6ydEQApk5oEI3HqDio6A=
 github.com/ncruces/go-strftime v1.1.0 h1:vtPmPWMkb539RGV9WpWT9EwJGvrOCKvMNI4obWL47Hk=
 github.com/ncruces/go-strftime v1.1.0/go.mod h1:yVaq7iwCN09vHRrKBrrflXT0M9tTMG2KmZ9Fj7xeG/g=
-github.com/openbasalt/samba-conductor-ad v0.0.0-20261120172205-261d870a713f h1:FDX+iy2DtDw+deiFJVtuY+AtAJfYqQwacoBNCBVxKzE=
-github.com/openbasalt/samba-conductor-ad v0.0.0-20261120172205-261d870a713f/go.mod h1:HCCzeXWuyuJQ4uI5RPLmoWQEeuePn/uSVVuNF61OOFc=
+github.com/openbasalt/samba-conductor-ad v0.0.0-20261124215808-d1314c7fe42f h1:NRY3U0k5QeSSQuktAgOljaOtFgZNmQdeeBIUFVaIC4w=
+github.com/openbasalt/samba-conductor-ad v0.0.0-20261124215808-d1314c7fe42f/go.mod h1:HCCzeXWuyuJQ4uI5RPLmoWQEeuePn/uSVVuNF61OOFc=
 github.com/openbasalt/samba-conductor-files v0.0.0-20261009012130-1ff33f4cb0c6 h1:I2WADZi8ibycWfsjitisVdr6HuTmMEds/AFnhPXyCnk=
 github.com/openbasalt/samba-conductor-files v0.0.0-20261009012130-1ff33f4cb0c6/go.mod h1:3VXz493W+/CgqOZ2GoqqDVUTD57VPelrIAPRBDqFlLQ=
 github.com/openbasalt/samba-conductor-idp v0.1.3-0.20261116192442-635bd54391ed h1:ysU9XAJ5MjY4FgWil1fl1+fclRjQ3SA8ODMB3t7bSMA=

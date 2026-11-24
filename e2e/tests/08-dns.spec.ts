@@ -81,7 +81,8 @@ test.describe.serial('DNS', () => {
       ['_http._tcp', 'SRV', `0 5 80 www.${zone}`]]) {
       await page.getByTestId('dns-input-name').fill(name);
       await page.getByTestId('dns-select-type').selectOption(type);
-      await page.getByTestId('dns-input-data').fill(data);
+      // TXT data goes to the multi-line field shown for TXT.
+      await page.getByTestId(type === 'TXT' ? 'dns-input-txt' : 'dns-input-data').fill(data);
       await page.getByTestId('dns-btn-add').click();
       await apply(page);
       await expect(page.getByTestId('flash-ok')).toBeVisible();
@@ -122,7 +123,8 @@ test.describe.serial('DNS', () => {
       [`_sip._tcp.${sel}`, 'SRV', `0 5 5060 intranet.${zone}`]]) {
       await page.getByTestId('dns-input-name').fill(name);
       await page.getByTestId('dns-select-type').selectOption(type);
-      await page.getByTestId('dns-input-data').fill(data);
+      // TXT data goes to the multi-line field shown for TXT.
+      await page.getByTestId(type === 'TXT' ? 'dns-input-txt' : 'dns-input-data').fill(data);
       await page.getByTestId('dns-btn-add').click();
       await apply(page);
       await expect(page.getByTestId('flash-ok')).toBeVisible();
